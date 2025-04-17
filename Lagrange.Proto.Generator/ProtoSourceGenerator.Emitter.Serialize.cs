@@ -25,7 +25,7 @@ public partial class ProtoSourceGenerator
                 var tag = EmitTagSerializeStatement(kv.Key, kv.Value.WireType);
                 var field = EmitMemberStatement(kv.Value, kv.Key, name);
 
-                var block = SF.Block(SF.List<StatementSyntax>([tag, ..field]));
+                var block = SF.Block(SF.List<StatementSyntax>([..tag, ..field]));
 
                 if (parser.Model.GetTypeSymbol(type).IsValueType && !type.IsNullableType())
                 {
@@ -35,7 +35,7 @@ public partial class ProtoSourceGenerator
                     }
                     else
                     {
-                        syntax.Add(tag);
+                        syntax.AddRange(tag);
                         syntax.AddRange(field);
                         syntax[syntax.Count - 1] = syntax[syntax.Count - 1].WithTrailingTrivia(SF.Comment("\n"));
                     }
@@ -77,20 +77,19 @@ public partial class ProtoSourceGenerator
             };
         }
 
-        private static StatementSyntax EmitTagSerializeStatement(int field, WireType wireType)
+        private static ExpressionStatementSyntax[] EmitTagSerializeStatement(int field, WireType wireType)
         {
             int tag = (field << 3) | (byte)wireType;
             var encoded = ProtoHelper.EncodeVarInt(tag);
             string comment = $"// Field {field} | WireType {wireType} | Tag {tag} = {field} | {(byte)wireType} ({wireType}) << 3";
 
-            var array = new ExpressionSyntax[encoded.Length];
-            for (int i = 0; i < encoded.Length; i++) array[i] = SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(encoded[i]));
-            var init = SF.InitializerExpression(SK.ArrayInitializerExpression).AddExpressions(array);
-            var bytes = SF.StackAllocArrayCreationExpression(SF.ArrayType(SF.ParseTypeName("byte[]"))).WithInitializer(init);
-                
-            var access = SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, SF.IdentifierName("writer"), SF.IdentifierName("WriteRawBytes"));
-            return SF.ExpressionStatement(SF.InvocationExpression(access).AddArgumentListArguments(SF.Argument(bytes)))
-                .WithTrailingTrivia(SF.Comment(comment));
+            var access = SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, SF.IdentifierName("writer"), SF.IdentifierName("WriteRawByte"));
+
+            return encoded.Select(num => SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(num)))
+                .Select(les =>
+                    SF.ExpressionStatement(SF.InvocationExpression(access).AddArgumentListArguments(SF.Argument(les)))
+                        .WithTrailingTrivia(SF.Comment(comment)))
+                .ToArray();
         }
             
         private static StatementSyntax EmitVarIntSerializeStatement(string name, bool isSigned)

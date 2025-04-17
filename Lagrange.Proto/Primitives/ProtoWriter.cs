@@ -36,8 +36,8 @@ public class ProtoWriter : IDisposable
     public void EncodeString(ReadOnlySpan<char> str)
     {
         int count = ProtoHelper.GetVarIntLength(str.Length);
-        int min = ProtoHelper.GetStringVarIntMinRange(count);
-        int max = ProtoHelper.GetStringVarIntMaxRange(count);
+        int min = ProtoHelper.GetVarIntMin(count);
+        int max = ProtoHelper.GetVarIntMax(count);
         int utf16Max = ProtoConstants.MaxExpansionFactorWhileTranscoding * str.Length;
         if (_memory.Length < utf16Max) Grow(utf16Max);
         
