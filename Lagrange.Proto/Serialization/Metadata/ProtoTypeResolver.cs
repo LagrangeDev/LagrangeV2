@@ -30,12 +30,11 @@ public static partial class ProtoTypeResolver
         { typeof(IProtoSerializable<>), typeof(ProtoSerializableConverter<>) },
     };
     
-    public static void Register<T>(ProtoConverter<T> converter)
+    public static void Register<T>(ProtoConverter<T> converter, bool allowOverride = true)
     {
-        if (Check<T>.Registered) return;
-
-        Converters[typeof(T)] = converter;
+        if (!allowOverride && Check<T>.Registered) return;
         Check<T>.Registered = true; // avoid to call Cache() constructor called.
+        Converters[typeof(T)] = converter;
         Cache<T>.Converter = converter;
     }
     

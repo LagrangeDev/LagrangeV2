@@ -39,7 +39,7 @@ public static partial class ProtoSerializer
     
     private static void SerializeProtoPackableCore<T>(IBufferWriter<byte> dest, T obj) where T : IProtoSerializable<T>
     {
-        ProtoTypeResolver.Register(new ProtoSerializableConverter<T>());
+        ProtoTypeResolver.Register(new ProtoSerializableConverter<T>(), allowOverride: false);
 
         var writer = ProtoWriterCache.RentWriter(dest);
         T.SerializeHandler(obj, writer);
