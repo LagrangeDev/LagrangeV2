@@ -32,8 +32,10 @@ public static partial class ProtoTypeResolver
     
     public static void Register<T>(ProtoConverter<T> converter)
     {
-        Check<T>.Registered = true; // avoid to call Cache() constructor called.
+        if (Check<T>.Registered) return;
+
         Converters[typeof(T)] = converter;
+        Check<T>.Registered = true; // avoid to call Cache() constructor called.
         Cache<T>.Converter = converter;
     }
     
