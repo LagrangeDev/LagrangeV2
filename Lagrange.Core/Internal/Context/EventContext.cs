@@ -72,7 +72,7 @@ internal class EventContext : IDisposable
         }
         catch (Exception e)
         {
-            // TODO: Log
+            Console.WriteLine(e);
         }
 
         return null;

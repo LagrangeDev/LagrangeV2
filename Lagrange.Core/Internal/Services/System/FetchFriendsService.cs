@@ -13,7 +13,7 @@ internal class FetchFriendsService : OidbService<FetchFriendsEventReq, FetchFrie
     private protected override uint Command => 0xfd4;
 
     private protected override uint Service => 1;
-    
+
     private protected override Task<IncPullRequest> ProcessRequest(FetchFriendsEventReq request, BotContext context)
     {
         return Task.FromResult(new IncPullRequest
@@ -45,15 +45,15 @@ internal class FetchFriendsService : OidbService<FetchFriendsEventReq, FetchFrie
             string personalSign = f.SubBiz[1].Data[102];
             string remark = f.SubBiz[1].Data[103];
             string qid = f.SubBiz[1].Data[27394];
-            
+
             var friend = new BotFriend(f.Uin, nickname, f.Uid, remark, personalSign, qid, categoryMap[f.CategoryId])
             {
-                Age = f.SubBiz[1].NumData[20037], 
+                Age = f.SubBiz[1].NumData[20037],
                 Gender = (BotGender)f.SubBiz[1].NumData[20009]
             };
             friends.Add(friend);
         }
-        
+
         return Task.FromResult(new FetchFriendsEventResp(friends, categories, response.Cookie));
     }
 }

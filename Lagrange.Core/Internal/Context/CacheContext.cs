@@ -7,23 +7,24 @@ namespace Lagrange.Core.Internal.Context;
 internal class CacheContext(BotContext context)
 {
     private List<BotFriend>? _friends;
-    
+
     private List<BotGroup>? _groups;
 
     private readonly ConcurrentDictionary<long, List<BotGroupMember>> _members = new();
 
     private readonly Dictionary<int, BotFriendCategory> _categories = new();
-    
+
     public async Task<List<BotFriend>> GetFriendList(bool refresh = false)
     {
         if (refresh || _friends == null) Interlocked.Exchange(ref _friends, await FetchFriends());
-        
+
         return _friends;
     }
 
     public async Task<List<BotGroup>> GetGroupList(bool refresh = false)
     {
-        if (refresh || _groups == null) Interlocked.Exchange(ref _groups, await FetchGroups());
+        if (refresh) Interlocked.Exchange(ref _groups, await FetchGroups());
+        Interlocked.CompareExchange(ref _groups, await FetchGroups(), null);
 
         return _groups;
     }
@@ -49,19 +50,20 @@ internal class CacheContext(BotContext context)
     {
         if (_friends == null) Interlocked.Exchange(ref _friends, await FetchFriends());
         var friend = _friends?.FirstOrDefault(f => f.Uin == uin);
-        
+
         if (friend == null)
         {
             _friends = Interlocked.Exchange(ref _friends, await FetchFriends());
             friend = _friends?.FirstOrDefault(f => f.Uin == uin);
         }
-        
+
         return friend;
     }
 
-    public async Task<(BotGroup, BotGroupMember)?> ResolveMember(long memberUin, long groupUin)
+    public async Task<(BotGroup, BotGroupMember)?> ResolveMember(long groupUin, long memberUin)
     {
-        if (_groups == null) Interlocked.Exchange(ref _groups, await FetchGroups());
+        Interlocked.CompareExchange(ref _groups, await FetchGroups(), null);
+        // if (_groups == null) Interlocked.Exchange(ref _groups, await FetchGroups());
         var group = _groups.First(g => g.GroupUin == groupUin);
 
         if (!_members.TryGetValue(groupUin, out var members))
@@ -76,16 +78,16 @@ internal class CacheContext(BotContext context)
     {
         if (_groups == null) Interlocked.Exchange(ref _groups, await FetchGroups());
         var group = _groups?.FirstOrDefault(f => f.GroupUin == groupUin);
-        
+
         if (group == null)
         {
             _groups = Interlocked.Exchange(ref _groups, await FetchGroups());
             group = _groups?.FirstOrDefault(f => f.GroupUin == groupUin);
         }
-        
+
         return group;
     }
-    
+
     /// <summary>
     /// Fetches the friends list from the server.
     /// </summary>
@@ -97,28 +99,43 @@ internal class CacheContext(BotContext context)
         do
         {
             var result = await context.EventContext.SendEvent<FetchFriendsEventResp>(new FetchFriendsEventReq(cookie));
-            if (result == null)
-            {
-                // TODO: Log
-                break;
-            }
+            // TODO: result should not be nullable, and should be thrown directly when an error occurs
+            if (result == null) break;
 
             cookie = result.Cookie;
-            
+
             friends.AddRange(result.Friends);
             foreach (var category in result.Category) _categories[category.Id] = category;
         } while (cookie != null);
-        
+
         return friends;
     }
 
-    private Task<List<BotGroup>> FetchGroups()
+    private async Task<List<BotGroup>> FetchGroups()
     {
-        throw new NotImplementedException();
+        var result = await context.EventContext.SendEvent<FetchGroupsEventResp>(new FetchGroupsEventReq());
+        // TODO: result should not be nullable, and should be thrown directly when an error occurs
+        if (result == null) return [];
+
+        return result.Groups;
     }
-    
-    private Task<List<BotGroupMember>> FetchGroupMembers(long groupUin)
+
+    private async Task<List<BotGroupMember>> FetchGroupMembers(long groupUin)
     {
-        throw new NotImplementedException();
+        var groupMembers = new List<BotGroupMember>();
+
+        byte[]? cookie = null;
+        do
+        {
+            var result = await context.EventContext.SendEvent<FetchGroupMembersEventResp>(new FetchGroupMembersEventReq((ulong)groupUin, cookie));
+            // TODO: result should not be nullable, and should be thrown directly when an error occurs
+            if (result == null) break;
+
+            cookie = result.Cookie;
+
+            groupMembers.AddRange(result.GroupMembers);
+        } while (cookie != null);
+
+        return groupMembers;
     }
 }
