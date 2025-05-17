@@ -17,7 +17,7 @@ public partial class BotLoggerService : IHostedService
     private readonly ILoggerFactory _loggerFactory;
     private readonly BotContext _bot;
 
-    public BotLoggerService(ILoggerFactory loggerFactory, Logger<BotLoggerService> logger, BotContext bot, IConfiguration config)
+    public BotLoggerService(ILoggerFactory loggerFactory, ILogger<BotLoggerService> logger, BotContext bot, IConfiguration config)
     {
         _loggerFactory = loggerFactory;
         _bot = bot;
