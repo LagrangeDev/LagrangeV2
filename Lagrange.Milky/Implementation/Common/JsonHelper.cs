@@ -12,24 +12,42 @@ namespace Lagrange.Milky.Implementation.Common;
     GenerationMode = JsonSourceGenerationMode.Default,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 
+// Raw JSON Types
 [JsonSerializable(typeof(JsonNode))]
 [JsonSerializable(typeof(JsonObject))]
 
-// Api Handler Param
+// The following types are used in API
+
 [JsonSerializable(typeof(EmptyParam))]
 [JsonSerializable(typeof(CachedParam))]
-[JsonSerializable(typeof(GetFriendInfoParam))]
-[JsonSerializable(typeof(GetGroupInfoParam))]
-[JsonSerializable(typeof(GetGroupMemberListParam))]
-[JsonSerializable(typeof(GetGroupMemberInfoParam))]
-// Api Handler Result
 [JsonSerializable(typeof(ApiFailedResult))]
+
+// /get_login_info
+// [no input parameters]
 [JsonSerializable(typeof(ApiOkResult<GetLoginInfoResult>))]
+
+// /get_friend_list
+// [no input parameters]
 [JsonSerializable(typeof(ApiOkResult<IEnumerable<Friend>>))]
+
+// /get_friend_info
+[JsonSerializable(typeof(GetFriendInfoParam))]
 [JsonSerializable(typeof(ApiOkResult<Friend>))]
+
+// /get_group_list
+// [no input parameters]
 [JsonSerializable(typeof(ApiOkResult<IEnumerable<Group>>))]
+
+// /get_group_info
+[JsonSerializable(typeof(GetGroupInfoParam))]
 [JsonSerializable(typeof(ApiOkResult<Group>))]
+
+// /get_group_member_list
+[JsonSerializable(typeof(GetGroupMemberListParam))]
 [JsonSerializable(typeof(ApiOkResult<IEnumerable<GroupMember>>))]
+
+// /get_group_member_info
+[JsonSerializable(typeof(GetGroupMemberInfoParam))]
 [JsonSerializable(typeof(ApiOkResult<GroupMember>))]
 public partial class MilkyJsonContext : JsonSerializerContext;
 
