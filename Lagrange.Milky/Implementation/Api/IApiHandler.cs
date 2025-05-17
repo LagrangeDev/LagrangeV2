@@ -10,7 +10,7 @@ public interface IApiHandler
     ValueTask<IApiResult> HandleAsync(object param, CancellationToken token);
 }
 
-public interface IApiHandler<T> : IApiHandler
+public interface IApiHandler<in T> : IApiHandler
 {
     Type IApiHandler.ParamType => typeof(T);
 

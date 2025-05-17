@@ -57,7 +57,8 @@ public partial class OnlineCaptchaResolver(ILogger<OnlineCaptchaResolver> logger
                     randstr = json.Split('|')[1];
                     break;
                 }
-                else if (response.StatusCode == HttpStatusCode.NotFound)
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
                 {
                     Log.CaptchaWaiting(logger);
                 }

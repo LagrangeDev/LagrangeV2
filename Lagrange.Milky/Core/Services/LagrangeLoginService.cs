@@ -11,25 +11,21 @@ using MSLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Lagrange.Milky.Core.Services;
 
-public partial class LagrnageLoginService(IHost host, ILogger<LagrnageLoginService> logger, BotContext bot, IOptions<LagrangeConfiguration> options, ICaptchaResolver captchaResolver) : IHostedService
+public class LagrangeLoginService(IHost host, ILogger<LagrangeLoginService> logger, BotContext bot, IOptions<LagrangeConfiguration> options, ICaptchaResolver captchaResolver) : IHostedService
 {
-    private readonly IHost _host = host;
-    private readonly ILogger<LagrnageLoginService> _logger = logger;
-    private readonly BotContext _bot = bot;
     private readonly LagrangeConfiguration _config = options.Value;
-    private readonly ICaptchaResolver _captchaResolver = captchaResolver;
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _bot.EventInvoker.RegisterEvent<BotQrCodeEvent>(async (_, @event) =>
+        bot.EventInvoker.RegisterEvent<BotQrCodeEvent>(async (_, @event) =>
         {
             await File.WriteAllBytesAsync("qrcode.png", @event.Image, cancellationToken);
             bool compatibilityMode = _config.Login.QrCodeConsoleCompatibilityMode;
             QrCodeHelper.Output(@event.Url, compatibilityMode);
-            _logger.QrCodeSuccess(120, @event.Url);
+            logger.QrCodeSuccess(120, @event.Url);
         });
 
-        _bot.EventInvoker.RegisterEvent<BotQrCodeQueryEvent>((_, @event) =>
+        bot.EventInvoker.RegisterEvent<BotQrCodeQueryEvent>((_, @event) =>
         {
             var level = @event.State switch
             {
@@ -39,22 +35,22 @@ public partial class LagrnageLoginService(IHost host, ILogger<LagrnageLoginServi
                 BotQrCodeQueryEvent.TransEmpState.CodeExpired => MSLogLevel.Error,
                 _ => MSLogLevel.Debug
             };
-            _logger.QrCodeState(level, @event.State);
+            logger.QrCodeState(level, @event.State);
         });
 
-        _bot.EventInvoker.RegisterEvent<BotRefreshKeystoreEvent>(async (_, @event) =>
+        bot.EventInvoker.RegisterEvent<BotRefreshKeystoreEvent>(async (_, @event) =>
         {
             var keystore = @event.Keystore;
             await File.WriteAllBytesAsync($"{keystore.Uin}.keystore", JsonHelper.SerializeToUtf8Bytes(keystore), cancellationToken);
         });
 
-        _bot.EventInvoker.RegisterEvent<BotCaptchaEvent>(async (_, @event) =>
+        bot.EventInvoker.RegisterEvent<BotCaptchaEvent>(async (_, @event) =>
         {
-            var (ticket, randstr) = await _captchaResolver.ResolveCaptchaAsync(@event.CaptchaUrl, cancellationToken);
-            _bot.SubmitCaptcha(ticket, randstr);
+            var (ticket, randstr) = await captchaResolver.ResolveCaptchaAsync(@event.CaptchaUrl, cancellationToken);
+            bot.SubmitCaptcha(ticket, randstr);
         });
 
-        _bot.EventInvoker.RegisterEvent<BotSMSEvent>(async (_, _) =>
+        bot.EventInvoker.RegisterEvent<BotSMSEvent>(async (_, _) =>
         {
             await Task.Run(() =>
             {
@@ -62,47 +58,47 @@ public partial class LagrnageLoginService(IHost host, ILogger<LagrnageLoginServi
                 string? code = Console.ReadLine();
                 if (string.IsNullOrEmpty(code))
                 {
-                    _logger.LogCritical("SMS code is empty, process would exit in 10 seconds");
+                    logger.LogCritical("SMS code is empty, process would exit in 10 seconds");
                     Environment.Exit(-1);
                 }
 
-                _bot.SubmitSMSCode(code);
+                bot.SubmitSMSCode(code);
             }, cancellationToken);
         });
 
-        _bot.EventInvoker.RegisterEvent<BotNewDeviceVerifyEvent>((_, @event) =>
+        bot.EventInvoker.RegisterEvent<BotNewDeviceVerifyEvent>((_, @event) =>
         {
-            _logger.NewDeviceVerify(_bot.BotUin);
+            logger.NewDeviceVerify(bot.BotUin);
             bool compatibilityMode = _config.Login.QrCodeConsoleCompatibilityMode;
             QrCodeHelper.Output(@event.Url, compatibilityMode);
         });
 
-        bool result = await _bot.Login((long)_config.Login.Uin, _config.Login.Password ?? string.Empty, cancellationToken);
+        bool result = await bot.Login((long)_config.Login.Uin, _config.Login.Password ?? string.Empty, cancellationToken);
         if (!result)
         {
-            _logger.LoginFailed();
-            _ = _host.StopAsync(default);
+            logger.LoginFailed();
+            _ = host.StopAsync(CancellationToken.None);
         }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        await _bot.Logout();
+        await bot.Logout();
     }
 }
 
 public static partial class CoreLoginServiceLoggerExtension
 {
     [LoggerMessage(Level = MSLogLevel.Information, EventId = 0, Message = "Fetch QrCode Success, Expiration: {expiration} seconds, Url: {url}")]
-    public static partial void QrCodeSuccess(this ILogger<LagrnageLoginService> logger, int expiration, string url);
+    public static partial void QrCodeSuccess(this ILogger<LagrangeLoginService> logger, int expiration, string url);
 
     [LoggerMessage(EventId = 1, Message = "QrCode State: {state}")]
-    public static partial void QrCodeState(this ILogger<LagrnageLoginService> logger, MSLogLevel level, BotQrCodeQueryEvent.TransEmpState state);
+    public static partial void QrCodeState(this ILogger<LagrangeLoginService> logger, MSLogLevel level, BotQrCodeQueryEvent.TransEmpState state);
 
     [LoggerMessage(Level = MSLogLevel.Information, EventId = 2, Message = "NewDevice verify required, please scan the QrCode with the device that has already logged in with uin {uin}")]
-    public static partial void NewDeviceVerify(this ILogger<LagrnageLoginService> logger, long uin);
+    public static partial void NewDeviceVerify(this ILogger<LagrangeLoginService> logger, long uin);
 
     [LoggerMessage(Level = MSLogLevel.Critical, EventId = 3, Message = "Login failed, process would exit in 10 seconds")]
-    public static partial void LoginFailed(this ILogger<LagrnageLoginService> logger);
+    public static partial void LoginFailed(this ILogger<LagrangeLoginService> logger);
 
 }

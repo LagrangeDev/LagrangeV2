@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Lagrange.Milky.Implementation.Events;
 
-public class MilkyEventHandler(ILogger<MilkyEventHandler> logger, IOptions<MilkyConfiguration> options)
+public class MilkyEventHandler(ILogger<MilkyEventHandler> logger, IOptionsSnapshot<MilkyConfiguration> options)
 {
     private readonly ILogger<MilkyEventHandler> _logger = logger;
     private readonly MilkyConfiguration _configuration = options.Value;

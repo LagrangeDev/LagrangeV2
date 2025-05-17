@@ -12,5 +12,5 @@ public class ProtocolConfiguration
 
     public string DeviceIdentifier { get; set; } = "LGR-Milky";
 
-    public SignerConfiguration Signer { get; set; } = new SignerConfiguration();
+    public SignerConfiguration Signer { get; set; } = new();
 }

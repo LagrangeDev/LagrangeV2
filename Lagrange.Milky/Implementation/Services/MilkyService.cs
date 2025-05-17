@@ -9,12 +9,8 @@ using Microsoft.Extensions.Options;
 
 namespace Lagrange.Milky.Implementation.Services;
 
-public class MilkyService(ILogger<MilkyService> logger, IOptions<MilkyConfiguration> config, MilkyApiHandler api, MilkyEventHandler @event) : IHostedService
+public class MilkyService(ILogger<MilkyService> logger, IOptionsSnapshot<MilkyConfiguration> config, MilkyApiHandler api, MilkyEventHandler @event) : IHostedService
 {
-    private readonly ILogger<MilkyService> _logger = logger;
-    private readonly MilkyApiHandler _api = api;
-    private readonly MilkyEventHandler _event = @event;
-
     private readonly string _prefix = $"http://{config.Value.Host}:{config.Value.Port}{config.Value.CommonPrefix}";
     private readonly string _apiPath = $"{config.Value.CommonPrefix}api/";
     private readonly string _eventPath = $"{config.Value.CommonPrefix}event";
@@ -28,7 +24,7 @@ public class MilkyService(ILogger<MilkyService> logger, IOptions<MilkyConfigurat
         listener.Prefixes.Add(_prefix);
         listener.Start();
 
-        foreach (string prefix in listener.Prefixes) _logger.LogServerStarted(prefix);
+        foreach (string prefix in listener.Prefixes) logger.LogServerStarted(prefix);
 
         _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         _task = ListenerLoopAsync(listener, _cts.Token);
@@ -51,7 +47,7 @@ public class MilkyService(ILogger<MilkyService> logger, IOptions<MilkyConfigurat
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            _logger.LogGetHttpContextException(e);
+            logger.LogGetHttpContextException(e);
         }
     }
 
@@ -64,36 +60,36 @@ public class MilkyService(ILogger<MilkyService> logger, IOptions<MilkyConfigurat
 
         try
         {
-            _logger.LogConnect(identifier, request.RemoteEndPoint, request.HttpMethod, request.Url?.LocalPath);
+            logger.LogConnect(identifier, request.RemoteEndPoint, request.HttpMethod, request.Url?.LocalPath);
 
             HttpMethod method = HttpMethod.Parse(request.HttpMethod);
             string? path = request.Url?.LocalPath;
             if (method == HttpMethod.Post && (path?.StartsWith(_apiPath) ?? false))
             {
-                if (!_api.ValidateApiAccessToken(http))
+                if (!api.ValidateApiAccessToken(http))
                 {
-                    _logger.LogAccessTokenValidationFailed(identifier);
+                    logger.LogAccessTokenValidationFailed(identifier);
 
                     response.SendForbidden();
 
                     return;
                 }
 
-                await _api.Handle(http, path[_apiPath.Length..], token);
+                await api.Handle(http, path[_apiPath.Length..], token);
             }
-            else if (path == _eventPath) await _event.Handle(http, token);
+            else if (path == _eventPath) await @event.Handle(http, token);
             else response.SendNotFound();
         }
         catch (Exception e)
         {
-            _logger.LogHandleHttpListenerContextException(identifier, e);
+            logger.LogHandleHttpListenerContextException(identifier, e);
             response.SendInternalServerError();
         }
     }
 
     public async Task StopAsync(CancellationToken token)
     {
-        _cts!.Cancel();
+        await (_cts?.CancelAsync() ?? Task.CompletedTask);
         if (_task != null) await _task.WaitAsync(token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
     }
 }
@@ -105,7 +101,6 @@ public static partial class LoggerHelper
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "{identifier} >> {remote} {method} {path}")]
     public static partial void LogConnect(this ILogger<MilkyService> logger, Guid identifier, IPEndPoint remote, string method, string? path);
-
 
     [LoggerMessage(EventId = 997, Level = LogLevel.Warning, Message = "{identifier} >< Access token validation failed")]
     public static partial void LogAccessTokenValidationFailed(this ILogger<MilkyService> logger, Guid identifier);

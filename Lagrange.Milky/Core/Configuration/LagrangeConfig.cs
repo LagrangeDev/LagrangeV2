@@ -2,7 +2,7 @@ namespace Lagrange.Milky.Core.Configuration;
 
 public class LagrangeConfiguration
 {
-    public ProtocolConfiguration Protocol { get; set; } = new ProtocolConfiguration();
+    public ProtocolConfiguration Protocol { get; set; } = new();
 
-    public LoginConfiguration Login { get; set; } = new LoginConfiguration();
+    public LoginConfiguration Login { get; set; } = new();
 }

@@ -1,29 +1,26 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using Lagrange.Core;
 using Lagrange.Core.Events.EventArgs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MSLogLevel = Microsoft.Extensions.Logging.LogLevel;
 using LGRLogLevel = Lagrange.Core.Events.EventArgs.LogLevel;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Lagrange.Milky.Core.Services;
 
 public partial class LagrangeLoggerService(ILoggerFactory loggerFactory, BotContext bot) : IHostedService
 {
-    private readonly ILoggerFactory _loggerFactory = loggerFactory;
-    private readonly BotContext _bot = bot;
-
     private readonly ConcurrentDictionary<string, ILogger> _cache = new();
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _bot.EventInvoker.RegisterEvent<BotLogEvent>(HandleLog);
+        bot.EventInvoker.RegisterEvent<BotLogEvent>(HandleLog);
 
         return Task.CompletedTask;
     }
 
-    private void HandleLog(BotContext bot, BotLogEvent @event)
+    private void HandleLog(BotContext _, BotLogEvent @event)
     {
         var level = @event.Level switch
         {
@@ -36,7 +33,7 @@ public partial class LagrangeLoggerService(ILoggerFactory loggerFactory, BotCont
             _ => throw new NotSupportedException()
         };
 
-        var logger = _cache.GetOrAdd(@event.Tag, _ => _loggerFactory.CreateLogger(InferFullName(@event.Tag)));
+        var logger = _cache.GetOrAdd(@event.Tag, _ => loggerFactory.CreateLogger(InferFullName(@event.Tag)));
         LoggerHelper.LogBotMessage(logger, level, @event.Message);
     }
 
@@ -45,10 +42,7 @@ public partial class LagrangeLoggerService(ILoggerFactory loggerFactory, BotCont
     {
         foreach (var type in typeof(BotContext).Assembly.GetTypes())
         {
-            if (type.Name == tag)
-            {
-                return type.FullName ?? type.Name;
-            }
+            if (type.Name == tag) return type.FullName ?? type.Name;
         }
 
         return tag;
@@ -57,7 +51,7 @@ public partial class LagrangeLoggerService(ILoggerFactory loggerFactory, BotCont
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _bot.EventInvoker.RegisterEvent<BotLogEvent>(HandleLog);
+        bot.EventInvoker.RegisterEvent<BotLogEvent>(HandleLog);
 
         return Task.CompletedTask;
     }

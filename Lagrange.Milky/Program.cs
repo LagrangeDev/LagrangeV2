@@ -22,7 +22,7 @@ internal static class Program
         {
             Console.WriteLine("Config file not found, creating a new one...");
 
-            CreateAppsettingsFile();
+            CreateAppSettingsFile();
 
             Console.WriteLine($"Please edit {Constants.ConfigFileName} and press any key to continue.");
             Console.ReadKey(true);
@@ -31,20 +31,19 @@ internal static class Program
         var host = Host.CreateApplicationBuilder(args)
             .ConfigureConfiguration(Constants.ConfigFileName)
             .AddCore()
-            .AddMilky()
-
             .AddCoreLoginService() // Finally start the login
+            .AddMilky()
             .Build();
 
         await host.RunAsync();
     }
 
-    public static void ShowBanner()
+    private static void ShowBanner()
     {
         Console.WriteLine(Constants.Banner);
     }
 
-    public static void ShowVersion()
+    private static void ShowVersion()
     {
         string? version = Assembly
             .GetAssembly(typeof(Program))
@@ -53,7 +52,7 @@ internal static class Program
         Console.WriteLine($"Version: {version}");
     }
 
-    public static void CreateAppsettingsFile()
+    public static void CreateAppSettingsFile()
     {
         using var istr = typeof(Program).Assembly.GetManifestResourceStream(Constants.ConfigResourceName)!;
         using var temp = File.Create(Constants.ConfigFileName);

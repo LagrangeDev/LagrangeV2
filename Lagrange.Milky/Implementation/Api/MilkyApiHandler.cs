@@ -10,11 +10,9 @@ using Microsoft.Extensions.Options;
 
 namespace Lagrange.Milky.Implementation.Api;
 
-public class MilkyApiHandler(ILogger<MilkyApiHandler> logger, IOptions<MilkyConfiguration> config, IServiceProvider services)
+public class MilkyApiHandler(ILogger<MilkyApiHandler> logger, IOptionsSnapshot<MilkyConfiguration> config, IServiceProvider services)
 {
-    private readonly ILogger<MilkyApiHandler> _logger = logger;
     private readonly MilkyConfiguration _config = config.Value;
-    private readonly IServiceProvider _services = services;
 
     public async Task Handle(HttpListenerContext http, string api, CancellationToken token)
     {
@@ -24,22 +22,22 @@ public class MilkyApiHandler(ILogger<MilkyApiHandler> logger, IOptions<MilkyConf
 
         if (!MediaTypeHeaderValue.TryParse(request.ContentType, out var mediaType) || mediaType.MediaType != "application/json")
         {
-            _logger.LogSend(identifier, HttpStatusCode.UnsupportedMediaType);
+            logger.LogSend(identifier, HttpStatusCode.UnsupportedMediaType);
             response.SendUnsupportedMediaType();
             return;
         }
 
-        var handler = _services.GetKeyedService<IApiHandler>(api);
+        var handler = services.GetKeyedService<IApiHandler>(api);
         if (handler == null)
         {
-            _logger.LogSend(identifier, HttpStatusCode.NotFound);
+            logger.LogSend(identifier, HttpStatusCode.NotFound);
             http.Response.SendNotFound();
             return;
         }
 
         using var reader = new StreamReader(request.InputStream);
-        var body = await reader.ReadToEndAsync(token);
-        _logger.LogReceived(identifier, body);
+        string body = await reader.ReadToEndAsync(token);
+        logger.LogReceived(identifier, body);
 
         object param;
         try
@@ -48,7 +46,7 @@ public class MilkyApiHandler(ILogger<MilkyApiHandler> logger, IOptions<MilkyConf
         }
         catch (Exception e)
         {
-            _logger.LogDeserializeParamFailed(identifier, e);
+            logger.LogDeserializeParamFailed(identifier, e);
             http.Response.SendBadRequest();
             throw;
         }
@@ -60,7 +58,7 @@ public class MilkyApiHandler(ILogger<MilkyApiHandler> logger, IOptions<MilkyConf
         }
         catch (Exception e)
         {
-            _logger.LogHandleApiFailed(identifier, e);
+            logger.LogHandleApiFailed(identifier, e);
             result = new ApiFailedResult
             {
                 Retcode = long.MinValue,

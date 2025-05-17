@@ -191,9 +191,6 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
     ];
 
 
-    private readonly ILogger<UrlSignProvider> _logger = logger;
-    private readonly Protocols _protocol = protocol;
-    private readonly string _url = url;
     private readonly Lazy<BotContext> _bot = new(services.GetRequiredService<BotContext>);
     private readonly HttpClient _client = new(new HttpClientHandler
     {
@@ -209,11 +206,12 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
     {
         try
         {
-            if (Protocols.PC.HasFlag(_protocol))
+            if (Protocols.PC.HasFlag(protocol))
             {
                 return PCWhiteListCommand.Contains(cmd);
             }
-            else if (Protocols.Android.HasFlag(_protocol))
+
+            if (Protocols.Android.HasFlag(protocol))
             {
                 return AndroidWhiteListCommand.Contains(cmd);
             }
@@ -222,7 +220,7 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
         }
         catch (Exception e)
         {
-            _logger.LogWhiteListMatchFailed(e);
+            logger.LogWhiteListMatchFailed(e);
             return default;
         }
     }
@@ -231,11 +229,12 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
     {
         try
         {
-            if (Protocols.PC.HasFlag(_protocol))
+            if (Protocols.PC.HasFlag(protocol))
             {
                 return GetPcSecSign(cmd, seq, body);
             }
-            else if (Protocols.Android.HasFlag(_protocol))
+
+            if (Protocols.Android.HasFlag(protocol))
             {
                 return GetAndroidSecSign(uin, cmd, seq, body);
             }
@@ -244,7 +243,7 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
         }
         catch (Exception e)
         {
-            _logger.LogGetSecSignFailed(e);
+            logger.LogGetSecSignFailed(e);
             return Task.FromResult(null as SsoSecureInfo);
         }
     }
@@ -270,7 +269,7 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
         var request = new HttpRequestMessage
         {
             Method = HttpMethod.Post,
-            RequestUri = new Uri(_url),
+            RequestUri = new Uri(url),
             Content = new StringContent(
                 JsonHelper.Serialize(payload),
                 new MediaTypeHeaderValue(MediaTypeNames.Application.Json)
@@ -300,12 +299,12 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
             Seq = seq,
             Buffer = Convert.ToHexString(body.Span),
             Guid = Convert.ToHexString(_bot.Value.Keystore.Guid),
-            Version = BotAppInfo.ProtocolToAppInfo[_protocol].PtVersion,
+            Version = BotAppInfo.ProtocolToAppInfo[protocol].PtVersion,
         };
         var request = new HttpRequestMessage
         {
             Method = HttpMethod.Post,
-            RequestUri = new Uri(_url),
+            RequestUri = new Uri(url),
             Content = new StringContent(
                 JsonHelper.Serialize(payload),
                 new MediaTypeHeaderValue(MediaTypeNames.Application.Json)

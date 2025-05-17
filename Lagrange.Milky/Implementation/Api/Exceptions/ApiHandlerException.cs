@@ -1,4 +1,4 @@
-namespace Lagrange.Milky.Implementation.Exceptions;
+namespace Lagrange.Milky.Implementation.Api.Exceptions;
 
 public class ApiHandlerException(long retcode, string message) : Exception(message)
 {

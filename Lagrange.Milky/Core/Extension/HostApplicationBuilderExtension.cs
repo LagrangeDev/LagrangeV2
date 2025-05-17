@@ -2,7 +2,6 @@ using Lagrange.Core.Common;
 using Lagrange.Core.Common.Interface;
 using Lagrange.Milky.Core.Configuration;
 using Lagrange.Milky.Core.Services;
-using Lagrange.Milky.Core;
 using Lagrange.Milky.Utility;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -55,9 +54,7 @@ public static class HostApplicationBuilderExtension
                 BotKeystore? keystore = JsonHelper.Deserialize<BotKeystore>(File.ReadAllText(path));
                 if (keystore == null)
                 {
-                    throw new Exception(
-                        $"Keystore is null, please delete the '{config.Login.Uin}.keystore' file and try again"
-                    );
+                    throw new Exception($"Keystore is null, please delete the '{config.Login.Uin}.keystore' file and try again");
                 }
                 return keystore;
             }
@@ -85,7 +82,7 @@ public static class HostApplicationBuilderExtension
 
     public static HostApplicationBuilder AddCoreLoginService(this HostApplicationBuilder builder)
     {
-        builder.Services.AddHostedService<LagrnageLoginService>();
+        builder.Services.AddHostedService<LagrangeLoginService>();
 
         return builder;
     }
