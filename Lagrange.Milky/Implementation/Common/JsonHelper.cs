@@ -1,27 +1,19 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Lagrange.Core.Common;
-using Lagrange.Core.Common.Response;
-using Lagrange.Milky.Core;
 using Lagrange.Milky.Implementation.Api.System;
 using Lagrange.Milky.Implementation.Common.Api.Params;
 using Lagrange.Milky.Implementation.Common.Api.Results;
 using Lagrange.Milky.Implementation.Entity;
 
-namespace Lagrange.Milky.Utility;
+namespace Lagrange.Milky.Implementation.Common;
 
-[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Default, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, Converters = [typeof(ByteArrayConverter)])]
+[JsonSourceGenerationOptions(
+    GenerationMode = JsonSourceGenerationMode.Default,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 
 [JsonSerializable(typeof(JsonNode))]
 [JsonSerializable(typeof(JsonObject))]
-
-[JsonSerializable(typeof(BotKeystore))]
-[JsonSerializable(typeof(BotQrCodeInfo))]
-
-[JsonSerializable(typeof(PcSignerRequest))]
-[JsonSerializable(typeof(PcSignerResponse))]
-[JsonSerializable(typeof(AndroidSignerRequest))]
 
 // Api Handler Param
 [JsonSerializable(typeof(EmptyParam))]
@@ -40,23 +32,6 @@ namespace Lagrange.Milky.Utility;
 [JsonSerializable(typeof(ApiOkResult<IEnumerable<GroupMember>>))]
 [JsonSerializable(typeof(ApiOkResult<GroupMember>))]
 public partial class MilkyJsonContext : JsonSerializerContext;
-
-public class ByteArrayConverter : JsonConverter<byte[]>
-{
-    public override byte[] Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        if (reader.TokenType == JsonTokenType.String)
-        {
-            return Convert.FromHexString(reader.GetString() ?? string.Empty);
-        }
-        throw new JsonException();
-    }
-
-    public override void Write(Utf8JsonWriter writer, byte[] value, JsonSerializerOptions options)
-    {
-        writer.WriteStringValue(Convert.ToHexString(value));
-    }
-}
 
 public static class JsonHelper
 {

@@ -1,4 +1,6 @@
-﻿using Lagrange.Core;
+﻿using System.Text.Json;
+using Lagrange.Core;
+using Lagrange.Core.Common;
 using Lagrange.Core.Common.Interface;
 using Lagrange.Core.Events.EventArgs;
 using Lagrange.Milky.Core.Configuration;
@@ -7,7 +9,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MSLogLevel = Microsoft.Extensions.Logging.LogLevel;
-
 
 namespace Lagrange.Milky.Core.Services;
 
@@ -41,7 +42,7 @@ public class BotLoginService(IHost host, ILogger<BotLoginService> logger, BotCon
         bot.EventInvoker.RegisterEvent<BotRefreshKeystoreEvent>(async (_, @event) =>
         {
             var keystore = @event.Keystore;
-            await File.WriteAllBytesAsync($"{keystore.Uin}.keystore", JsonHelper.SerializeToUtf8Bytes(keystore), cancellationToken);
+            await File.WriteAllBytesAsync($"{keystore.Uin}.keystore", JsonSerializer.SerializeToUtf8Bytes(keystore, typeof(BotKeystore), CoreJsonContext.Default), cancellationToken);
         });
 
         bot.EventInvoker.RegisterEvent<BotCaptchaEvent>(async (_, @event) =>

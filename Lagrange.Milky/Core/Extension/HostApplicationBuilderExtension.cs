@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Lagrange.Core.Common;
 using Lagrange.Core.Common.Interface;
 using Lagrange.Milky.Core.Configuration;
@@ -51,8 +52,10 @@ public static class HostApplicationBuilderExtension
 
             if (File.Exists(path))
             {
-                BotKeystore? keystore = JsonHelper.Deserialize<BotKeystore>(File.ReadAllText(path));
-                if (keystore == null)
+                if (JsonSerializer.Deserialize(
+                        File.ReadAllText(path),
+                        typeof(BotKeystore),
+                        CoreJsonContext.Default) is not BotKeystore keystore)
                 {
                     throw new Exception($"Keystore is null, please delete the '{config.Login.Uin}.keystore' file and try again");
                 }

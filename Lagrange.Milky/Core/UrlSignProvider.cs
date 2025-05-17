@@ -1,9 +1,11 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Mime;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Lagrange.Core;
 using Lagrange.Core.Common;
+using Lagrange.Milky.Implementation.Common;
 using Lagrange.Milky.Utility;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -271,7 +273,7 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
             Method = HttpMethod.Post,
             RequestUri = new Uri(url),
             Content = new StringContent(
-                JsonHelper.Serialize(payload),
+                JsonSerializer.Serialize(payload, typeof(PcSignerRequest), CoreJsonContext.Default),
                 new MediaTypeHeaderValue(MediaTypeNames.Application.Json)
             )
         };
@@ -279,8 +281,13 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
         var response = await _client.SendAsync(request);
         if (!response.IsSuccessStatusCode) return null;
 
-        var content = JsonHelper.Deserialize<PcSignerResponse>(await response.Content.ReadAsStringAsync());
-        if (content == null) return null;
+        if (JsonSerializer.Deserialize(
+                await response.Content.ReadAsStringAsync(),
+                typeof(PcSignerResponse),
+                CoreJsonContext.Default) is not PcSignerResponse content)
+        {
+            return null;
+        }
 
         return new SsoSecureInfo
         {
@@ -306,7 +313,7 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
             Method = HttpMethod.Post,
             RequestUri = new Uri(url),
             Content = new StringContent(
-                JsonHelper.Serialize(payload),
+                JsonSerializer.Serialize(payload, typeof(AndroidSignerRequest), CoreJsonContext.Default),
                 new MediaTypeHeaderValue(MediaTypeNames.Application.Json)
             )
         };
@@ -314,8 +321,13 @@ public class UrlSignProvider(ILogger<UrlSignProvider> logger, IServiceProvider s
         var response = await _client.SendAsync(request);
         if (!response.IsSuccessStatusCode) return null;
 
-        var content = JsonHelper.Deserialize<PcSignerResponse>(await response.Content.ReadAsStringAsync());
-        if (content == null) return null;
+        if (JsonSerializer.Deserialize(
+                await response.Content.ReadAsStringAsync(),
+                typeof(PcSignerResponse),
+                CoreJsonContext.Default) is not PcSignerResponse content)
+        {
+            return null;
+        }
 
         return new SsoSecureInfo
         {
