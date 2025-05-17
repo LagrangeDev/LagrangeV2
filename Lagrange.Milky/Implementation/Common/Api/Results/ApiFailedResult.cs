@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Lagrange.Milky.Implementation.Api.Results;
+namespace Lagrange.Milky.Implementation.Common.Api.Results;
 
 public class ApiFailedResult : IApiResult
 {

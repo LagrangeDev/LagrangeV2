@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Lagrange.Milky.Implementation.Api.Params;
+namespace Lagrange.Milky.Implementation.Common.Api.Params;
 
 public class CachedParam
 {

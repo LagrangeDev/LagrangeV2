@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 using Lagrange.Core;
-using Lagrange.Milky.Implementation.Api.Results;
+using Lagrange.Milky.Implementation.Common.Api.Results;
 
 namespace Lagrange.Milky.Implementation.Api.System;
 

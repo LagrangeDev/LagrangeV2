@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
-using Lagrange.Milky.Implementation.Api.Results;
+using Lagrange.Milky.Implementation.Common.Api.Results;
 using Lagrange.Milky.Implementation.Configuration;
 using Lagrange.Milky.Implementation.Extension;
 using Lagrange.Milky.Utility;
