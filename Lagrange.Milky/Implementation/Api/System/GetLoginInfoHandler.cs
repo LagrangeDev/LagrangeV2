@@ -28,10 +28,7 @@ public class GetLoginInfoHandler(BotContext bot) : IEmptyParamApiHandler
 
 public class GetLoginInfoResult
 {
-    [JsonPropertyName("uin")]
     public required long Uin { get; init; }
 
-    [JsonPropertyName("nickname")]
     public required string Nickname { get; init; }
-
 }

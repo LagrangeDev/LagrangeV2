@@ -36,6 +36,5 @@ public class GetGroupInfoHandler(BotContext bot) : IApiHandler<CachedParam>
 
 public class GetGroupInfoParam : CachedParam
 {
-    [JsonPropertyName("group_id")]
     public required long GroupId { get; init; }
 }

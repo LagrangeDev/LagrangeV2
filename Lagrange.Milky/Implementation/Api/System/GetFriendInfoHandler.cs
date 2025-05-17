@@ -41,6 +41,5 @@ public class GetFriendInfoHandler(BotContext bot) : IApiHandler<GetFriendInfoPar
 
 public class GetFriendInfoParam : CachedParam
 {
-    [JsonPropertyName("user_id")]
     public required long UserId { get; init; }
 }

@@ -9,6 +9,7 @@ using Lagrange.Milky.Implementation.Entity;
 namespace Lagrange.Milky.Implementation.Common;
 
 [JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     GenerationMode = JsonSourceGenerationMode.Default,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 
