@@ -102,9 +102,9 @@ public class NodeTest
         Assert.Multiple(() =>
         {
             Assert.That(parsed.Test1, Is.EqualTo(node.Test1));
-            Assert.That(parsed.Test2.GetValues<int>(), Is.EqualTo(node.Test2.GetValues<int>()));
-            Assert.That(parsed.Test3[1].GetValue<int>(), Is.EqualTo(2));
-            Assert.That(parsed.Test3[3].GetValue<int>(), Is.EqualTo(4));
+            Assert.That(parsed.Test2?.GetValues<int>(), Is.EqualTo(node.Test2.GetValues<int>()));
+            Assert.That(parsed.Test3?[1].GetValue<int>(), Is.EqualTo(2));
+            Assert.That(parsed.Test3?[3].GetValue<int>(), Is.EqualTo(4));
         });
     }
 
@@ -173,7 +173,7 @@ public partial class TestNodeHybrid
 {
     [ProtoMember(1)] public int Test1 { get; set; }
     
-    [ProtoMember(2, NodesWireType = WireType.VarInt)] public ProtoArray Test2 { get; set; }
+    [ProtoMember(2, NodesWireType = WireType.VarInt)] public ProtoArray? Test2 { get; set; }
     
-    [ProtoMember(3)] public ProtoObject Test3 { get; set; }
+    [ProtoMember(3)] public ProtoObject? Test3 { get; set; }
 }
