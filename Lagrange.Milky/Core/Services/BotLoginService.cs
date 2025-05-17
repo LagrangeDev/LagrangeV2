@@ -11,7 +11,7 @@ using MSLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Lagrange.Milky.Core.Services;
 
-public class LagrangeLoginService(IHost host, ILogger<LagrangeLoginService> logger, BotContext bot, IOptions<LagrangeConfiguration> options, ICaptchaResolver captchaResolver) : IHostedService
+public class BotLoginService(IHost host, ILogger<BotLoginService> logger, BotContext bot, IOptions<LagrangeConfiguration> options, ICaptchaResolver captchaResolver) : IHostedService
 {
     private readonly LagrangeConfiguration _config = options.Value;
 
@@ -90,15 +90,15 @@ public class LagrangeLoginService(IHost host, ILogger<LagrangeLoginService> logg
 public static partial class CoreLoginServiceLoggerExtension
 {
     [LoggerMessage(Level = MSLogLevel.Information, EventId = 0, Message = "Fetch QrCode Success, Expiration: {expiration} seconds, Url: {url}")]
-    public static partial void QrCodeSuccess(this ILogger<LagrangeLoginService> logger, int expiration, string url);
+    public static partial void QrCodeSuccess(this ILogger<BotLoginService> logger, int expiration, string url);
 
     [LoggerMessage(EventId = 1, Message = "QrCode State: {state}")]
-    public static partial void QrCodeState(this ILogger<LagrangeLoginService> logger, MSLogLevel level, BotQrCodeQueryEvent.TransEmpState state);
+    public static partial void QrCodeState(this ILogger<BotLoginService> logger, MSLogLevel level, BotQrCodeQueryEvent.TransEmpState state);
 
     [LoggerMessage(Level = MSLogLevel.Information, EventId = 2, Message = "NewDevice verify required, please scan the QrCode with the device that has already logged in with uin {uin}")]
-    public static partial void NewDeviceVerify(this ILogger<LagrangeLoginService> logger, long uin);
+    public static partial void NewDeviceVerify(this ILogger<BotLoginService> logger, long uin);
 
     [LoggerMessage(Level = MSLogLevel.Critical, EventId = 3, Message = "Login failed, process would exit in 10 seconds")]
-    public static partial void LoginFailed(this ILogger<LagrangeLoginService> logger);
+    public static partial void LoginFailed(this ILogger<BotLoginService> logger);
 
 }

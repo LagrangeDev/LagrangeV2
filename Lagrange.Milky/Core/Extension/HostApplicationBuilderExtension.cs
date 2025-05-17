@@ -75,14 +75,14 @@ public static class HostApplicationBuilderExtension
 
         builder.Services.AddSingleton<ICaptchaResolver, OnlineCaptchaResolver>();
 
-        builder.Services.AddHostedService<LagrangeLoggerService>();
+        builder.Services.AddHostedService<BotLoggerService>();
 
         return builder;
     }
 
     public static HostApplicationBuilder AddCoreLoginService(this HostApplicationBuilder builder)
     {
-        builder.Services.AddHostedService<LagrangeLoginService>();
+        builder.Services.AddHostedService<BotLoginService>();
 
         return builder;
     }
