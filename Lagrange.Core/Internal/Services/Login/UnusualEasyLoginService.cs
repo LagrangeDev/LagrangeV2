@@ -1,6 +1,7 @@
 ﻿using Lagrange.Core.Common;
 using Lagrange.Core.Internal.Events;
 using Lagrange.Core.Internal.Events.Login;
+using Lagrange.Core.Internal.Packets.Login;
 using Lagrange.Core.Internal.Packets.Struct;
 
 namespace Lagrange.Core.Internal.Services.Login;
@@ -13,17 +14,19 @@ internal class UnusualEasyLoginService : BaseService<UnusualEasyLoginEventReq, U
     {
         if (context.Keystore.WLoginSigs.A1 is not { Length: > 0 } a1) throw new InvalidOperationException("A1 is not set");
 
-        return new ValueTask<ReadOnlyMemory<byte>>(NTLoginCommon.Encode(context, a1, null));
+        var reqBody = new NTLoginEasyLoginUnusualDeviceReqBody { A1 = a1, };
+        return new ValueTask<ReadOnlyMemory<byte>>(NTLoginCommon.Encode(context, reqBody));
     }
 
     protected override ValueTask<UnusualEasyLoginEventResp> Parse(ReadOnlyMemory<byte> input, BotContext context)
     {
-        var state = NTLoginCommon.Decode(context, input, out var info, out var resp);
+        var state = NTLoginCommon.Decode<NTLoginEasyLoginUnusualDeviceRspBody>(context, input, out var info, out var resp);
+        if (state == NTLoginRetCode.SUCCESS_UNSPECIFIED) NTLoginCommon.SaveTicket(context, resp.Tickets);
     
         return new ValueTask<UnusualEasyLoginEventResp>(state switch
         {
-            NTLoginCommon.State.LOGIN_ERROR_SUCCESS => new UnusualEasyLoginEventResp(state, null),
-            _ when info is not null => new UnusualEasyLoginEventResp(state, (info.TipsTitle, info.TipsContent)),
+            NTLoginRetCode.SUCCESS_UNSPECIFIED => new UnusualEasyLoginEventResp(state, null),
+            _ when info is not null => new UnusualEasyLoginEventResp(state, (info.StrTipsTitle, info.StrTipsContent)),
             _ => new UnusualEasyLoginEventResp(state, null)
         });
     }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Web;
 using Lagrange.Core.Common;
@@ -8,7 +9,6 @@ using Lagrange.Core.Internal.Events.Login;
 using Lagrange.Core.Internal.Events.System;
 using Lagrange.Core.Internal.Packets.Login;
 using Lagrange.Core.Internal.Packets.System;
-using Lagrange.Core.Internal.Services.Login;
 using Lagrange.Core.Utility;
 using Lagrange.Core.Utility.Binary;
 using Lagrange.Core.Utility.Cryptography;
@@ -20,19 +20,17 @@ internal class WtExchangeLogic : ILogic, IDisposable
 {
     private const string Tag = nameof(WtExchangeLogic);
     
+    private const string HeartBeatTag = "HeartBeat";
+    private const string SsoHeartBeatTag = "SsoHeartBeat";
+    private const string QueryStateTag = "QueryState";
+    private const string ExchangeEmpTag = "ExchangeEmp";
+    private const string NewDeviceTag = "NewDevice";
+    
     private readonly BotContext _context;
-    
-    private Timer _queryStateTimer;
-    
-    private Timer? _newDeviceTimer;
-    
-    private readonly Timer _heartBeatTimer;
-
-    private readonly Timer _ssoHeartBeatTimer;
-    
-    private readonly Timer _exchangeEmpTimer;
 
     private CancellationToken? _token;
+
+    private readonly ConcurrentDictionary<string, Timer> _timers = new();
 
     private TaskCompletionSource<bool>? _transEmpSource;
 
@@ -45,10 +43,11 @@ internal class WtExchangeLogic : ILogic, IDisposable
     public WtExchangeLogic(BotContext context)
     {
         _context = context;
-        _heartBeatTimer = new Timer(OnHeartBeat);
-        _ssoHeartBeatTimer = new Timer(OnSsoHeartBeat);
-        _queryStateTimer = new Timer(OnQueryState, null, Timeout.Infinite, 2000);
-        _exchangeEmpTimer = new Timer(OnExchangeEmp);
+
+        _timers[HeartBeatTag] = new Timer(OnHeartBeat);
+        _timers[SsoHeartBeatTag] = new Timer(OnSsoHeartBeat);
+        _timers[QueryStateTag] = new Timer(OnQueryState, null, Timeout.Infinite, 2000);
+        _timers[ExchangeEmpTag] = new Timer(OnExchangeEmp);
     }
 
     public async Task<bool> Login(long uin, string? password, CancellationToken token)
@@ -65,19 +64,14 @@ internal class WtExchangeLogic : ILogic, IDisposable
         if (!_context.SocketContext.Connected)
         {
             await _context.SocketContext.Connect();
-            _heartBeatTimer.Change(0, 2000);
+            _timers[HeartBeatTag].Change(0, 2000);
         }
 
         if (_context.Keystore.WLoginSigs is { D2.Length: not 0, A2.Length: not 0 })
         {
             _context.LogInfo(Tag, "Valid session detected, doing online task");
 
-            bool online = await Online();
-            if (online)
-            {
-                if (_context.Config.Protocol.IsAndroid()) _exchangeEmpTimer.Change(TimeSpan.Zero, TimeSpan.FromDays(1));
-                return true;
-            }
+            if (await Online()) return true;
         }
 
         return await ManualLogin(uin, password);
@@ -123,19 +117,19 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 
                 switch (result.State)
                 {
-                    case NTLoginCommon.State.LOGIN_ERROR_SUCCESS:
+                    case NTLoginRetCode.SUCCESS_UNSPECIFIED:
                         _context.EventInvoker.PostEvent(new BotLoginEvent(0, null));
                         _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
                         return await Online();
-                    case NTLoginCommon.State.LOGIN_ERROR_UNUSUAL_DEVICE when result.UnusualSigs is { } sig:
+                    case NTLoginRetCode.ERR_NEED_VERIFY_UNUSUAL_DEVICE when result.UnusualSigs is { } sig:
                         _context.LogInfo(Tag, "Unusual device detected, waiting for confirmation");
 
                         var transEmp31 = await _context.EventContext.SendEvent<TransEmp31EventResp>(new TransEmp31EventReq(sig));
 
                         _context.Keystore.State.QrSig = transEmp31.QrSig;
                         _transEmpSource = new TaskCompletionSource<bool>();
-                        await _queryStateTimer.DisposeAsync();
-                        _queryStateTimer = new Timer(OnQueryState, true, 0, 2000); // no need to change
+                        await _timers[QueryStateTag].DisposeAsync();
+                        _timers[QueryStateTag] = new Timer(OnQueryState, true, 0, 2000);
                         if (await _transEmpSource.Task) return await Online();
                         break;
                     default:
@@ -156,7 +150,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
             _context.EventInvoker.PostEvent(new BotQrCodeEvent(transEmp31.Url, transEmp31.Image));
             
             _context.Keystore.State.QrSig = transEmp31.QrSig;
-            _queryStateTimer.Change(0, 2000);
+            _timers[QueryStateTag].Change(0, 2000);
 
             if (await _transEmpSource.Task) return await Online();
         }
@@ -242,7 +236,6 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 {
                     ReadWLoginSigs(result.Tlvs);
                     
-                    _exchangeEmpTimer.Change(TimeSpan.Zero, TimeSpan.FromDays(1));
                     _context.EventInvoker.PostEvent(new BotLoginEvent(0, null));
                     _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
 
@@ -266,11 +259,11 @@ internal class WtExchangeLogic : ILogic, IDisposable
                     
                     switch (result.State)
                     {
-                        case NTLoginCommon.State.LOGIN_ERROR_SUCCESS:
+                        case NTLoginRetCode.SUCCESS_UNSPECIFIED:
                             _context.EventInvoker.PostEvent(new BotLoginEvent(0, null));
                             _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
                             return await Online();
-                        case NTLoginCommon.State.LOGIN_ERROR_PROOFWATER:
+                        case NTLoginRetCode.ERR_NEED_VERIFY_WATERPROOF_WALL:
                             _context.LogInfo(Tag, $"Captcha required, URL: {result.JumpingUrl}");
                             
                             _context.EventInvoker.PostEvent(new BotCaptchaEvent(result.JumpingUrl));
@@ -280,7 +273,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                             var (ticket, randStr) = await _captchaSource.Task;
                             result = await _context.EventContext.SendEvent<PasswordLoginEventResp>(new PasswordLoginEventReq(password, (ticket, randStr, sid)));
                             break;
-                        case NTLoginCommon.State.LOGIN_ERROR_NEW_DEVICE:
+                        case NTLoginRetCode.ERR_NEED_VERIFY_NEW_DEVICE:
                             _context.LogInfo(Tag, $"New device login required");
                             
                             var parsed = HttpUtility.ParseQueryString(result.JumpingUrl);
@@ -301,7 +294,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                             string url = HttpUtility.ParseQueryString(json.StrUrl.Split("?")[1])["str_url"] ?? throw new InvalidOperationException();
                             request = JsonHelper.Serialize(new NTNewDeviceQrCodeQuery { Uint32Flag = 0, Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(url.Replace('*', '+').Replace('-', '/').Replace("==", ""))) });
                             
-                            _newDeviceTimer = new Timer(OnNewDevice, (interfaceUrl, request), 0, 2000);
+                            _timers[NewDeviceTag] = new Timer(OnNewDevice, (interfaceUrl, request), 0, 2000);
                             _transEmpSource = new TaskCompletionSource<bool>();
                             if (await _transEmpSource.Task) return await Online();
                             break;
@@ -322,7 +315,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
         if (!_context.SocketContext.Connected)
         {
             await _context.SocketContext.Connect();
-            _heartBeatTimer.Change(0, 2000);
+            _timers[HeartBeatTag].Change(0, 2000);
         }
         
         var result = await _context.EventContext.SendEvent<UinResolveEventResp>(new UinResolveEventReq(qid));
@@ -382,7 +375,8 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 _context.EventInvoker.PostEvent(new BotOnlineEvent(BotOnlineEvent.Reasons.Login));
                 _context.IsOnline = true;
 
-                _ssoHeartBeatTimer.Change(0, 270 * 1000);
+                _timers[SsoHeartBeatTag].Change(0, 270 * 1000);
+                if (_context.Config.Protocol.IsAndroid()) _timers[ExchangeEmpTag].Change(TimeSpan.Zero, TimeSpan.FromDays(1));
                 return true;
             }
         }
@@ -428,13 +422,13 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 _context.Keystore.WLoginSigs.A1 = data.TempPassword;
                 _context.Keystore.Uin = transEmp12.Uin;
 
-                _queryStateTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                _timers[QueryStateTag].Change(Timeout.Infinite, Timeout.Infinite);
 
                 if (isUnusual)
                 {
                     var result = await _context.EventContext.SendEvent<UnusualEasyLoginEventResp>(new UnusualEasyLoginEventReq());
 
-                    if (result.State == NTLoginCommon.State.LOGIN_ERROR_SUCCESS)
+                    if (result.State == NTLoginRetCode.SUCCESS_UNSPECIFIED)
                     {
                         _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
                         _transEmpSource.TrySetResult(true);
@@ -470,7 +464,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 _context.LogCritical(Tag, $"QR Code State: {transEmp12.State}");
                 
                 _transEmpSource.TrySetResult(false);
-                _queryStateTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                _timers[QueryStateTag].Change(Timeout.Infinite, Timeout.Infinite);
                 break;
         }
     });
@@ -488,7 +482,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
 
     private void OnNewDevice(object? state) => Task.Run(async () =>
     {
-        if (_client == null || _newDeviceTimer == null || _transEmpSource == null) throw new InvalidOperationException("Can not find client");
+        if (_client == null || _transEmpSource == null) throw new InvalidOperationException("Can not find client");
         
         var (url, payload) = (ValueTuple<string, string>)(state ?? throw new InvalidOperationException());
         var response = await _client.PostAsync(url, new StringContent(payload, Encoding.UTF8, "application/json"));
@@ -497,14 +491,14 @@ internal class WtExchangeLogic : ILogic, IDisposable
 
         if (json.ActionStatus == "OK" && string.IsNullOrEmpty(json.StrNtSuccToken))
         {
-            _newDeviceTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            _timers[NewDeviceTag].Change(Timeout.Infinite, Timeout.Infinite);
             
             var sig = Encoding.UTF8.GetBytes(json.StrNtSuccToken);
             var result = await _context.EventContext.SendEvent<NewDeviceLoginEventResp>(new NewDeviceLoginEventReq(sig));
 
             _context.EventInvoker.PostEvent(new BotLoginEvent((int)result.State, result.Tips));
             
-            if (result.State == NTLoginCommon.State.LOGIN_ERROR_SUCCESS)
+            if (result.State == NTLoginRetCode.SUCCESS_UNSPECIFIED)
             {
                 _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
                 _transEmpSource.TrySetResult(true);
@@ -610,11 +604,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
         _captchaSource?.TrySetCanceled();
         _smsSource?.TrySetCanceled();
         
-        _heartBeatTimer.Dispose();
-        _ssoHeartBeatTimer.Dispose();
-        _queryStateTimer.Dispose();
-        _exchangeEmpTimer.Dispose();
-        _newDeviceTimer?.Dispose();
+        foreach (var timer in _timers) timer.Value.Dispose();
         
         _client?.Dispose();
     }

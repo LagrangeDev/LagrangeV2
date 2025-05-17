@@ -32,6 +32,8 @@ internal class DefaultBotSignProvider(BotContext context) : IBotSignProvider, ID
         "trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLoginNewDevice",
         "trpc.login.ecdh.EcdhService.SsoNTLoginEasyLoginUnusualDevice",
         "trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLoginUnusualDevice",
+        "trpc.login.ecdh.EcdhService.SsoNTLoginRefreshTicket",
+        "trpc.login.ecdh.EcdhService.SsoNTLoginRefreshA2",
         "OidbSvcTrpcTcp.0x11ec_1",
         "OidbSvcTrpcTcp.0x758_1", // create group
         "OidbSvcTrpcTcp.0x7c1_1",

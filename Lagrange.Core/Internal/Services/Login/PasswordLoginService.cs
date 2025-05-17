@@ -44,18 +44,30 @@ internal class PasswordLoginService : BaseService<PasswordLoginEventReq, Passwor
         plainWriter.Write(context.Keystore.Uin.ToString(), Prefix.Int16 | Prefix.LengthOnly);
 
         var clientA1 = TeaProvider.Encrypt(plainWriter.CreateReadOnlySpan(), key);
-        return new ValueTask<ReadOnlyMemory<byte>>(NTLoginCommon.Encode(context, clientA1, input.Captcha));
+        var reqBody = new NTLoginPasswordLoginReqBody
+        {
+            A1 = clientA1,
+            Iframe = input.Captcha is { } value ? new NTLoginIframe
+            {
+                IframeSig = value.Item1,
+                IframeRandstr = value.Item2,
+                IframeSid = value.Item3
+            } : null
+        };
+        
+        return new ValueTask<ReadOnlyMemory<byte>>(NTLoginCommon.Encode(context, reqBody));
     }
 
     protected override ValueTask<PasswordLoginEventResp> Parse(ReadOnlyMemory<byte> input, BotContext context)
     {
-        var state = NTLoginCommon.Decode(context, input, out var info, out var resp);
+        var state = NTLoginCommon.Decode<NTLoginPasswordLoginRspBody>(context, input, out var info, out var resp);
+        if (state == NTLoginRetCode.SUCCESS_UNSPECIFIED) NTLoginCommon.SaveTicket(context, resp.Tickets);
         
         return new ValueTask<PasswordLoginEventResp>(state switch
         {
-            NTLoginCommon.State.LOGIN_ERROR_SUCCESS => new PasswordLoginEventResp(state, null, null),
-            NTLoginCommon.State.LOGIN_ERROR_PROOFWATER => new PasswordLoginEventResp(state, null, resp.Captcha.Url),
-            _ when info is not null => new PasswordLoginEventResp(state, (info.TipsTitle, info.TipsContent), info.JumpUrl),
+            NTLoginRetCode.SUCCESS_UNSPECIFIED => new PasswordLoginEventResp(state, null, null),
+            NTLoginRetCode.ERR_NEED_VERIFY_WATERPROOF_WALL => new PasswordLoginEventResp(state, null, resp.SecCheck.IframeUrl),
+            _ when info is not null => new PasswordLoginEventResp(state, (info.StrTipsTitle, info.StrTipsContent), info.StrJumpUrl),
             _ => new PasswordLoginEventResp(state, null, null)
         });
     }

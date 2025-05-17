@@ -48,3 +48,13 @@ internal partial class KeyExchangeResponseSecret
     
     [ProtoMember(3)] public uint Expiration { get; set; }
 }
+
+[ProtoPackable]
+internal partial class NTLoginForwardRequest
+{
+    [ProtoMember(1)] public byte[] SessionTicket { get; set; }
+    
+    [ProtoMember(2)] public byte[] Buffer { get; set; }
+    
+    [ProtoMember(3)] public uint Type { get; set; }
+}
