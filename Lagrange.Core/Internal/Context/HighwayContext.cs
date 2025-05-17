@@ -71,7 +71,7 @@ internal class HighwayContext : IClientListener, IDisposable
 
     public void OnSocketError(Exception e, ReadOnlyMemory<byte> data = default)
     {
-        _context.LogError(Tag, $"Highway Socket error: {e.Message}");
+        _context.LogError(Tag, "Highway Socket error: {0}", e.Message);
         if (e.StackTrace is { } stack) _context.LogDebug(Tag, stack);
     }
     
@@ -157,7 +157,7 @@ internal class HighwayContext : IClientListener, IDisposable
 
                 var (respHead, resp) = await new ValueTask<(RespDataHighwayHead, byte[])>(tcs, 0);
 
-                _context.LogDebug(Tag, $"Highway Block Result: {respHead.ErrorCode} | {respHead.MsgSegHead?.RetCode} | {Convert.ToHexString(resp)}");
+                _context.LogDebug(Tag, "Highway Block Result: {0} | {1} | {2}", respHead.ErrorCode, respHead.MsgSegHead?.RetCode, Convert.ToHexString(resp));
                 ArrayPool<byte>.Shared.Return(buffer);
                 return respHead.ErrorCode == 0;
             });

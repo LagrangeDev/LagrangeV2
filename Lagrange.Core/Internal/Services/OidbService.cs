@@ -30,7 +30,7 @@ internal abstract class OidbService<TEventReq, TEventResp, TRequest, TResponse> 
         var oidb = ProtoHelper.Deserialize<Oidb>(input.Span);
         if (oidb.Result != 0)
         {
-            context.LogWarning(Tag, $"Error: {oidb.Result}, Message: {oidb.Message}");
+            context.LogWarning(Tag, "Error: {0}, Message: {1}", oidb.Result, oidb.Message);
             throw new OperationException((int)oidb.Result, oidb.Message);
         }
         

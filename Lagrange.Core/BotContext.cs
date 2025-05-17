@@ -1,4 +1,5 @@
-﻿using Lagrange.Core.Common;
+﻿using System.Diagnostics.CodeAnalysis;
+using Lagrange.Core.Common;
 using Lagrange.Core.Events;
 using Lagrange.Core.Events.EventArgs;
 using Lagrange.Core.Internal.Context;
@@ -43,18 +44,46 @@ public class BotContext : IDisposable
     internal HighwayContext HighwayContext { get; }
 
     #region Shortcut Methods
+    
+    public void LogCritical(string tag, [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string text, params object?[] args)
+    {
+        EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Critical, string.Format(text, args)));
+    }
 
-    public void LogCritical(string tag, string message) => EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Critical, message));
-    
-    public void LogError(string tag, string message) => EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Error, message));
-    
-    public void LogWarning(string tag, string message) => EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Warning, message));
-    
-    public void LogInfo(string tag, string message) => EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Information, message));
-    
-    public void LogDebug(string tag, string message) => EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Debug, message));
-    
-    public void LogTrace(string tag, string message) => EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Trace, message));
+    public void LogError(string tag, [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string text, params object?[] args)
+    {
+        if (Config.LogLevel < LogLevel.Error) return;
+        
+        EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Error, string.Format(text, args)));
+    }
+
+    public void LogWarning(string tag, [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string text, params object?[] args)
+    {
+        if (Config.LogLevel < LogLevel.Warning) return;
+        
+        EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Warning, string.Format(text, args)));
+    }
+
+    public void LogInfo(string tag, [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string text, params object?[] args)
+    {
+        if (Config.LogLevel < LogLevel.Information) return;
+        
+        EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Information, string.Format(text, args)));
+    }
+
+    public void LogDebug(string tag, [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string text, params object?[] args)
+    {
+        if (Config.LogLevel < LogLevel.Debug) return;
+        
+        EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Debug, string.Format(text, args)));
+    }
+
+    public void LogTrace(string tag, [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string text, params object?[] args)
+    {
+        if (Config.LogLevel < LogLevel.Trace) return;
+        
+        EventInvoker.PostEvent(new BotLogEvent(tag, LogLevel.Trace, string.Format(text, args)));
+    }
 
     #endregion
 

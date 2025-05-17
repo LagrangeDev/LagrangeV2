@@ -1,5 +1,4 @@
-﻿using System.Net.Http.Json;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Lagrange.Core.Utility;
@@ -188,7 +187,7 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
         }
         catch (Exception e)
         {
-            context.LogWarning(Tag, $"Failed to get sign: {e.Message}");
+            context.LogWarning(Tag, "Failed to get sign: {0}", e.Message);
             return null;
         }
     }
@@ -214,7 +213,7 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
         }
         catch (Exception e)
         {
-            context.LogWarning(Tag, $"Failed to get energy: {e.Message}");
+            context.LogWarning(Tag, "Failed to get energy: {0}", e.Message);
             return [];
         }
     }
@@ -239,7 +238,7 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
         }
         catch (Exception e)
         {
-            context.LogWarning(Tag, $"Failed to get debug_xwid: {e.Message}");
+            context.LogWarning(Tag, "Failed to get debug_xwid: {0}", e.Message);
             return [];
         }
     }

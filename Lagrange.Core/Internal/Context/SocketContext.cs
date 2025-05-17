@@ -50,8 +50,8 @@ internal class SocketContext : IClientListener, IDisposable
         if (_config.GetOptimumServer) await SortServers(servers);
         bool connected = await _client.Connect(servers[0]);
         
-        if (connected) _context.LogInfo(Tag, $"Connected to the server {servers[0]}");
-        else _context.LogError(Tag, $"Failed to connect to the server {servers[0]}");
+        if (connected) _context.LogInfo(Tag, "Connected to the server {0}", servers[0]);
+        else _context.LogError(Tag, "Failed to connect to the server {0}", servers[0]);
         
         return connected;
     }
@@ -71,7 +71,7 @@ internal class SocketContext : IClientListener, IDisposable
             if (latency.Status == IPStatus.Success)
             {
                 sorted.Add((latency.RoundtripTime, server));
-                _context.LogDebug(Tag, $"Server: {server} Latency: {latency.RoundtripTime}ms");
+                _context.LogDebug(Tag, "Server: {0} Latency: {1}ms", server, latency.RoundtripTime);
             }
         }
         

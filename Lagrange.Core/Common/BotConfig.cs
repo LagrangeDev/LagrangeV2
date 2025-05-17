@@ -1,3 +1,5 @@
+using Lagrange.Core.Events.EventArgs;
+
 namespace Lagrange.Core.Common;
 
 /// <summary>
@@ -10,6 +12,8 @@ public class BotConfig
     /// The protocol for the client, default is Linux
     /// </summary>
     public Protocols Protocol { get; set; } = Protocols.Linux;
+    
+    public LogLevel LogLevel { get; set; } = LogLevel.Information;
 
     /// <summary>
     /// Auto reconnect to server when disconnected

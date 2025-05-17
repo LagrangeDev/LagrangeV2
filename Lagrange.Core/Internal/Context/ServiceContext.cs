@@ -65,7 +65,7 @@ internal class ServiceContext
 
         if (ssoPacket.Command != "Heartbeat.Alive")
         {
-            _context.LogDebug(Tag, $"Incoming SSOFrame: {ssoPacket.Command}");
+            _context.LogDebug(Tag, "Incoming SSOFrame: {0}", ssoPacket.Command);
         }
         return service.Parse(ssoPacket.Data, _context);
     }
@@ -77,7 +77,7 @@ internal class ServiceContext
         var (attr, service) = handler;
         if (handler.Attribute.Command != "Heartbeat.Alive")
         {
-            _context.LogDebug(Tag, $"Outgoing SSOFrame: {handler.Attribute.Command}");
+            _context.LogDebug(Tag, "Outgoing SSOFrame: {0}", handler.Attribute.Command);
         }
 
         return (new SsoPacket(attr.Command, await service.Build(@event, _context), GetNewSequence()), attr);

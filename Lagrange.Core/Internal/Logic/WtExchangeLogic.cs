@@ -90,7 +90,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
             }
             else
             {
-                _context.LogError(Tag, $"Logout failed, directly offline {result.Message}");
+                _context.LogError(Tag, "Logout failed, directly offline {0}", result.Message);
             }
         }
         
@@ -133,7 +133,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                         if (await _transEmpSource.Task) return await Online();
                         break;
                     default:
-                        _context.LogError(Tag, $"Login failed: {result.State} | Message: {result.Tips}");
+                        _context.LogError(Tag, "Login failed: {0} | Message: {1}", result.State, result.Tips);
                         _context.EventInvoker.PostEvent(new BotLoginEvent((int)result.State, result.Tips));
                         break;
                 }
@@ -171,22 +171,22 @@ internal class WtExchangeLogic : ILogic, IDisposable
                     if (result.Tlvs.TryGetValue(0x104, out var tlv104))
                     {
                         _context.Keystore.State.Tlv104 = tlv104;
-                        _context.LogDebug(Tag, $"Tlv104 received, length: {tlv104.Length}");
+                        _context.LogDebug(Tag, "Tlv104 received, length: {0}", tlv104.Length);
                     }
                     
                     if (result.Tlvs.TryGetValue(0x546, out var tlv546))
                     {
                         _context.Keystore.State.Tlv547 = PowProvider.GenerateTlv547(tlv546);
-                        _context.LogDebug(Tag, $"Tlv546 received, calculated Tlv547 with length {_context.Keystore.State.Tlv547.Length}");
+                        _context.LogDebug(Tag, "Tlv546 received, calculated Tlv547 with length {0}", _context.Keystore.State.Tlv547.Length);
                     }
                     
                     string captchaUrl = Encoding.UTF8.GetString(result.Tlvs[0x192]);
-                    _context.LogInfo(Tag, $"Captcha required, URL: {captchaUrl}");
+                    _context.LogInfo(Tag, "Captcha required, URL: {0}", captchaUrl);
                     _context.EventInvoker.PostEvent(new BotCaptchaEvent(captchaUrl));
                     
                     _captchaSource = new TaskCompletionSource<(string, string)>();
                     var (ticket, _) = await _captchaSource.Task;
-                    _context.LogInfo(Tag, $"Captcha ticket: {ticket}, try to login");
+                    _context.LogInfo(Tag, "Captcha ticket: {0}, try to login", ticket);
                     
                     _token?.ThrowIfCancellationRequested();
                     result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.Captcha) { Ticket = ticket });
@@ -197,13 +197,13 @@ internal class WtExchangeLogic : ILogic, IDisposable
                     if (result.Tlvs.TryGetValue(0x104, out var tlv104))
                     {
                         _context.Keystore.State.Tlv104 = tlv104;
-                        _context.LogDebug(Tag, $"Tlv104 received, length: {tlv104.Length}");
+                        _context.LogDebug(Tag, "Tlv104 received, length: {0}", tlv104.Length);
                     }
                     
                     if (result.Tlvs.TryGetValue(0x174, out var tlv174))
                     {
                         _context.Keystore.State.Tlv174 = tlv174;
-                        _context.LogDebug(Tag, $"Tlv174 received, length: {tlv174.Length}");
+                        _context.LogDebug(Tag, "Tlv174 received, length: {0}", tlv174.Length);
                     }
                     
                     string? url = null;
@@ -220,10 +220,10 @@ internal class WtExchangeLogic : ILogic, IDisposable
                         if (result.Tlvs.TryGetValue(0x104, out var tlv1048))
                         {
                             _context.Keystore.State.Tlv104 = tlv1048;
-                            _context.LogDebug(Tag, $"Tlv104 received, length: {tlv1048.Length}");
+                            _context.LogDebug(Tag, "Tlv104 received, length: {0}", tlv1048.Length);
                         }
                         
-                        _context.LogInfo(Tag, $"SMS Verification required, Phone: {countryCode}-{phone} | URL: {url}");
+                        _context.LogInfo(Tag, "SMS Verification required, Phone: {0}-{1} | URL: {2}", countryCode, phone, url);
                         _context.EventInvoker.PostEvent(new BotSMSEvent(url, $"{countryCode}-{phone}"));
                         
                         _smsSource = new TaskCompletionSource<string>();
@@ -243,7 +243,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 }
                 else
                 {
-                    _context.LogError(Tag, $"Login failed: {result.RetCode} | Message: {result.Error}");
+                    _context.LogError(Tag, "Login failed: {0} | Message: {1}", result.RetCode, result.Error);
                     _context.EventInvoker.PostEvent(new BotLoginEvent(result.RetCode, result.Error));
                 }
             }
@@ -264,7 +264,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                             _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
                             return await Online();
                         case NTLoginRetCode.ERR_NEED_VERIFY_WATERPROOF_WALL:
-                            _context.LogInfo(Tag, $"Captcha required, URL: {result.JumpingUrl}");
+                            _context.LogInfo(Tag, "Captcha required, URL: {0}", result.JumpingUrl);
                             
                             _context.EventInvoker.PostEvent(new BotCaptchaEvent(result.JumpingUrl));
                             _captchaSource = new TaskCompletionSource<(string, string)>();
@@ -274,7 +274,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                             result = await _context.EventContext.SendEvent<PasswordLoginEventResp>(new PasswordLoginEventReq(password, (ticket, randStr, sid)));
                             break;
                         case NTLoginRetCode.ERR_NEED_VERIFY_NEW_DEVICE:
-                            _context.LogInfo(Tag, $"New device login required");
+                            _context.LogInfo(Tag, "New device login required");
                             
                             var parsed = HttpUtility.ParseQueryString(result.JumpingUrl);
                             string interfaceUrl = $"https://oidb.tim.qq.com/v3/oidbinterface/oidb_0xc9e_8?uid={uin}&getqrcode=1&sdkappid=39998&actype=2";
@@ -299,7 +299,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                             if (await _transEmpSource.Task) return await Online();
                             break;
                         default:
-                            _context.LogError(Tag, $"Login failed: {result.State} | Message: {result.Tips}");
+                            _context.LogError(Tag, "Login failed: {0} | Message: {1}", result.State, result.Tips);
                             _context.EventInvoker.PostEvent(new BotLoginEvent((int)result.State, result.Tips));
                             return false;
                     }
@@ -323,12 +323,12 @@ internal class WtExchangeLogic : ILogic, IDisposable
         {
             _context.Keystore.Uin = info.Item1;
             _context.Keystore.State.Tlv104 = result.Tlv104;
-            _context.LogInfo(Tag, $"Uin resolved: {info.Item1}, Qid: {info.Item2}");
+            _context.LogInfo(Tag, "Uin resolved: {0}, Qid: {1}", info.Item1, info.Item2);
             return info.Item1;
         }
         else if (result is { Error: { } error })
         {
-            _context.LogError(Tag, $"Failed to resolve uin: {error.Item1} | {error.Item2}");
+            _context.LogError(Tag, "Failed to resolve uin: {0} | {1}", error.Item1, error.Item2);
         }
 
         return 0;
@@ -382,7 +382,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
         }
         catch (LagrangeException e) when (e.InnerException is InvalidOperationException invalid)
         {
-            _context.LogError(Tag, $"Failed to send InfoSyncEvent: {invalid.Message}");
+            _context.LogError(Tag, "Failed to send InfoSyncEvent: {0}", invalid.Message);
         }
 
         return false;
@@ -435,7 +435,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                     }
                     else
                     {
-                        _context.LogError(Tag, $"Login failed: {result.State} | Message: {result.Tips}");
+                        _context.LogError(Tag, "Login failed: {0} | Message: {1}", result.State, result.Tips);
                         _transEmpSource.TrySetResult(false);
                     }
                     
@@ -453,7 +453,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                     }
                     else
                     {
-                        _context.LogError(Tag, $"Login failed: {result.RetCode} | Message: {result.Error}");
+                        _context.LogError(Tag, "Login failed: {0} | Message: {1}", result.RetCode, result.Error);
                         _transEmpSource.TrySetResult(false);
                     }
 
@@ -461,7 +461,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 } 
                 break;
             case { State: TransEmp12EventResp.TransEmpState.Canceled or TransEmp12EventResp.TransEmpState.Invalid or TransEmp12EventResp.TransEmpState.CodeExpired }:
-                _context.LogCritical(Tag, $"QR Code State: {transEmp12.State}");
+                _context.LogCritical(Tag, "QR Code State: {0}", transEmp12.State);
                 
                 _transEmpSource.TrySetResult(false);
                 _timers[QueryStateTag].Change(Timeout.Infinite, Timeout.Infinite);
@@ -505,7 +505,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
             }
             else
             {
-                _context.LogError(Tag, $"Login failed: {result.State} | Message: {result.Tips}");
+                _context.LogError(Tag, "Login failed: {0} | Message: {1}", result.State, result.Tips);
                 _transEmpSource.TrySetResult(false);
             }
         }
@@ -592,7 +592,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                     _context.Keystore.Uid = resp.CommonInfo.RspNT.Uid;
                     break;
                 default:
-                    _context.LogTrace(Tag, $"Unknown TLV: {tag:X}");
+                    _context.LogTrace(Tag, "Unknown TLV: {0:X}", tag);
                     break;
             }
         }

@@ -89,7 +89,7 @@ public class BotAppInfo
         Os = "Windows",
         Kernel = "Windows_NT",
         VendorOs = "win32",
-        CurrentVersion = "9.9.2-15962",
+        CurrentVersion = "9.9.19-35184",
         PtVersion = "2.0.0",
         SsoVersion = 23,
         PackageName = "com.tencent.qq",
@@ -103,9 +103,9 @@ public class BotAppInfo
             MainSigMap = (SigType)169742560,
         },
         AppId = 1600001604,
-        SubAppId = 537138217,
-        AppIdQrCode = 537138217,
-        AppClientVersion = 13172,
+        SubAppId = 537291048,
+        AppIdQrCode = 537291048,
+        AppClientVersion = 35184,
         
         NTLoginType = 5
     };
