@@ -28,6 +28,7 @@ public class MentionEntity(long uin, string display) : IMessageEntity
         if (target.Text?.PbReserve is { Length: > 0 } reserve)
         {
             var obj = ProtoObject.Parse(reserve);
+            if (!obj.ContainsKey(4)) return null; // fix handling super emoticon
             return new MentionEntity(obj[4].GetValue<long>(), target.Text.TextMsg)
             {
                 Uid = obj[9].GetValue<string>()
