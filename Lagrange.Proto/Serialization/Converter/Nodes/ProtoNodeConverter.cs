@@ -6,7 +6,7 @@ namespace Lagrange.Proto.Serialization.Converter;
 
 public class ProtoNodeConverter : ProtoConverter<ProtoNode>
 {
-    public override void Write(int field, WireType wireType, ProtoWriter writer, ProtoNode value)
+    public override void Write<TBufferWriter>(int field, WireType wireType, ProtoWriter<TBufferWriter> writer, ProtoNode value)
     {
         value.WriteTo(field, writer);
     }

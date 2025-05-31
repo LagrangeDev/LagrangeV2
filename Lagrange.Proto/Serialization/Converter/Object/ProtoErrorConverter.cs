@@ -4,7 +4,7 @@ namespace Lagrange.Proto.Serialization.Converter;
 
 public class ProtoErrorConverter<T> : ProtoConverter<T>
 {
-    public override void Write(int field, WireType wireType, ProtoWriter writer, T value)
+    public override void Write<TBufferWriter>(int field, WireType wireType, ProtoWriter<TBufferWriter> writer, T value)
     {
         ThrowHelper.ThrowInvalidOperationException_FailedDetermineConverter<T>();
     }

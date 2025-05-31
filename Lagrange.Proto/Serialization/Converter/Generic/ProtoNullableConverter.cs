@@ -7,7 +7,7 @@ public class ProtoNullableConverter<T> : ProtoConverter<T?> where T : struct
 {
     private readonly ProtoConverter<T> _converter = ProtoTypeResolver.GetConverter<T>();
 
-    public override void Write(int field, WireType wireType, ProtoWriter writer, T? value)
+    public override void Write<TBufferWriter>(int field, WireType wireType, ProtoWriter<TBufferWriter> writer, T? value)
     {
         if (value.HasValue) _converter.Write(0, wireType, writer, value.Value);
     }

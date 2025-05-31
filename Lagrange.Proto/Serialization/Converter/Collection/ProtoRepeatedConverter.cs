@@ -10,7 +10,7 @@ public abstract class ProtoRepeatedConverter<TCollection, TElement> : ProtoConve
 
     public override bool ShouldSerialize(TCollection value, bool ignoreDefaultValue) => value is { Count: > 0 };
 
-    public override void Write(int field, WireType wireType, ProtoWriter writer, TCollection value)
+    public override void Write<TBufferWriter>(int field, WireType wireType, ProtoWriter<TBufferWriter> writer, TCollection value)
     {
         int tag = (field << 3) | (byte)wireType;
         bool first = true;
@@ -23,7 +23,7 @@ public abstract class ProtoRepeatedConverter<TCollection, TElement> : ProtoConve
         }
     }
 
-    public override void WriteWithNumberHandling(int field, WireType wireType, ProtoWriter writer, TCollection value, ProtoNumberHandling numberHandling)
+    public override void WriteWithNumberHandling<TBufferWriter>(int field, WireType wireType, ProtoWriter<TBufferWriter> writer, TCollection value, ProtoNumberHandling numberHandling)
     {
         int tag = (field << 3) | (byte)wireType;
         bool first = true;

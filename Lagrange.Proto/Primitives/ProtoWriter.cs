@@ -1,4 +1,4 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -12,93 +12,91 @@ using Lagrange.Proto.Utility;
 namespace Lagrange.Proto.Primitives;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-public class ProtoWriter : IDisposable
+[StructLayout(LayoutKind.Auto)]
+public ref struct ProtoWriter<TBufferWriter> where TBufferWriter : struct, IBufferWriter<byte>
 {
     private static readonly Vector128<sbyte> Ascend = Vector128.Create(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-    
+
     private const int DefaultGrowthSize = 1024;
     private const int InitialGrowthSize = DefaultGrowthSize >> 4;
     
-    private Memory<byte> _memory;
-    private IBufferWriter<byte>? _writer;
+    private ref TBufferWriter _writer;
+    private ref byte _bufferReference;
+    private int _bufferLength;
     
     public int BytesPending { get; private set; }
     
     public long BytesCommitted { get; private set; }
     
     public long BytesWritten => BytesCommitted + BytesPending;
-
-    public ProtoWriter() { }
     
-    public ProtoWriter(IBufferWriter<byte> writer)
-    {
-        _writer = writer;
-        _memory = default;
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncodeString(ReadOnlySpan<char> str)
     {
         int count = ProtoHelper.GetVarIntLength(str.Length);
         int min = ProtoHelper.GetVarIntMin(count);
         int max = ProtoHelper.GetVarIntMax(count);
-        int utf16Max = ProtoConstants.MaxExpansionFactorWhileTranscoding * str.Length;
-        if (_memory.Length < utf16Max) Grow(utf16Max);
+        int utf16Max = ProtoConstants.MaxExpansionFactorWhileTranscoding * str.Length + count;
+        if (_bufferLength < utf16Max) Grow(utf16Max);
         
-        if (str.Length > min && utf16Max < max) // falls within the range
+        var span = MemoryMarshal.CreateSpan(ref Unsafe.Add(ref _bufferReference, BytesPending), utf16Max);
+        
+        if (str.Length + count > min && utf16Max < max) // falls within the range
         {
             BytesPending += count;
-            var status = ProtoWriteHelper.ToUtf8(str, _memory.Span[BytesPending..], out int written);
+            var status = ProtoWriteHelper.ToUtf8(str, span, out int written);
             Debug.Assert(status == OperationStatus.Done);
             BytesPending += written;
 
-            ref byte dest = ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(_memory.Span), BytesPending - written - count);
+            ref byte dest = ref Unsafe.AddByteOffset(ref _bufferReference, BytesPending - written - count);
             EncodeVarIntLengthTo(written, ref dest);
         }
         else
         {
             EncodeVarInt(Encoding.UTF8.GetByteCount(str));
-            var status = ProtoWriteHelper.ToUtf8(str, _memory.Span[BytesPending..], out int written);
+            var status = ProtoWriteHelper.ToUtf8(str, span, out int written);
             Debug.Assert(status == OperationStatus.Done);
             BytesPending += written;
         }
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncodeBytes(ReadOnlySpan<byte> bytes)
     {
-        int length = bytes.Length;
-        if (_memory.Length - BytesPending < length) Grow(length);
+        int length = bytes.Length + 5;
+        if (_bufferLength - BytesPending < length) Grow(length);
         
         EncodeVarInt(length);
-        bytes.CopyTo(_memory.Span[BytesPending..]);
+        bytes.CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.Add(ref _bufferReference, BytesPending), bytes.Length));
         BytesPending += length;
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncodeFixed32<T>(T value) where T : unmanaged, INumber<T>
     {
-        if (_memory.Length - BytesPending < 4) Grow(4);
+        if (_bufferLength - BytesPending < 4) Grow(4);
         
-        ref byte destination = ref MemoryMarshal.GetReference(_memory.Span);
-        Unsafe.As<byte, T>(ref Unsafe.Add(ref destination, BytesPending)) = value;
+        Unsafe.As<byte, T>(ref Unsafe.Add(ref _bufferReference, BytesPending)) = value;
         BytesPending += 4;
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncodeFixed64<T>(T value) where T : unmanaged, INumber<T>
     {
-        if (_memory.Length - BytesPending < 8) Grow(8);
+        if (_bufferLength - BytesPending < 8) Grow(8);
         
-        ref byte destination = ref MemoryMarshal.GetReference(_memory.Span);
-        Unsafe.As<byte, T>(ref Unsafe.Add(ref destination, BytesPending)) = value;
+        Unsafe.As<byte, T>(ref Unsafe.Add(ref _bufferReference, BytesPending)) = value;
         BytesPending += 8;
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncodeVarInt<T>(T value) where T : unmanaged, INumber<T>
     {
-        if (_memory.Length - BytesPending >= 10)
+        if (_bufferLength - BytesPending >= 10)
         {
             if (value < T.CreateTruncating(0x80))
             {
-                Unsafe.Add(ref MemoryMarshal.GetReference(_memory.Span), BytesPending++) = byte.CreateTruncating(value);
+                Unsafe.Add(ref _bufferReference, BytesPending++) = byte.CreateTruncating(value);
                 return;
             }
             EncodeVarIntUnsafe(value);
@@ -129,17 +127,16 @@ public class ProtoWriter : IDisposable
             return;
         }
         
-        ref byte first = ref dest;
         int position = 0;
         
         while (true)
         {
             if (value < 0x80)
             {
-                Unsafe.Add(ref first, position) = (byte)value;
+                Unsafe.Add(ref dest, position) = (byte)value;
                 break;
             }
-            Unsafe.Add(ref first, position) = (byte)(value | 0x80);
+            Unsafe.Add(ref dest, position) = (byte)(value | 0x80);
             position++;
             value >>= 7;
         }
@@ -148,17 +145,17 @@ public class ProtoWriter : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteRawByte(byte value)
     {
-        if (_memory.Length - BytesPending < 1) Grow(1);
+        if (_bufferLength - BytesPending < 1) Grow(1);
         
-        Unsafe.Add(ref MemoryMarshal.GetReference(_memory.Span), BytesPending++) = value;
+        Unsafe.Add(ref _bufferReference, BytesPending++) = value;
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteRawBytes(ReadOnlySpan<byte> bytes)
     {
-        if (_memory.Length - BytesPending < bytes.Length) Grow(bytes.Length);
+        if (_bufferLength - BytesPending < bytes.Length) Grow(bytes.Length);
         
-        bytes.CopyTo(_memory.Span[BytesPending..]);
+        bytes.CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.Add(ref _bufferReference, BytesPending), bytes.Length));
         BytesPending += bytes.Length;
     }
     
@@ -185,8 +182,7 @@ public class ProtoWriter : IDisposable
             ulong msbMask = 0xFFFFFFFFFFFFFFFF >> ((8 - bytesNeeded + 1) * 8 - 1);
             ulong merged = stage1 | (0x8080808080808080 & msbMask);
             
-            ref byte destination = ref MemoryMarshal.GetReference(_memory.Span);
-            Unsafe.As<byte, ulong>(ref Unsafe.Add(ref destination, BytesPending)) = merged;
+            Unsafe.As<byte, ulong>(ref Unsafe.Add(ref _bufferReference, BytesPending)) = merged;
             BytesPending += bytesNeeded;
         }
         else
@@ -205,22 +201,19 @@ public class ProtoWriter : IDisposable
                 var msbmask = Sse2.And(shift, Vector128.Create((sbyte)-128));
                 var merged = Sse2.Or(stage1, msbmask);
 
-                ref byte destination = ref MemoryMarshal.GetReference(_memory.Span);
-                Unsafe.As<byte, Vector128<sbyte>>(ref Unsafe.Add(ref destination, BytesPending)) = merged;
+                Unsafe.As<byte, Vector128<sbyte>>(ref Unsafe.Add(ref _bufferReference, BytesPending)) = merged;
                 BytesPending += bytes;
             }
             else
             {
-                ref byte first = ref MemoryMarshal.GetReference(_memory.Span);
-                
                 while (true)
                 {
                     if (v < 0x80)
                     {
-                        Unsafe.Add(ref first, BytesPending++) = (byte)v;
+                        Unsafe.Add(ref _bufferReference, BytesPending++) = (byte)v;
                         break;
                     }
-                    Unsafe.Add(ref first, BytesPending++) = (byte)((uint)v | 0xFFFFFF80);
+                    Unsafe.Add(ref _bufferReference, BytesPending++) = (byte)((uint)v | 0xFFFFFF80);
                     v >>= 7;
                 }
             }
@@ -294,7 +287,7 @@ public class ProtoWriter : IDisposable
     {
         Debug.Assert(requiredSize > 0);
 
-        if (_memory.Length == 0)
+        if (Unsafe.IsNullRef(in _bufferReference))
         {
             FirstCallToGetMemory(requiredSize);
             return;
@@ -303,81 +296,42 @@ public class ProtoWriter : IDisposable
         int sizeHint = Math.Max(DefaultGrowthSize, requiredSize);
 
         Debug.Assert(BytesPending != 0);
-        Debug.Assert(_writer != null);
 
         _writer.Advance(BytesPending);
         BytesCommitted += BytesPending;
         BytesPending = 0;
 
-        _memory = _writer.GetMemory(sizeHint);
-
-        if (_memory.Length < sizeHint) ThrowHelper.ThrowInvalidOperationException_NeedLargerSpan();
+        var span = _writer.GetSpan(sizeHint);
+        if (span.Length < sizeHint) ThrowHelper.ThrowInvalidOperationException_NeedLargerSpan();
+        
+        _bufferReference = ref span[0];
+        _bufferLength = span.Length;
     }
-
+    
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void FirstCallToGetMemory(int requiredSize)
     {
-        Debug.Assert(_memory.Length == 0);
+        Debug.Assert(Unsafe.IsNullRef(in _bufferReference));
         Debug.Assert(BytesPending == 0);
-        Debug.Assert(_writer != null);
         
         int sizeHint = Math.Max(InitialGrowthSize, requiredSize);
-        _memory = _writer.GetMemory(sizeHint);
-
-        if (_memory.Length < sizeHint) ThrowHelper.ThrowInvalidOperationException_NeedLargerSpan();
+        var span = _writer.GetSpan(sizeHint);
+        if (span.Length < sizeHint) ThrowHelper.ThrowInvalidOperationException_NeedLargerSpan();
+        
+        _bufferReference = ref span[0];
+        _bufferLength = span.Length;
     }
     
     public void Flush()
     {
-        CheckNotDisposed();
-        _memory = default;
+        _bufferReference = ref Unsafe.NullRef<byte>();
         
-        Debug.Assert(_writer != null);
         if (BytesPending != 0)
         {
             _writer.Advance(BytesPending);
             BytesCommitted += BytesPending;
             BytesPending = 0;
         }
-    }
-    
-    public void Reset(IBufferWriter<byte> bufferWriter)
-    {
-        _writer = bufferWriter ?? throw new ArgumentNullException(nameof(bufferWriter));
-
-        ResetHelper();
-    }
-    
-    internal void ResetAllStateForCacheReuse()
-    {
-        ResetHelper();
-
-        _writer = null;
-    }
-    
-    private void ResetHelper()
-    {
-        BytesPending = 0;
-        BytesCommitted = 0;
-        _memory = default;
-    }
-    
-    private void CheckNotDisposed()
-    {
-        if (_writer == null)
-        {
-            ThrowHelper.ThrowObjectDisposedException_ProtoWriter();
-        }
-    }
-    
-    public void Dispose()
-    {
-        if (_writer == null) return;
-
-        Flush();
-        ResetHelper();
-
-        _writer = null;
     }
     
     [ExcludeFromCodeCoverage]
