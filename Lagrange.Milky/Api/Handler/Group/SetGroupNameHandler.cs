@@ -5,7 +5,8 @@ using Lagrange.Core.Common.Interface;
 namespace Lagrange.Milky.Api.Handler.Group;
 
 [Api("set_group_name")]
-public class SetGroupNameHandler(BotContext bot) : IEmptyResultApiHandler<SetGroupNameParameter>
+public class SetGroupNameHandler(BotContext bot) : IEmptyResultApiHandler<SetGroupNameParameter> {
+    private readonly BotContext _bot = bot;
 {
     public async Task HandleAsync(SetGroupNameParameter parameter, CancellationToken token)
     {
