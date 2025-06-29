@@ -126,7 +126,7 @@ public class MilkyHttpApiService(ILogger<MilkyHttpApiService> logger, IOptions<M
 
     private bool ValidateAccessToken(HttpListenerContext context)
     {
-        if (_token == null) return true;
+        if (string.IsNullOrEmpty(_token)) return true;
 
         string? authorization = context.Request.Headers["Authorization"];
         if (authorization == null) return false;
