@@ -27,7 +27,12 @@ internal class OperationLogic(BotContext context) : ILogic
         await context.EventContext.SendEvent<NudgeEventResp>(new NudgeEventReq(isGroup, peerUin, targetUin));
         return true;
     }
-    
+
+    public async Task GroupRename(long groupUin, string name)
+    {
+        await context.EventContext.SendEvent<GroupRenameEventResp>(new GroupRenameEventReq(groupUin, name));
+    }
+
     public async Task<string> GroupFSDownload(long groupUin, string fileId)
     {
         var request = new GroupFSDownloadEventReq(groupUin, fileId);
