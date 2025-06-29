@@ -215,6 +215,7 @@ public class MilkyHttpApiService(ILogger<MilkyHttpApiService> logger, IOptions<M
 
             response.StatusCode = code;
             await output.WriteAsync(Encoding.UTF8.GetBytes($"{code} {status}"), token);
+            response.Close();
 
             _logger.LogSend(identifier, remote, status);
         }
