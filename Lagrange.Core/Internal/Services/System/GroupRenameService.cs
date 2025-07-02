@@ -17,10 +17,10 @@ internal class GroupRenameService : OidbService<GroupRenameEventReq, GroupRename
     {
         return Task.FromResult(new D89AReqBody
         {
-            GroupUin = request.GroupUin,
-            Body = new()
+            GroupCode = request.GroupUin,
+            Group = new()
             {
-                TargetName = request.TargetName
+                GroupName = request.TargetName
             },
         });
     }
