@@ -10,11 +10,13 @@ internal partial class D8FCReqBody
     [ProtoPackable]
     internal partial class CardNameElem
     {
-        public const int CardTypeText = 1;
+        public enum CardType : int
+        {
+            Text = 1,
+            XC = 2,
+        }
 
-        public const int CardTypeXC = 2;
-
-        [ProtoMember(1)] public int CardType { get; set; }
+        [ProtoMember(1)] public CardType Type { get; set; } = CardType.Text;
 
         [ProtoMember(2)] public byte[] Value { get; set; }
     }
