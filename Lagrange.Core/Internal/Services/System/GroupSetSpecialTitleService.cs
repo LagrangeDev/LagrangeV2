@@ -24,7 +24,6 @@ internal class GroupSetSpecialTitleService : OidbService<GroupSetSpecialTitleEve
                 {
                     Uid = request.TargetUid,
                     SpecialTitle = Encoding.UTF8.GetBytes(request.Title),
-                    SpecialTitleExpireTime = request.ExpireTime,
                 }
             ]
         });
