@@ -55,4 +55,7 @@ public static class MessageExt
 
     public static Task GroupRename(this BotContext context, long groupUin, string name)
         => context.EventContext.GetLogic<OperationLogic>().GroupRename(groupUin, name);
+    
+    public static Task GroupQuit(this BotContext context, long groupUin)
+        => context.EventContext.GetLogic<OperationLogic>().GroupQuit(groupUin);
 }

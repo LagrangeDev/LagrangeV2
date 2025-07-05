@@ -81,6 +81,8 @@ public static partial class JsonUtility
     [JsonSerializable(typeof(SetGroupMemberCardParameter))]
     // set_group_member_special_title
     [JsonSerializable(typeof(SetGroupMemberSpecialTitleParameter))]
+    // quit_group
+    [JsonSerializable(typeof(QuitGroupParameter))]
     // == file ==
     // upload_group_file
     [JsonSerializable(typeof(UploadGroupFileParameter))]
