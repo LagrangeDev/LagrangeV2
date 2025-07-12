@@ -1,3 +1,4 @@
+using System.Text;
 using Lagrange.Core.Common;
 using Lagrange.Core.Events.EventArgs;
 using Lagrange.Core.Internal.Events;
@@ -22,6 +23,30 @@ internal class PushLogic(BotContext context) : ILogic
             case Type.TempMessage:
                 var message = await context.EventContext.GetLogic<MessagingLogic>().Parse(messageEvent.MsgPush.CommonMessage);
                 context.EventInvoker.PostEvent(new BotMessageEvent(message, messageEvent.Raw));
+                break;
+            case Type.GroupMemberDecreaseNotice when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
+                var decrease = ProtoHelper.Deserialize<GroupChange>(content.Span);
+                if (decrease.DecreaseType == 3)
+                {
+                    var op = ProtoHelper.Deserialize<OperatorInfo>(decrease.Operator.AsSpan());
+                    context.EventInvoker.PostEvent(
+                        new BotGroupMemberDecreaseEvent(
+                            decrease.GroupUin,
+                            context.CacheContext.ResolveCachedUin(decrease.MemberUid) ?? 0,
+                            context.CacheContext.ResolveCachedUin(op.Operator.Uid ?? "") ?? 0
+                        )
+                    );
+                }
+                else
+                {
+                    context.EventInvoker.PostEvent(
+                        new BotGroupMemberDecreaseEvent(
+                            decrease.GroupUin,
+                            context.CacheContext.ResolveCachedUin(decrease.MemberUid) ?? 0,
+                            context.CacheContext.ResolveCachedUin(Encoding.UTF8.GetString(decrease.Operator.AsSpan())) ?? 0
+                        )
+                    );
+                }
                 break;
             case Type.Event0x2DC:
                 var pkgType = (Event0x2DCSubType)messageEvent.MsgPush.CommonMessage.ContentHead.SubType;
@@ -61,6 +86,8 @@ internal class PushLogic(BotContext context) : ILogic
         TempMessage = 141,
         Event0x210 = 528,  // friend related event
         Event0x2DC = 732,  // group related event
+        
+        GroupMemberDecreaseNotice = 34,
     }
     
     private enum Event0x2DCSubType
