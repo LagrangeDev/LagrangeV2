@@ -182,23 +182,33 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
 
         private static IntPtr GetEventStructPtr<T>(ReverseEventBase reverseEvent) where T : IEventStruct
         {
+            EventArrayStruct result = new EventArrayStruct();
+    
             if (reverseEvent.Events.Count == 0)
             {
-                return IntPtr.Zero;
+                result.Events = IntPtr.Zero;
+                result.Count = 0;
             }
-            
-            IntPtr eventPtr = Marshal.AllocHGlobal(reverseEvent.Events.Count * Marshal.SizeOf<T>());
-            for (int i = 0; i < reverseEvent.Events.Count; i++)
+            else
             {
-                Marshal.StructureToPtr(
-                    reverseEvent.Events[i],
-                    eventPtr + i * Marshal.SizeOf<T>(),
-                    false
-                );
+                result.Events = Marshal.AllocHGlobal(reverseEvent.Events.Count * Marshal.SizeOf<T>());
+                result.Count = reverseEvent.Events.Count;
+        
+                for (int i = 0; i < reverseEvent.Events.Count; i++)
+                {
+                    Marshal.StructureToPtr(
+                        reverseEvent.Events[i],
+                        result.Events + i * Marshal.SizeOf<T>(),
+                        false
+                    );
+                }
+        
+                reverseEvent.Events.Clear();
             }
-
-            reverseEvent.Events.Clear();
-            return eventPtr;
+    
+            IntPtr resultPtr = Marshal.AllocHGlobal(Marshal.SizeOf<EventArrayStruct>());
+            Marshal.StructureToPtr(result, resultPtr, false);
+            return resultPtr;
         }
     }
 }

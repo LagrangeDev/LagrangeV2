@@ -42,22 +42,6 @@ class Program
         }
     }
 
-    static async Task GetQrCodeEvent()
-    {
-        await Task.Run(() =>
-        {
-            IntPtr ptr = Wrapper.GetQrCodeEvent(_index);
-            if (ptr == IntPtr.Zero)
-            {
-                return;
-            }
-
-            var qrCodeEvent = Marshal.PtrToStructure<BotQrCodeEventStruct>(ptr);
-            Console.WriteLine($"QrCodeUrl: {Encoding.UTF8.GetString(qrCodeEvent.Url.ToByteArrayWithoutFree())}");
-            Wrapper.FreeMemory(ptr);
-        });
-    }
-
     static async Task GetEventCount()
     {
         await Task.Run(() =>
@@ -93,8 +77,45 @@ class Program
                 return;
             }
 
-            var logEvent = Marshal.PtrToStructure<BotLogEventStruct>(ptr);
-            Console.WriteLine($"Log: {Encoding.UTF8.GetString(logEvent.Message.ToByteArrayWithoutFree())}");
+            var logEventArray = Marshal.PtrToStructure<EventArrayStruct>(ptr);
+
+            for (int i = 0; i < logEventArray.Count; i++)
+            {
+                // 计算当前结构体的指针位置
+                IntPtr currentStructPtr = logEventArray.Events + i * Marshal.SizeOf<BotLogEventStruct>();
+
+                // 将指针转换为结构体
+                var logEvent = Marshal.PtrToStructure<BotLogEventStruct>(currentStructPtr);
+
+                // 处理日志事件
+                Console.WriteLine($"Log: {Encoding.UTF8.GetString(logEvent.Message.ToByteArrayWithoutFree())}");
+            }
+
+            Wrapper.FreeMemory(ptr);
+        });
+    }
+    
+    static async Task GetQrCodeEvent()
+    {
+        await Task.Run(() =>
+        {
+            IntPtr ptr = Wrapper.GetQrCodeEvent(_index);
+            if (ptr == IntPtr.Zero)
+            {
+                return;
+            }
+
+            var qrCodeEventArray = Marshal.PtrToStructure<EventArrayStruct>(ptr);
+            
+            for (int i = 0; i < qrCodeEventArray.Count; i++)
+            {
+                IntPtr currentStructPtr = qrCodeEventArray.Events + i * Marshal.SizeOf<BotQrCodeEventStruct>();
+                
+                var qrCodeEvent = Marshal.PtrToStructure<BotQrCodeEventStruct>(currentStructPtr);
+                
+                Console.WriteLine($"QrCodeUrl: {Encoding.UTF8.GetString(qrCodeEvent.Url.ToByteArrayWithoutFree())}");
+            }
+        
             Wrapper.FreeMemory(ptr);
         });
     }
