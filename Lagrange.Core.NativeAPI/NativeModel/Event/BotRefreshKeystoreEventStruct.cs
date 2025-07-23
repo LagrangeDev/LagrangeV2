@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using Lagrange.Core.Events.EventArgs;
-using Lagrange.Core.NativeAPI.NativeModel.Common;
+using Lagrange.Core.Common;
 
 namespace Lagrange.Core.NativeAPI.NativeModel.Event
 {
@@ -9,7 +9,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Event
     {
         public BotRefreshKeystoreEventStruct() { }
 
-        public BotKeystoreStruct Keystore = new();
+        public BotKeystore Keystore = new();
 
         public static implicit operator BotRefreshKeystoreEvent(BotRefreshKeystoreEventStruct e)
         {

@@ -18,8 +18,8 @@ public static class Program
         int index = Contexts.Count;
         if (keystorePtr != IntPtr.Zero)
         {
-            var keystoreStruct = Marshal.PtrToStructure<BotKeystoreStruct>(keystorePtr);
-            var keystore = keystoreStruct;
+            // Todo: 这里是否要加结构检查？(Proposed by IDE)
+            var keystore = Marshal.PtrToStructure<BotKeystore>(keystorePtr);
             Contexts.Add(new Context(BotFactory.Create(botConfig, keystore)));
         }
         else
@@ -51,7 +51,7 @@ public static class Program
 
         return StatusCode.Success;
     }
-    
+
     [UnmanagedCallersOnly(EntryPoint = "Stop")]
     public static StatusCode Stop(int index)
     {
@@ -64,7 +64,7 @@ public static class Program
         Contexts.RemoveAt(index);
         return StatusCode.Success;
     }
-    
+
     [UnmanagedCallersOnly(EntryPoint = "FreeMemory")]
     public static void FreeMemory(IntPtr ptr)
     {
