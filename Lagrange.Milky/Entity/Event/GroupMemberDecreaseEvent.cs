@@ -4,19 +4,12 @@ namespace Lagrange.Milky.Entity.Event;
 
 public class GroupMemberDecreaseEvent(long time, long selfId, GroupMemberDecreaseEventData data) : EventBase<GroupMemberDecreaseEventData>(time, selfId, "group_member_decrease", data) { }
 
-public class GroupMemberDecreaseEventData
+public class GroupMemberDecreaseEventData(long groupId, long userId, long? operatorId)
 {
     [JsonPropertyName("group_id")]
-    public long GroupID { get; }
+    public long GroupId { get; } = groupId;
     [JsonPropertyName("user_id")]
-    public long UserID { get; }
+    public long UserId { get; } = userId;
     [JsonPropertyName("operator_id")]
-    public long? OperatorID { get; }
-
-    public GroupMemberDecreaseEventData(long groupId, long userId, long? operatorId)
-    {
-        GroupID = groupId;
-        UserID = userId;
-        OperatorID = operatorId;
-    }
+    public long? OperatorId { get; } = operatorId;
 }
