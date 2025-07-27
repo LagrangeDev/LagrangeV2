@@ -19,7 +19,7 @@ public static class Program
         if (keystorePtr != IntPtr.Zero)
         {
             var keystoreStruct = Marshal.PtrToStructure<BotKeystoreStruct>(keystorePtr);
-            var keystore = keystoreStruct;
+            var keystore = keystoreStruct.ToKeystoreWithoutFree();
             Contexts.Add(new Context(BotFactory.Create(botConfig, keystore)));
         }
         else
