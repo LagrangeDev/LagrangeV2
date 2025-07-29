@@ -50,6 +50,7 @@ public partial class EntityConvert
             _ => throw new NotSupportedException(),
         },
         member.JoinTime.ToUnixTimeSeconds(),
-        member.LastMsgTime.ToUnixTimeSeconds()
+        member.LastMsgTime.ToUnixTimeSeconds(),
+        member.ShutUpTimestamp.ToUnixTimeSeconds()
     );
 }
