@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 using Lagrange.Core.Common.Entity;
 using Lagrange.Core.Message;
@@ -13,19 +13,19 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Message
     public struct BotMessageStruct
     {
         public BotMessageStruct() { }
-        
+
         //需要手动释放
         public IntPtr Contact = IntPtr.Zero;
         public IntPtr Receiver = IntPtr.Zero;
-        
+
         public BotGroupStruct Group = new();
-        
+
         public int Type = 0;
-        
+
         public ByteArrayNative Time = new();
 
         public IntPtr Entities = IntPtr.Zero;
-        
+
         public int EntityLength = 0;
 
         public static implicit operator BotMessageStruct(BotMessage message)
@@ -39,8 +39,19 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Message
                     type = (int)MessageType.Group;
                     contact = Marshal.AllocHGlobal(Marshal.SizeOf<BotGroupMemberStruct>());
                     Marshal.StructureToPtr((BotGroupMemberStruct)(BotGroupMember)message.Contact, contact, false);
-                    receiver = Marshal.AllocHGlobal(Marshal.SizeOf<BotGroupMemberStruct>());
-                    Marshal.StructureToPtr((BotGroupMemberStruct)(BotGroupMember)message.Receiver, receiver, false);
+
+                    switch (message.Receiver)
+                    {
+                        case BotGroup:
+                            receiver = Marshal.AllocHGlobal(Marshal.SizeOf<BotGroupStruct>());
+                            Marshal.StructureToPtr((BotGroupStruct)(BotGroup)message.Receiver, receiver, false);
+                            break;
+                        case BotGroupMember:
+                            receiver = Marshal.AllocHGlobal(Marshal.SizeOf<BotGroupMemberStruct>());
+                            Marshal.StructureToPtr((BotGroupMemberStruct)(BotGroupMember)message.Receiver, receiver, false);
+                            break;
+                    }
+
                     break;
                 case MessageType.Private:
                     type = (int)MessageType.Private;
@@ -129,7 +140,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Message
                 IntPtr entityPtr = entitiesPtr + i * Marshal.SizeOf<TypedEntityStruct>();
                 Marshal.StructureToPtr(entities[i], entityPtr, false);
             }
-            
+
             return new BotMessageStruct()
             {
                 Contact = contact,
