@@ -90,6 +90,8 @@ internal class CacheContext(BotContext context)
     }
 
     public string? ResolveCachedUid(long uin) => _uinToUid.GetValueOrDefault(uin);
+    
+    public long? ResolveCachedUin(string uid) => _uinToUid.FirstOrDefault(kvp => kvp.Value == uid).Key;
 
     /// <summary>
     /// Fetches the friends list from the server.
