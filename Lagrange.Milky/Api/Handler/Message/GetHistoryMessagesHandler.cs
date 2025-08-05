@@ -16,12 +16,7 @@ public class GetHistoryMessagesHandler(BotContext bot, EntityConvert convert) : 
     public async Task<GetHistoryMessagesResult> HandleAsync(GetHistoryMessagesParameter parameter, CancellationToken token)
     {
         int start;
-        if (parameter.StartMessageSeq.HasValue) start = parameter.Direction switch
-        {
-            "newer" => (int)parameter.StartMessageSeq.Value,
-            "older" => (int)parameter.StartMessageSeq.Value - parameter.Limit,
-            _ => throw new NotSupportedException(),
-        };
+        if (parameter.StartMessageSeq.HasValue) start = (int)(parameter.StartMessageSeq.Value - parameter.Limit);
         // TODO: No start sequence
         else throw new NotImplementedException();
 
@@ -39,7 +34,7 @@ public class GetHistoryMessagesHandler(BotContext bot, EntityConvert convert) : 
     }
 }
 
-public class GetHistoryMessagesParameter(string messageScene, long peerId, long? startMessageSeq, string direction, int limit = 20)
+public class GetHistoryMessagesParameter(string messageScene, long peerId, long? startMessageSeq, int limit = 20)
 {
     [JsonRequired]
     [JsonPropertyName("message_scene")]
@@ -51,10 +46,6 @@ public class GetHistoryMessagesParameter(string messageScene, long peerId, long?
 
     [JsonPropertyName("start_message_seq")]
     public long? StartMessageSeq { get; } = startMessageSeq;
-
-    [JsonRequired]
-    [JsonPropertyName("direction")]
-    public string Direction { get; init; } = direction;
 
     [JsonPropertyName("limit")]
     public int Limit { get; } = limit;
