@@ -145,7 +145,12 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Message
             {
                 Contact = contact,
                 Receiver = receiver,
-                // Group = message.Group ?? new BotGroupStruct(),
+                Group = message.Receiver switch
+                {
+                    BotGroup => (BotGroupStruct)message.Receiver,
+                    BotGroupMember => ((BotGroupMember)message.Receiver).Group,
+                    _ => new BotGroupStruct(),
+                },
                 Type = type,
                 Time = Encoding.UTF8.GetBytes(message.Time.ToString("O")),
                 Entities = entitiesPtr,
