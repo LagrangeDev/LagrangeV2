@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using Lagrange.Core.Common.Entity;
 using Lagrange.Core.Internal.Events.System;
 
@@ -11,11 +12,16 @@ internal class CacheContext(BotContext context)
     private List<BotGroup>? _groups;
 
     private readonly ConcurrentDictionary<long, string> _uinToUid = new();
+    private readonly ConcurrentDictionary<string, long> _uidToUin = new();
 
     private readonly ConcurrentDictionary<long, List<BotGroupMember>> _members = new();
 
-    private readonly Dictionary<int, BotFriendCategory> _categories = new();
-    
+    private readonly Dictionary<int, BotFriendCategory> _categories = [];
+
+    private readonly Dictionary<string, BotStranger> _strangersWithUid = [];
+    private readonly Dictionary<long, BotStranger> _strangersWithUin = [];
+    private readonly SemaphoreSlim _strangersLock = new(1);
+
     public async Task<List<BotFriend>> GetFriendList(bool refresh = false)
     {
         if (refresh || _friends == null) Interlocked.Exchange(ref _friends, await FetchFriends());
@@ -89,9 +95,48 @@ internal class CacheContext(BotContext context)
         return group;
     }
 
+    public async Task<BotStranger> ResolveStranger(long uin)
+    {
+        await _strangersLock.WaitAsync();
+        try
+        {
+            if (_strangersWithUin.TryGetValue(uin, out BotStranger? stranger)) return stranger;
+
+            stranger = await FetchStranger(uin);
+            _strangersWithUin.Add(uin, stranger);
+
+            return stranger;
+        }
+        finally { _strangersLock.Release(); }
+    }
+
+    public async Task<BotStranger> ResolveStranger(string uid)
+    {
+        await _strangersLock.WaitAsync();
+        try
+        {
+            if (_strangersWithUid.TryGetValue(uid, out BotStranger? stranger)) return stranger;
+
+            stranger = await FetchStranger(uid);
+            _strangersWithUin.TryAdd(stranger.Uin, stranger);
+            _strangersWithUid.Add(uid, stranger);
+
+            return stranger;
+        }
+        finally { _strangersLock.Release(); }
+    }
+
     public string? ResolveCachedUid(long uin) => _uinToUid.GetValueOrDefault(uin);
-    
-    public long? ResolveCachedUin(string uid) => _uinToUid.FirstOrDefault(kvp => kvp.Value == uid).Key;
+
+    public long ResolveUin(string uid)
+    {
+        if (_uidToUin.TryGetValue(uid, out long value)) return value;
+
+        long uin = _uinToUid.FirstOrDefault(kvp => kvp.Value == uid).Key;
+        if (uin != 0) return uin;
+
+        return ResolveStranger(uid).GetAwaiter().GetResult().Uin;
+    }
 
     /// <summary>
     /// Fetches the friends list from the server.
@@ -135,5 +180,17 @@ internal class CacheContext(BotContext context)
         } while (cookie != null);
 
         return members;
+    }
+
+    private async Task<BotStranger> FetchStranger(long uin)
+    {
+        var result = await context.EventContext.SendEvent<FetchStrangerEventResp>(new FetchStrangerByUinEventReq(uin));
+        return result.Stranger;
+    }
+
+    private async Task<BotStranger> FetchStranger(string uid)
+    {
+        var result = await context.EventContext.SendEvent<FetchStrangerEventResp>(new FetchStrangerByUidEventReq(uid));
+        return result.Stranger;
     }
 }

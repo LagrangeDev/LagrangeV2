@@ -7,15 +7,15 @@ namespace Lagrange.Core.Message.Entities;
 public class ReplyEntity : IMessageEntity
 {
     public ulong SrcUid { get; private init; }
-    
+
     public int SrcSequence { get; private init; }
-    
+
     public BotContact? Source { get; private set; }
-    
+
     internal List<Elem> Elems { get; private init; } = [];
-    
+
     private long SourceUin { get; set; } // only for storage, not used in protocol
-    
+
     public ReplyEntity(BotMessage source)
     {
         Source = source.Contact;
@@ -29,13 +29,13 @@ public class ReplyEntity : IMessageEntity
         {
             BotFriend => await context.CacheContext.ResolveFriend(SourceUin),
             BotGroupMember s => (await context.CacheContext.ResolveMember(s.Group.GroupUin, SourceUin)).GetValueOrDefault().Item2,
-            BotStranger => new BotStranger(SourceUin, string.Empty, string.Empty),
+            BotStranger => await context.CacheContext.ResolveStranger(SourceUin),
             _ => null
         };
     }
-    
+
     public ReplyEntity() { }
-    
+
     string IMessageEntity.ToPreviewString() => string.Empty;
 
     Elem[] IMessageEntity.Build()
@@ -53,7 +53,9 @@ public class ReplyEntity : IMessageEntity
                 Elems = Elems.Select(ProtoHelper.Serialize).ToList(),
                 PbReserve = ProtoHelper.Serialize(new SourceMsgResvAttr
                 {
-                    OriMsgType = 2, SourceMsgId = SrcUid, SenderUid = Source.Uid
+                    OriMsgType = 2,
+                    SourceMsgId = SrcUid,
+                    SenderUid = Source.Uid
                 }),
             }
         };
@@ -76,16 +78,16 @@ public class ReplyEntity : IMessageEntity
         if (target.SrcMsg is { } srcMsg)
         {
             var resvAttr = ProtoHelper.Deserialize<SourceMsgResvAttr>(srcMsg.PbReserve.Span);
-            
+
             return new ReplyEntity
             {
-                SrcUid = resvAttr.SourceMsgId, 
+                SrcUid = resvAttr.SourceMsgId,
                 SrcSequence = (int)srcMsg.OrigSeqs[0],
                 Elems = (srcMsg.Elems ?? []).Select(x => ProtoHelper.Deserialize<Elem>(x.Span)).ToList(),
                 SourceUin = (long)srcMsg.SenderUin,
             };
         }
-        
+
         return null;
     }
 }

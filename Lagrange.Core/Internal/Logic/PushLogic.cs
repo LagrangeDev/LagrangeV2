@@ -32,8 +32,8 @@ internal class PushLogic(BotContext context) : ILogic
                     context.EventInvoker.PostEvent(
                         new BotGroupMemberDecreaseEvent(
                             decrease.GroupUin,
-                            context.CacheContext.ResolveCachedUin(decrease.MemberUid) ?? 0,
-                            context.CacheContext.ResolveCachedUin(op.Operator.Uid ?? "") ?? 0
+                            context.CacheContext.ResolveUin(decrease.MemberUid),
+                            context.CacheContext.ResolveUin(op.Operator.Uid ?? "")
                         )
                     );
                 }
@@ -42,8 +42,8 @@ internal class PushLogic(BotContext context) : ILogic
                     context.EventInvoker.PostEvent(
                         new BotGroupMemberDecreaseEvent(
                             decrease.GroupUin,
-                            context.CacheContext.ResolveCachedUin(decrease.MemberUid) ?? 0,
-                            context.CacheContext.ResolveCachedUin(Encoding.UTF8.GetString(decrease.Operator.AsSpan())) ?? 0
+                            context.CacheContext.ResolveUin(decrease.MemberUid),
+                            context.CacheContext.ResolveUin(Encoding.UTF8.GetString(decrease.Operator.AsSpan()))
                         )
                     );
                 }

@@ -17,10 +17,13 @@ internal class SsoPacket(string command, int sequence, int retCode, string extra
     public SsoPacket(string command, ReadOnlyMemory<byte> data, int sequence) : this(command, sequence, 0, string.Empty) => Data = data;
 }
 
-internal class SsoPacketValueTaskSource : IValueTaskSource<SsoPacket> 
+internal class SsoPacketValueTaskSource : IValueTaskSource<SsoPacket>
 {
-    private ManualResetValueTaskSourceCore<SsoPacket> _core;
-    
+    private ManualResetValueTaskSourceCore<SsoPacket> _core = new()
+    {
+        RunContinuationsAsynchronously = true,
+    };
+
     public SsoPacket GetResult(short token) => _core.GetResult(token);
 
     public ValueTaskSourceStatus GetStatus(short token) => _core.GetStatus(token);

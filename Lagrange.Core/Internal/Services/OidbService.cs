@@ -19,6 +19,8 @@ internal abstract class OidbService<TEventReq, TEventResp, TRequest, TResponse> 
     
     private protected abstract uint Service { get; }
 
+    private protected virtual uint Reserved { get; } = 0;
+
     private string Tag => $"OidbSvcTrpcTcp.0x{Command:X}_{Service}";
     
     private protected abstract Task<TRequest> ProcessRequest(TEventReq request, BotContext context);
@@ -41,6 +43,6 @@ internal abstract class OidbService<TEventReq, TEventResp, TRequest, TResponse> 
     {
         var request = await ProcessRequest(input, context);
         var proto = ProtoHelper.Serialize(request);
-        return ProtoHelper.Serialize(new Oidb { Command = Command, Service = Service, Body = proto });
+        return ProtoHelper.Serialize(new Oidb { Command = Command, Service = Service, Body = proto, Reserved = Reserved });
     }
 }

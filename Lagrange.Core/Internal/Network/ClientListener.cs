@@ -152,7 +152,9 @@ internal abstract partial class ClientListener : IClientListener
                 
                 try
                 {
-                    OnRecvPacket(buffer.AsSpan(0, packetLength));
+                    var packet = new byte[packetLength];
+                    buffer.AsSpan(0, packetLength).CopyTo(packet);
+                    OnRecvPacket(packet);
                 }
                 catch (Exception e)
                 {
