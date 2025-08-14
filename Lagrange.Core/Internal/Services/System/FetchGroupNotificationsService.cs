@@ -27,46 +27,77 @@ internal class FetchGroupNotificationsService : OidbService<FetchGroupNotificati
         List<BotGroupNotificationBase> notifications = [];
         foreach (var request in response.GroupNotifications)
         {
-            var target = context.CacheContext.ResolveUin(request.Target.Uid);
-            long? @operator = request.Operator != null
+            var targetUin = context.CacheContext.ResolveUin(request.Target.Uid);
+            long? operatorUin = request.Operator != null
                 ? context.CacheContext.ResolveUin(request.Operator.Uid)
                 : null;
-            long? inviter = request.Inviter != null
+            long? inviterUin = request.Inviter != null
                 ? context.CacheContext.ResolveUin(request.Inviter.Uid)
                 : null;
 
-            notifications.Add(request.Type switch
+            var notification = request.Type switch
             {
                 1 => new BotGroupJoinNotification(
                     request.Group.GroupUin,
                     request.Sequence,
-                    target,
+                    targetUin,
+                    request.Target.Uid,
                     (BotGroupNotificationState)request.State,
-                    @operator,
+                    operatorUin,
+                    request.Operator?.Uid,
                     request.Comment
+                ),
+                3 => new BotGroupSetAdminNotification(
+                    request.Group.GroupUin,
+                    request.Sequence,
+                    targetUin,
+                    request.Target.Uid,
+                    operatorUin ?? 0,
+                    request.Operator?.Uid ?? string.Empty
                 ),
                 6 or 7 => new BotGroupKickNotification(
                     request.Group.GroupUin,
                     request.Sequence,
-                    target,
-                    @operator ?? 0
+                    targetUin,
+                    request.Target.Uid,
+                    operatorUin ?? 0,
+                    request.Operator?.Uid ?? string.Empty
                 ),
                 13 => new BotGroupExitNotification(
                     request.Group.GroupUin,
                     request.Sequence,
-                    target
+                    targetUin,
+                    request.Target.Uid
+                ),
+                16 => new BotGroupUnsetAdminNotification(
+                    request.Group.GroupUin,
+                    request.Sequence,
+                    targetUin,
+                    request.Target.Uid,
+                    operatorUin ?? 0,
+                    request.Operator?.Uid ?? string.Empty
                 ),
                 22 => new BotGroupInviteNotification(
                     request.Group.GroupUin,
                     request.Sequence,
-                    target,
+                    targetUin,
+                    request.Target.Uid,
                     (BotGroupNotificationState)request.State,
-                    @operator,
-                    inviter ?? 0
+                    operatorUin,
+                    request.Operator?.Uid,
+                    inviterUin ?? 0,
+                    request.Inviter?.Uid ?? string.Empty
                 ),
-                _ => throw new NotImplementedException(),
-            });
+                _ => LogUnknownNotificationType(context, request.Type),
+            };
+            if (notification != null) notifications.Add(notification);
         }
         return Task.FromResult(new FetchGroupNotificationsEventResp(notifications));
+    }
+
+    private BotGroupNotificationBase? LogUnknownNotificationType(BotContext context, ulong type)
+    {
+        context.LogWarning(nameof(FetchGroupNotificationsService), "Unknown notification type: {0}", null, type);
+        return null;
     }
 }

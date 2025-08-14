@@ -1,8 +1,10 @@
 using System.Text;
 using Lagrange.Core.Common;
+using Lagrange.Core.Common.Entity;
 using Lagrange.Core.Events.EventArgs;
 using Lagrange.Core.Internal.Events;
 using Lagrange.Core.Internal.Events.Message;
+using Lagrange.Core.Internal.Events.System;
 using Lagrange.Core.Internal.Packets.Notify;
 using Lagrange.Core.Utility.Binary;
 using ProtoHelper = Lagrange.Core.Utility.ProtoHelper;
@@ -21,10 +23,13 @@ internal class PushLogic(BotContext context) : ILogic
             case Type.GroupMessage:
             case Type.PrivateMessage:
             case Type.TempMessage:
+            {
                 var message = await context.EventContext.GetLogic<MessagingLogic>().Parse(messageEvent.MsgPush.CommonMessage);
                 context.EventInvoker.PostEvent(new BotMessageEvent(message, messageEvent.Raw));
                 break;
+            }
             case Type.GroupMemberDecreaseNotice when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
+            {
                 var decrease = ProtoHelper.Deserialize<GroupChange>(content.Span);
                 if (decrease.DecreaseType == 3)
                 {
@@ -48,11 +53,70 @@ internal class PushLogic(BotContext context) : ILogic
                     );
                 }
                 break;
+            }
+            case Type.GroupJoinNotification when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
+            {
+                var join = ProtoHelper.Deserialize<GroupJoin>(content.Span);
+
+                var response = await context.EventContext.SendEvent<FetchGroupNotificationsEventResp>(
+                    new FetchGroupNotificationsEventReq(20)
+                );
+                var joinNotifications = response
+                    .GroupNotifications
+                    .OfType<BotGroupJoinNotification>();
+                var notification = joinNotifications.FirstOrDefault(notification =>
+                    join.GroupUin == notification.GroupUin &&
+                    join.TargetUid == notification.TargetUid &&
+                    notification.State == BotGroupNotificationState.Wait
+                );
+                if (notification == null)
+                {
+                    context.LogWarning(nameof(PushLogic), "Received GroupJoinNotification but no corresponding notification found");
+                    break;
+                }
+
+                context.EventInvoker.PostEvent(new BotGroupJoinNotificationEvent(notification));
+                break;
+            }
+            case Type.Event0x20D when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
+            {
+                var decrease = ProtoHelper.Deserialize<Event0x20D>(content.Span);
+                switch ((Event0x20DSubType)decrease.SubType)
+                {
+                    case Event0x20DSubType.GroupInviteNotification:
+                    {
+                        var body = ProtoHelper.Deserialize<GroupInvite>(decrease.Body);
+
+                        var response = await context.EventContext.SendEvent<FetchGroupNotificationsEventResp>(
+                            new FetchGroupNotificationsEventReq(20)
+                        );
+                        var inviteNotifications = response
+                            .GroupNotifications
+                            .OfType<BotGroupInviteNotification>();
+                        var notification = inviteNotifications.FirstOrDefault(notification =>
+                            body.Body.GroupUin == notification.GroupUin &&
+                            body.Body.InviterUid == notification.InviterUid &&
+                            body.Body.TargetUid == notification.TargetUid &&
+                            notification.State == BotGroupNotificationState.Wait
+                        );
+                        if (notification == null)
+                        {
+                            context.LogWarning(nameof(PushLogic), "Received GroupInviteNotification but no corresponding notification found");
+                            break;
+                        }
+
+                        context.EventInvoker.PostEvent(new BotGroupInviteNotificationEvent(notification));
+                        break;
+                    }
+                }
+                break;
+            }
             case Type.Event0x2DC:
+            {
                 var pkgType = (Event0x2DCSubType)messageEvent.MsgPush.CommonMessage.ContentHead.SubType;
                 switch (pkgType)
                 {
-                    case Event0x2DCSubType.GroupGreyTipNotice20 when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is {} content:
+                    case Event0x2DCSubType.GroupGreyTipNotice20 when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
                         var packet = new BinaryPacket(content);
                         Int64 groupUin = packet.Read<Int32>(); // group uin
                         _ = packet.Read<byte>(); // unknown byte
@@ -76,20 +140,28 @@ internal class PushLogic(BotContext context) : ILogic
                         break;
                 }
                 break;
+            }
+            default: break;
         }
     }
 
     private enum Type
     {
-        PrivateMessage = 166,
+        GroupMemberDecreaseNotice = 34,
         GroupMessage = 82,
+        GroupJoinNotification = 84,
         TempMessage = 141,
+        PrivateMessage = 166,
+        Event0x20D = 525,
         Event0x210 = 528,  // friend related event
         Event0x2DC = 732,  // group related event
-        
-        GroupMemberDecreaseNotice = 34,
     }
-    
+
+    private enum Event0x20DSubType
+    {
+        GroupInviteNotification = 87
+    }
+
     private enum Event0x2DCSubType
     {
         GroupMuteNotice = 12,
