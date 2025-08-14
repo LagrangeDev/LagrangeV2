@@ -87,10 +87,7 @@ internal class MessagePacker
                 return friend ?? new BotFriend(routingHead.FromUin, routingHead.FromUid, string.Empty, string.Empty, string.Empty, string.Empty, null!);
 
             case 141:
-                return new BotStranger(routingHead.FromUin, "", routingHead.FromUid)
-                {
-                    Source = routingHead.CommonC2C.FromTinyId
-                };
+                return (await _context.CacheContext.ResolveStranger(routingHead.ToUid)).CloneWithSource(routingHead.CommonC2C.FromTinyId);
             case 82:
                 var items = await _context.CacheContext.ResolveMember(routingHead.Group.GroupCode, routingHead.FromUin);
                 if (items != null) return items.Value.Item2;
@@ -116,10 +113,7 @@ internal class MessagePacker
 
                 return friend;
             case 141:
-                return new BotStranger(routingHead.ToUin, "", routingHead.ToUid)
-                {
-                    Source = routingHead.CommonC2C.FromTinyId
-                };
+                return (await _context.CacheContext.ResolveStranger(routingHead.ToUid)).CloneWithSource(routingHead.CommonC2C.FromTinyId);
             case 82:
                 var items = await _context.CacheContext.ResolveMember(routingHead.Group.GroupCode, routingHead.ToUin);
                 if (items == null)

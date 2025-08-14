@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Security.Cryptography;
+using Lagrange.Core.Common.Entity;
 using Lagrange.Core.Exceptions;
 using Lagrange.Core.Internal.Events.Message;
 using Lagrange.Core.Internal.Events.System;
@@ -15,7 +16,7 @@ internal class OperationLogic(BotContext context) : ILogic
     private const string Tag = nameof(OperationLogic);
 
     public async Task<Dictionary<string, string>> FetchCookies(List<string> domains) => (await context.EventContext.SendEvent<FetchCookiesEventResp>(new FetchCookiesEventReq(domains))).Cookies;
-    
+
     public async Task<(string, uint)> FetchClientKey()
     {
         var result = await context.EventContext.SendEvent<FetchClientKeyEventResp>(new FetchClientKeyEventReq());
@@ -23,7 +24,7 @@ internal class OperationLogic(BotContext context) : ILogic
     }
 
     public async Task<bool> SendNudge(bool isGroup, long peerUin, long targetUin)
-    { 
+    {
         await context.EventContext.SendEvent<NudgeEventResp>(new NudgeEventReq(isGroup, peerUin, targetUin));
         return true;
     }
@@ -42,7 +43,7 @@ internal class OperationLogic(BotContext context) : ILogic
         }
         await context.EventContext.SendEvent<GroupSetSpecialTitleEventResp>(new GroupSetSpecialTitleEventReq(groupUin, uid, title));
     }
-    
+
     public async Task GroupMemberRename(long groupUin, long targetUin, string name)
     {
         if (context.CacheContext.ResolveCachedUid(targetUin) is not { } uid)
@@ -52,7 +53,7 @@ internal class OperationLogic(BotContext context) : ILogic
         }
         await context.EventContext.SendEvent<GroupMemberRenameEventResp>(new GroupMemberRenameEventReq(groupUin, uid, name));
     }
-    
+
     public async Task GroupQuit(long groupUin)
     {
         await context.EventContext.SendEvent<GroupQuitEventResp>(new GroupQuitEventReq(groupUin));
@@ -64,7 +65,7 @@ internal class OperationLogic(BotContext context) : ILogic
         var response = await context.EventContext.SendEvent<GroupFSDownloadEventResp>(request);
         return response.FileUrl;
     }
-    
+
     public async Task GroupFSMove(long groupUin, string fileId, string parentDirectory, string targetDirectory) => await context.EventContext.SendEvent<GroupFSMoveEventResp>(new GroupFSMoveEventReq(groupUin, fileId, parentDirectory, targetDirectory));
 
     public async Task GroupFSDelete(long groupUin, string fileId) => await context.EventContext.SendEvent<GroupFSDeleteEventResp>(new GroupFSDeleteEventReq(groupUin, fileId));
@@ -82,7 +83,7 @@ internal class OperationLogic(BotContext context) : ILogic
         var md510m = MD5.HashData(buffer[..payload]);
         ArrayPool<byte>.Shared.Return(buffer);
         request.FileStream.Seek(0, SeekOrigin.Begin);
-        
+
         if (!result.IsExist)
         {
             var ext = new FileUploadExt
@@ -161,13 +162,13 @@ internal class OperationLogic(BotContext context) : ILogic
         var md5 = fileStream.Md5();
         var request = new GroupFSUploadEventReq(groupUin, fileName, fileStream, parentDirectory, md5);
         var uploadResp = await context.EventContext.SendEvent<GroupFSUploadEventResp>(request);
-        
+
         var buffer = ArrayPool<byte>.Shared.Rent(10 * 1024 * 1024);
         int payload = await fileStream.ReadAsync(buffer.AsMemory(0, 10 * 1024 * 1024));
         var md510m = MD5.HashData(buffer[..payload]);
         ArrayPool<byte>.Shared.Return(buffer);
         fileStream.Seek(0, SeekOrigin.Begin);
-        
+
         if (!uploadResp.FileExist)
         {
             var ext = new FileUploadExt
@@ -178,7 +179,7 @@ internal class OperationLogic(BotContext context) : ILogic
                 {
                     BusiBuff = new ExcitingBusiInfo
                     {
-                        SenderUin = context.Keystore.Uin, 
+                        SenderUin = context.Keystore.Uin,
                         ReceiverUin = groupUin,
                         GroupCode = groupUin
                     },
@@ -213,15 +214,29 @@ internal class OperationLogic(BotContext context) : ILogic
                     }
                 }
             };
-            
+
             bool success = await context.HighwayContext.UploadFile(fileStream, 71, ProtoHelper.Serialize(ext));
             if (!success) throw new OperationException(-1, "File upload failed");
         }
-        
+
         uint random = (uint)Random.Shared.Next();
         var feedResult = await context.EventContext.SendEvent<GroupFileSendEventResp>(new GroupFileSendEventReq(groupUin, uploadResp.FileId, random));
         if (feedResult.RetCode != 0) throw new OperationException(feedResult.RetCode, feedResult.RetMsg);
 
         return uploadResp.FileId;
+    }
+
+    public async Task<List<BotGroupNotificationBase>> FetchGroupNotifications(ulong count)
+    {
+        var req = new FetchGroupNotificationsEventReq(count);
+        var resp = await context.EventContext.SendEvent<FetchGroupNotificationsEventResp>(req);
+        return resp.GroupNotifications;
+    }
+
+    public async Task<BotStranger> FetchStranger(long uid)
+    {
+        var req = new FetchStrangerByUinEventReq(uid);
+        var resp = await context.EventContext.SendEvent<FetchStrangerEventResp>(req);
+        return resp.Stranger;
     }
 }
