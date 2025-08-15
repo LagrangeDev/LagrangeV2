@@ -8,13 +8,16 @@ namespace Lagrange.Core.Internal.Packets.Service;
 internal partial class FetchGroupNotificationsRequest
 {
     [ProtoMember(1)] public ulong Count { get; set; }
+
+    [ProtoMember(2)] public ulong StartSequence { get; set; }
 }
 
 
 [ProtoPackable]
 internal partial class FetchGroupNotificationsResponse
 {
-    [ProtoMember(1)] public List<FetchGroupNotificationsResponseNotification> GroupNotifications { get; set; }
+    // If empty, it is null
+    [ProtoMember(1)] public List<FetchGroupNotificationsResponseNotification>? GroupNotifications { get; set; }
 }
 
 [ProtoPackable]

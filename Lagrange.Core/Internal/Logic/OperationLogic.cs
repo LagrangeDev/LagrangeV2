@@ -226,10 +226,17 @@ internal class OperationLogic(BotContext context) : ILogic
         return uploadResp.FileId;
     }
 
-    public async Task<List<BotGroupNotificationBase>> FetchGroupNotifications(ulong count)
+    public async Task<List<BotGroupNotificationBase>> FetchGroupNotifications(ulong count, ulong start)
     {
-        var req = new FetchGroupNotificationsEventReq(count);
+        var req = new FetchGroupNotificationsEventReq(count, start);
         var resp = await context.EventContext.SendEvent<FetchGroupNotificationsEventResp>(req);
+        return resp.GroupNotifications;
+    }
+
+    public async Task<List<BotGroupNotificationBase>> FetchFilteredGroupNotifications(ulong count, ulong start)
+    {
+        var req = new FetchFilteredGroupNotificationsEventReq(count, start);
+        var resp = await context.EventContext.SendEvent<FetchFilteredGroupNotificationsEventResp>(req);
         return resp.GroupNotifications;
     }
 
@@ -240,14 +247,31 @@ internal class OperationLogic(BotContext context) : ILogic
         return resp.Stranger;
     }
 
-    public async Task SetGroupNotification(long groupUin, ulong sequence, BotGroupNotificationType type, GroupNotificationOperate operate, string message)
+    public async Task SetGroupNotification(long groupUin, ulong sequence, BotGroupNotificationType type, bool isFiltered, GroupNotificationOperate operate, string message)
     {
-        await context.EventContext.SendEvent<SetGroupNotificationEventResp>(new SetGroupNotificationEventReq(
-            groupUin,
-            sequence,
-            type,
-            operate,
-            message
-        ));
+        if (isFiltered)
+        {
+            await context.EventContext.SendEvent<SetFilteredGroupNotificationEventResp>(
+                new SetFilteredGroupNotificationEventReq(
+                    groupUin,
+                    sequence,
+                    type,
+                    operate,
+                    message
+                )
+            );
+        }
+        else
+        {
+            await context.EventContext.SendEvent<SetGroupNotificationEventResp>(
+                new SetGroupNotificationEventReq(
+                    groupUin,
+                    sequence,
+                    type,
+                    operate,
+                    message
+                )
+            );
+        }
     }
 }

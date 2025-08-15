@@ -6,15 +6,15 @@ using Lagrange.Core.Internal.Packets.Service;
 
 namespace Lagrange.Core.Internal.Services.System;
 
-[EventSubscribe<FetchGroupNotificationsEventReq>(Protocols.All)]
-[Service("OidbSvcTrpcTcp.0x10c0_1")]
-internal class FetchGroupNotificationsService : OidbService<FetchGroupNotificationsEventReq, FetchGroupNotificationsEventResp, FetchGroupNotificationsRequest, FetchGroupNotificationsResponse>
+[EventSubscribe<FetchFilteredGroupNotificationsEventReq>(Protocols.All)]
+[Service("OidbSvcTrpcTcp.0x10c0_2")]
+internal class FetchFilteredGroupNotificationsService : OidbService<FetchFilteredGroupNotificationsEventReq, FetchFilteredGroupNotificationsEventResp, FetchGroupNotificationsRequest, FetchGroupNotificationsResponse>
 {
     private protected override uint Command => 0x10c0;
 
-    private protected override uint Service => 1;
+    private protected override uint Service => 2;
 
-    private protected override Task<FetchGroupNotificationsRequest> ProcessRequest(FetchGroupNotificationsEventReq request, BotContext context)
+    private protected override Task<FetchGroupNotificationsRequest> ProcessRequest(FetchFilteredGroupNotificationsEventReq request, BotContext context)
     {
         return Task.FromResult(new FetchGroupNotificationsRequest
         {
@@ -23,11 +23,11 @@ internal class FetchGroupNotificationsService : OidbService<FetchGroupNotificati
         });
     }
 
-    private protected override Task<FetchGroupNotificationsEventResp> ProcessResponse(FetchGroupNotificationsResponse response, BotContext context)
+    private protected override Task<FetchFilteredGroupNotificationsEventResp> ProcessResponse(FetchGroupNotificationsResponse response, BotContext context)
     {
         if (response.GroupNotifications == null)
         {
-            return Task.FromResult(new FetchGroupNotificationsEventResp([]));
+            return Task.FromResult(new FetchFilteredGroupNotificationsEventResp([]));
         }
 
         List<BotGroupNotificationBase> notifications = [];
@@ -52,37 +52,7 @@ internal class FetchGroupNotificationsService : OidbService<FetchGroupNotificati
                     operatorUin,
                     request.Operator?.Uid,
                     request.Comment,
-                    false
-                ),
-                3 => new BotGroupSetAdminNotification(
-                    request.Group.GroupUin,
-                    request.Sequence,
-                    targetUin,
-                    request.Target.Uid,
-                    operatorUin ?? 0,
-                    request.Operator?.Uid ?? string.Empty
-                ),
-                6 or 7 => new BotGroupKickNotification(
-                    request.Group.GroupUin,
-                    request.Sequence,
-                    targetUin,
-                    request.Target.Uid,
-                    operatorUin ?? 0,
-                    request.Operator?.Uid ?? string.Empty
-                ),
-                13 => new BotGroupExitNotification(
-                    request.Group.GroupUin,
-                    request.Sequence,
-                    targetUin,
-                    request.Target.Uid
-                ),
-                16 => new BotGroupUnsetAdminNotification(
-                    request.Group.GroupUin,
-                    request.Sequence,
-                    targetUin,
-                    request.Target.Uid,
-                    operatorUin ?? 0,
-                    request.Operator?.Uid ?? string.Empty
+                    true
                 ),
                 22 => new BotGroupInviteNotification(
                     request.Group.GroupUin,
@@ -94,18 +64,18 @@ internal class FetchGroupNotificationsService : OidbService<FetchGroupNotificati
                     request.Operator?.Uid,
                     inviterUin ?? 0,
                     request.Inviter?.Uid ?? string.Empty,
-                    false
+                    true
                 ),
                 _ => LogUnknownNotificationType(context, request.Type),
             };
             if (notification != null) notifications.Add(notification);
         }
-        return Task.FromResult(new FetchGroupNotificationsEventResp(notifications));
+        return Task.FromResult(new FetchFilteredGroupNotificationsEventResp(notifications));
     }
 
     private BotGroupNotificationBase? LogUnknownNotificationType(BotContext context, ulong type)
     {
-        context.LogWarning(nameof(FetchGroupNotificationsService), "Unknown notification type: {0}", null, type);
+        context.LogWarning(nameof(FetchFilteredGroupNotificationsService), "Unknown filtered notification type: {0}", null, type);
         return null;
     }
 }

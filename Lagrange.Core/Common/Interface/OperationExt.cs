@@ -27,12 +27,15 @@ public static class OperationExt
     public static Task<List<BotGroupMember>> FetchMembers(this BotContext context, long groupUin, bool refresh = false) =>
         context.CacheContext.GetMemberList(groupUin, refresh);
 
-    public static Task<List<BotGroupNotificationBase>> FetchGroupNotifications(this BotContext context, ulong count) =>
-        context.EventContext.GetLogic<OperationLogic>().FetchGroupNotifications(count);
+    public static Task<List<BotGroupNotificationBase>> FetchGroupNotifications(this BotContext context, ulong count, ulong start = 0) =>
+        context.EventContext.GetLogic<OperationLogic>().FetchGroupNotifications(count, start);
+
+    public static Task<List<BotGroupNotificationBase>> FetchFilteredGroupNotifications(this BotContext context, ulong count, ulong start = 0) =>
+        context.EventContext.GetLogic<OperationLogic>().FetchFilteredGroupNotifications(count, start);
 
     public static Task<BotStranger> FetchStranger(this BotContext context, long uin) =>
         context.EventContext.GetLogic<OperationLogic>().FetchStranger(uin);
 
-    public static Task SetGroupNotification(this BotContext context, long groupUin, ulong sequence, BotGroupNotificationType type, GroupNotificationOperate operate, string message = "") =>
-        context.EventContext.GetLogic<OperationLogic>().SetGroupNotification(groupUin, sequence, type, operate, message);
+    public static Task SetGroupNotification(this BotContext context, long groupUin, ulong sequence, BotGroupNotificationType type, bool isFiltered, GroupNotificationOperate operate, string message = "") =>
+        context.EventContext.GetLogic<OperationLogic>().SetGroupNotification(groupUin, sequence, type, isFiltered, operate, message);
 }
