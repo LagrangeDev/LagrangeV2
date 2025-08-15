@@ -239,4 +239,15 @@ internal class OperationLogic(BotContext context) : ILogic
         var resp = await context.EventContext.SendEvent<FetchStrangerEventResp>(req);
         return resp.Stranger;
     }
+
+    public async Task SetGroupNotification(long groupUin, ulong sequence, BotGroupNotificationType type, GroupNotificationOperate operate, string message)
+    {
+        await context.EventContext.SendEvent<SetGroupNotificationEventResp>(new SetGroupNotificationEventReq(
+            groupUin,
+            sequence,
+            type,
+            operate,
+            message
+        ));
+    }
 }

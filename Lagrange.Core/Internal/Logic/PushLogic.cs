@@ -31,26 +31,32 @@ internal class PushLogic(BotContext context) : ILogic
             case Type.GroupMemberDecreaseNotice when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
             {
                 var decrease = ProtoHelper.Deserialize<GroupChange>(content.Span);
-                if (decrease.DecreaseType == 3)
+                switch ((DecreaseType)decrease.DecreaseType)
                 {
-                    var op = ProtoHelper.Deserialize<OperatorInfo>(decrease.Operator.AsSpan());
-                    context.EventInvoker.PostEvent(
-                        new BotGroupMemberDecreaseEvent(
+                    case DecreaseType.Exit:
+                    {
+                        context.EventInvoker.PostEvent(new BotGroupMemberDecreaseEvent(
                             decrease.GroupUin,
                             context.CacheContext.ResolveUin(decrease.MemberUid),
-                            context.CacheContext.ResolveUin(op.Operator.Uid ?? "")
-                        )
-                    );
-                }
-                else
-                {
-                    context.EventInvoker.PostEvent(
-                        new BotGroupMemberDecreaseEvent(
+                            null
+                        ));
+                        break;
+                    }
+                    case DecreaseType.Kick:
+                    {
+                        var op = ProtoHelper.Deserialize<OperatorInfo>(decrease.Operator.AsSpan());
+                        context.EventInvoker.PostEvent(new BotGroupMemberDecreaseEvent(
                             decrease.GroupUin,
                             context.CacheContext.ResolveUin(decrease.MemberUid),
-                            context.CacheContext.ResolveUin(Encoding.UTF8.GetString(decrease.Operator.AsSpan()))
-                        )
-                    );
+                            op.Operator.Uid != null ? context.CacheContext.ResolveUin(op.Operator.Uid) : null
+                        ));
+                        break;
+                    }
+                    default:
+                    {
+                        context.LogWarning(nameof(PushLogic), "Unknown decrease type: {0}", null, decrease.DecreaseType);
+                        break;
+                    }
                 }
                 break;
             }
@@ -80,12 +86,12 @@ internal class PushLogic(BotContext context) : ILogic
             }
             case Type.Event0x20D when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
             {
-                var decrease = ProtoHelper.Deserialize<Event0x20D>(content.Span);
-                switch ((Event0x20DSubType)decrease.SubType)
+                var @event = ProtoHelper.Deserialize<Event0x20D>(content.Span);
+                switch ((Event0x20DSubType)@event.SubType)
                 {
                     case Event0x20DSubType.GroupInviteNotification:
                     {
-                        var body = ProtoHelper.Deserialize<GroupInvite>(decrease.Body);
+                        var body = ProtoHelper.Deserialize<GroupInvite>(@event.Body);
 
                         var response = await context.EventContext.SendEvent<FetchGroupNotificationsEventResp>(
                             new FetchGroupNotificationsEventReq(20)
@@ -108,6 +114,11 @@ internal class PushLogic(BotContext context) : ILogic
                         context.EventInvoker.PostEvent(new BotGroupInviteNotificationEvent(notification));
                         break;
                     }
+                    default:
+                    {
+                        context.LogWarning(nameof(PushLogic), "Unknown 0x20D sub type: {0}", null, @event.SubType);
+                        break;
+                    }
                 }
                 break;
             }
@@ -117,6 +128,7 @@ internal class PushLogic(BotContext context) : ILogic
                 switch (pkgType)
                 {
                     case Event0x2DCSubType.GroupGreyTipNotice20 when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
+                    {
                         var packet = new BinaryPacket(content);
                         Int64 groupUin = packet.Read<Int32>(); // group uin
                         _ = packet.Read<byte>(); // unknown byte
@@ -138,10 +150,20 @@ internal class PushLogic(BotContext context) : ILogic
                             );
                         }
                         break;
+                    }
+                    default:
+                    {
+                        context.LogWarning(nameof(PushLogic), "Unknown 0x2DC sub type: {0}", null, pkgType);
+                        break;
+                    }
                 }
                 break;
             }
-            default: break;
+            default:
+            {
+                context.LogWarning(nameof(PushLogic), "Unknown push msg type: {0}", null, messageEvent.MsgPush.CommonMessage.ContentHead.Type);
+                break;
+            }
         }
     }
 
@@ -155,6 +177,12 @@ internal class PushLogic(BotContext context) : ILogic
         Event0x20D = 525,
         Event0x210 = 528,  // friend related event
         Event0x2DC = 732,  // group related event
+    }
+
+    private enum DecreaseType
+    {
+        Exit = 130,
+        Kick = 131
     }
 
     private enum Event0x20DSubType
