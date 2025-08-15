@@ -33,8 +33,19 @@ internal class PushLogic(BotContext context) : ILogic
                 var decrease = ProtoHelper.Deserialize<GroupChange>(content.Span);
                 switch ((DecreaseType)decrease.DecreaseType)
                 {
+                    case DecreaseType.KickSelf:
+                    {
+                        var op = ProtoHelper.Deserialize<OperatorInfo>(decrease.Operator.AsSpan());
+                        context.EventInvoker.PostEvent(new BotGroupMemberDecreaseEvent(
+                            decrease.GroupUin,
+                            context.CacheContext.ResolveUin(decrease.MemberUid),
+                            op.Operator.Uid != null ? context.CacheContext.ResolveUin(op.Operator.Uid) : null
+                        ));
+                        break;
+                    }
                     case DecreaseType.Exit:
                     {
+                        await context.CacheContext.GetMemberList(decrease.GroupUin);
                         context.EventInvoker.PostEvent(new BotGroupMemberDecreaseEvent(
                             decrease.GroupUin,
                             context.CacheContext.ResolveUin(decrease.MemberUid),
@@ -44,13 +55,8 @@ internal class PushLogic(BotContext context) : ILogic
                     }
                     case DecreaseType.Kick:
                     {
-                        var op = ProtoHelper.Deserialize<OperatorInfo>(decrease.Operator.AsSpan());
-                        context.EventInvoker.PostEvent(new BotGroupMemberDecreaseEvent(
-                            decrease.GroupUin,
-                            context.CacheContext.ResolveUin(decrease.MemberUid),
-                            op.Operator.Uid != null ? context.CacheContext.ResolveUin(op.Operator.Uid) : null
-                        ));
-                        break;
+                        await context.CacheContext.GetMemberList(decrease.GroupUin);
+                        goto case DecreaseType.KickSelf;
                     }
                     default:
                     {
@@ -181,6 +187,7 @@ internal class PushLogic(BotContext context) : ILogic
 
     private enum DecreaseType
     {
+        KickSelf = 3,
         Exit = 130,
         Kick = 131
     }
