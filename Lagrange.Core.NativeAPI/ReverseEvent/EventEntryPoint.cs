@@ -49,7 +49,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
             return eventPtr;
         }
 
-        [UnmanagedCallersOnly(EntryPoint = "GroupInviteNotificationEvent")]     
+        [UnmanagedCallersOnly(EntryPoint = "GetGroupInviteNotificationEvent")]     
         public static IntPtr GetGroupInviteNotificationEvent(int index)
         {
             if (index >= Program.Contexts.Count)

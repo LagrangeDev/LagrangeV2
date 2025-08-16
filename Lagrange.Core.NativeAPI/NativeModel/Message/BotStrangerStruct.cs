@@ -15,7 +15,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Message
         public ByteArrayNative Uid = new();
         public ByteArrayNative PersonalSign = new();
         public ByteArrayNative Remark = new();
-        public ulong Level = new();
+        public ulong Level = 0;
         public int Gender = 0;
         public long RegistrationTime = 0;
         public long Birthday = 0;
