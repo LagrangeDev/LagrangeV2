@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Lagrange.Core.Events;
 using Lagrange.Core.NativeAPI.NativeModel.Event;
 using Lagrange.Core.NativeAPI.ReverseEvent.Abstract;
@@ -13,6 +13,10 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
             var eventCount = new ReverseEventCountStruct
             {
                 BotCaptchaEventCount = Program.Contexts[index].EventInvoker.BotCaptchaEvent.Events.Count,
+                BotGroupInviteNotificationEventCount = Program.Contexts[index].EventInvoker.BotGroupInviteNotificationEvent.Events.Count,
+                BotGroupJoinNotificationEventCount = Program.Contexts[index].EventInvoker.BotGroupJoinNotificationEvent.Events.Count,
+                BotGroupMemberDecreaseEventCount = Program.Contexts[index].EventInvoker.BotGroupMemberDecreaseEvent.Events.Count,
+                BotGroupNudgeEventCount = Program.Contexts[index].EventInvoker.BotGroupNudgeEvent.Events.Count,
                 BotLoginEventCount = Program.Contexts[index].EventInvoker.BotLoginEvent.Events.Count,
                 BotLogEventCount = Program.Contexts[index].EventInvoker.BotLogEvent.Events.Count,
                 BotMessageEventCount = Program.Contexts[index].EventInvoker.BotMessageEvent.Events.Count,
@@ -44,7 +48,67 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
 
             return eventPtr;
         }
-        
+
+        [UnmanagedCallersOnly(EntryPoint = "GroupInviteNotificationEvent")]     
+        public static IntPtr GetGroupInviteNotificationEvent(int index)
+        {
+            if (index >= Program.Contexts.Count)
+            {
+                return IntPtr.Zero;
+            }
+            
+            var botGroupInviteNotificationEvent = Program.Contexts[index].EventInvoker.BotGroupInviteNotificationEvent;
+            
+            IntPtr eventPtr = GetEventStructPtr<BotGroupInviteNotificationEventStruct>(botGroupInviteNotificationEvent);
+           
+            return eventPtr;
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "GetGroupJoinNotificationEvent")]
+        public static IntPtr GetGroupJoinNotificationEvent(int index)
+        {
+            if (index >= Program.Contexts.Count)
+            {
+                return IntPtr.Zero;
+            }
+
+            var botGroupJoinNotificationEvent = Program.Contexts[index].EventInvoker.BotGroupJoinNotificationEvent;
+
+            IntPtr eventPtr = GetEventStructPtr<BotGroupJoinNotificationEventStruct>(botGroupJoinNotificationEvent);
+
+            return eventPtr;
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "GetGroupMemberDecreaseEvent")]
+        public static IntPtr GetGroupMemberDecreaseEvent(int index)
+        {
+            if (index >= Program.Contexts.Count)
+            {
+                return IntPtr.Zero;
+            }
+
+            var botGroupMemberDecreaseEvent = Program.Contexts[index].EventInvoker.BotGroupMemberDecreaseEvent;
+
+            IntPtr eventPtr = GetEventStructPtr<BotGroupMemberDecreaseEventStruct>(botGroupMemberDecreaseEvent);
+
+            return eventPtr;
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "GetGroupNudgeEvent")]
+        public static IntPtr GetGroupNudgeEvent(int index)
+        {
+            if (index >= Program.Contexts.Count)
+            {
+                return IntPtr.Zero;
+            }
+
+            var botGroupNudgeEvent = Program.Contexts[index].EventInvoker.BotGroupNudgeEvent;
+
+            IntPtr eventPtr = GetEventStructPtr<BotGroupNudgeEventStruct>(botGroupNudgeEvent);
+
+            return eventPtr;
+        }
+
         [UnmanagedCallersOnly(EntryPoint = "GetLoginEvent")]
         public static IntPtr GetLoginEvent(int index)
         {

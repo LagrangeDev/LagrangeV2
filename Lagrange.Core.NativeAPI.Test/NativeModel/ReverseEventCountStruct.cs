@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Lagrange.Core.NativeAPI.Test.NativeModel;
 
@@ -8,6 +8,10 @@ public struct ReverseEventCountStruct
     public ReverseEventCountStruct() { }
 
     public int BotCaptchaEventCount = 0;
+    public int BotGroupInviteNotificationEventCount = 0;
+    public int BotGroupJoinNotificationEventCount = 0;
+    public int BotGroupMemberDecreaseEventCount = 0;
+    public int BotGroupNudgeEventCount = 0;
     public int BotLoginEventCount = 0;
     public int BotLogEventCount = 0;
     public int BotMessageEventCount = 0;

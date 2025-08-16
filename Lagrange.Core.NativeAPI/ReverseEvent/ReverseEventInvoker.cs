@@ -1,4 +1,4 @@
-using Lagrange.Core.NativeAPI.ReverseEvent.Abstract;
+﻿using Lagrange.Core.NativeAPI.ReverseEvent.Abstract;
 
 namespace Lagrange.Core.NativeAPI.ReverseEvent
 {
@@ -7,6 +7,10 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
         public ReverseEventInvoker(BotContext context)
         {
             BotCaptchaEvent.RegisterEventHandler(context);
+            BotGroupInviteNotificationEvent.RegisterEventHandler(context);
+            BotGroupJoinNotificationEvent.RegisterEventHandler(context);
+            BotGroupMemberDecreaseEvent.RegisterEventHandler(context);
+            BotGroupNudgeEvent.RegisterEventHandler(context);
             BotLoginEvent.RegisterEventHandler(context);
             BotLogEvent.RegisterEventHandler(context);
             BotMessageEvent.RegisterEventHandler(context);
@@ -18,7 +22,15 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
         }
         
         public BotCaptchaReverseEvent BotCaptchaEvent { get; } = new();
-        
+
+        public BotGroupInviteNotificationReverseEvent BotGroupInviteNotificationEvent { get; } = new();
+
+        public BotGroupJoinNotificationReverseEvent BotGroupJoinNotificationEvent { get; } = new();
+
+        public BotGroupMemberDecreaseReverseEvent BotGroupMemberDecreaseEvent { get; } = new();
+
+        public BotGroupNudgeReverseEvent BotGroupNudgeEvent { get; } = new();
+
         public BotLoginReverseEvent BotLoginEvent { get; } = new();
         
         public BotLogReverseEvent BotLogEvent { get; } = new();

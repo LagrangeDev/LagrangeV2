@@ -10,6 +10,6 @@ public class BotGroupMemberDecreaseEvent(long groupUin, long userUin, long? oper
 
     public override string ToEventMessage()
     {
-        return $"{nameof(BotGroupNudgeEvent)}: GroupUin={GroupUin}, OperatorUin={OperatorUin}, TargetUin={UserUin}";
+        return $"{nameof(BotGroupMemberDecreaseEvent)}: GroupUin={GroupUin}, UserUin={UserUin}, OperatorUin={OperatorUin}";
     }
 }
