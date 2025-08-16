@@ -1,10 +1,14 @@
 namespace Lagrange.Core.Common.Entity;
 
-public class BotGroupInviteNotification(long group, ulong sequence, long target, BotGroupNotificationState state, long? @operator, long inviter) : BotGroupNotificationBase(group, sequence, BotGroupNotificationType.Invite, target)
+public class BotGroupInviteNotification(long group, ulong sequence, long targetUin, string targetUid, BotGroupNotificationState state, long? operatorUin, string? operatorUid, long inviterUin, string inviterUid) : BotGroupNotificationBase(group, sequence, BotGroupNotificationType.Invite, targetUin, targetUid)
 {
     public BotGroupNotificationState State { get; } = state;
 
-    public long? Operator { get; } = @operator;
+    public long? OperatorUin { get; } = operatorUin;
 
-    public long Inviter { get; } = inviter;
+    public string? OperatorUid { get; } = operatorUid;
+
+    public long InviterUin { get; } = inviterUin;
+
+    public string InviterUid { get; } = inviterUid;
 }

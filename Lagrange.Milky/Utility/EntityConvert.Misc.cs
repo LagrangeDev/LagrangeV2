@@ -40,7 +40,7 @@ public partial class EntityConvert
         },
         member.Group.Uin,
         member.MemberCard ?? string.Empty,
-        member.SpecialTitle,
+        member.SpecialTitle ?? string.Empty,
         member.GroupLevel,
         member.Permission switch
         {

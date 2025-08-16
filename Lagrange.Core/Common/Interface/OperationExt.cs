@@ -32,4 +32,7 @@ public static class OperationExt
 
     public static Task<BotStranger> FetchStranger(this BotContext context, long uin) =>
         context.EventContext.GetLogic<OperationLogic>().FetchStranger(uin);
+
+    public static Task SetGroupNotification(this BotContext context, long groupUin, ulong sequence, BotGroupNotificationType type, GroupNotificationOperate operate, string message = "") =>
+        context.EventContext.GetLogic<OperationLogic>().SetGroupNotification(groupUin, sequence, type, operate, message);
 }

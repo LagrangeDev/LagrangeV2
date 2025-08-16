@@ -13,7 +13,7 @@ internal partial class GroupChange
 
     [ProtoMember(3)] public string MemberUid { get; set; }
 
-    [ProtoMember(4)] public uint DecreaseType { get; set; } // 131 Kick 130 Exit
+    [ProtoMember(4)] public uint DecreaseType { get; set; } // 3 KickSelf 130 Exit 131 Kick
 
     [ProtoMember(5)] public byte[]? Operator { get; set; }
 

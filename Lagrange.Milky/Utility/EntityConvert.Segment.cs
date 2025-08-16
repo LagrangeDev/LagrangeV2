@@ -53,6 +53,8 @@ public partial class EntityConvert
         ImageEntity image => new ImageIncomingSegment(
             image.FileUuid,
             image.FileUrl,
+            (int)image.ImageSize.X,
+            (int)image.ImageSize.Y,
             image.Summary,
             image.SubType switch
             {
@@ -61,7 +63,13 @@ public partial class EntityConvert
             }
         ),
         RecordEntity record => new RecordIncomingSegment(record.FileUuid, record.FileUrl, (int)record.RecordLength),
-        VideoEntity video => new VideoIncomingSegment(video.FileUuid, video.FileUrl),
+        VideoEntity video => new VideoIncomingSegment(
+            video.FileUuid,
+            video.FileUrl,
+            (int)video.VideoSize.X,
+            (int)video.VideoSize.Y,
+            (int)video.VideoLength
+        ),
         MultiMsgEntity multiMsg => new ForwardIncomingSegment(multiMsg.ResId!),
         // ? => new MarketFaceSegment(...),
         // ? => new LightAppSegment(...),

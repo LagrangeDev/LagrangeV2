@@ -1,12 +1,14 @@
 namespace Lagrange.Core.Common.Entity;
 
-public abstract class BotGroupNotificationBase(long group, ulong sequence, BotGroupNotificationType type, long target)
+public abstract class BotGroupNotificationBase(long groupUin, ulong sequence, BotGroupNotificationType type, long targetUin, string targetUid)
 {
-    public long Group { get; } = group;
+    public long GroupUin { get; } = groupUin;
 
     public ulong Sequence { get; } = sequence;
 
     public BotGroupNotificationType Type { get; } = type;
 
-    public long Target { get; } = target;
+    public long TargetUin { get; } = targetUin;
+
+    public string TargetUid { get; } = targetUid;
 }

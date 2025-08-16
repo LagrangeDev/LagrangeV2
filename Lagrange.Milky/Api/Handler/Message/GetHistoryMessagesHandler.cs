@@ -30,7 +30,7 @@ public class GetHistoryMessagesHandler(BotContext bot, EntityConvert convert) : 
             _ => throw new NotSupportedException(),
         };
 
-        return new GetHistoryMessagesResult(messages.Select(_convert.MessageBase));
+        return new GetHistoryMessagesResult(messages.Select(_convert.MessageBase), start - 1 > 0 ? start - 1 : null);
     }
 }
 
@@ -51,8 +51,11 @@ public class GetHistoryMessagesParameter(string messageScene, long peerId, long?
     public int Limit { get; } = limit;
 }
 
-public class GetHistoryMessagesResult(IEnumerable<MessageBase> messages)
+public class GetHistoryMessagesResult(IEnumerable<MessageBase> messages, long? nextMessageSeq)
 {
     [JsonPropertyName("messages")]
     public IEnumerable<MessageBase> Messages { get; init; } = messages;
+
+    [JsonPropertyName("next_message_seq")]
+    public long? NextMessageSeq { get; init; } = nextMessageSeq;
 }

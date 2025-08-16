@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Lagrange.Milky.Entity;
 
-public class GroupMember(long userId, string nickname, string sex, long groupId, string card, string? title, int level, string role, long joinTime, long lastSentTime, long shutUpEndTime)
+public class GroupMember(long userId, string nickname, string sex, long groupId, string card, string title, int level, string role, long joinTime, long lastSentTime, long? shutUpEndTime)
 {
     [JsonPropertyName("user_id")]
     public long UserId { get; } = userId;
@@ -21,7 +21,7 @@ public class GroupMember(long userId, string nickname, string sex, long groupId,
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("title")]
-    public string? Title { get; } = title;
+    public string Title { get; } = title;
 
     [JsonPropertyName("level")]
     public int Level { get; } = level;
