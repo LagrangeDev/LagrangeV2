@@ -32,6 +32,7 @@ public class EventService(ILogger<EventService> logger, IOptions<MilkyConfigurat
         _bot.EventInvoker.RegisterEvent<LgrEvents.BotGroupNudgeEvent>(HandleGroupNudgeEvent);
         _bot.EventInvoker.RegisterEvent<LgrEvents.BotGroupMemberDecreaseEvent>(HandleGroupMemberDecreaseEvent);
         _bot.EventInvoker.RegisterEvent<LgrEvents.BotFriendRequestEvent>(HandleFriendRequestEvent);
+        _bot.EventInvoker.RegisterEvent<LgrEvents.BotGroupInvitationEvent>(HandleGroupInvitationEvent);
 
         return Task.CompletedTask;
     }
@@ -175,6 +176,31 @@ public class EventService(ILogger<EventService> logger, IOptions<MilkyConfigurat
             _logger.LogHandleEventException(nameof(LgrEvents.BotFriendRequestEvent), e);
         }
     }
+    
+    private void HandleGroupInvitationEvent(BotContext bot, LgrEvents.BotGroupInvitationEvent @event)
+    {
+        try
+        {
+            _logger.LogGroupInvitationEvent(
+                @event.InvitationSeq,
+                @event.InitiatorUin,
+                @event.GroupUin
+            );
+            var result = _convert.GroupInvitationEvent(@event);
+            byte[] bytes = JsonUtility.SerializeToUtf8Bytes(result.GetType(), result);
+            using (_lock.UsingReadLock())
+            {
+                foreach (var handler in _handlers)
+                {
+                    handler(bytes);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogHandleEventException(nameof(LgrEvents.BotGroupInvitationEvent), e);
+        }
+    }
 
     public Task StopAsync(CancellationToken token)
     {
@@ -220,6 +246,9 @@ public static partial class EventServiceLoggerExtension
     
     [LoggerMessage(EventId = 5, Level = LogLevel.Debug, Message = "BotFriendRequestEvent {{ request: {request}, user: {user}, message: {message}, source: {source} }}")]
     public static partial void LogBotFriendRequestEvent(this ILogger<EventService> logger, string request, long user, string? message, string? source);
+    
+    [LoggerMessage(EventId = 6, Level = LogLevel.Debug, Message = "BotGroupInviteEvent {{ request: {request}, user: {user}, group: {group} }}")]
+    public static partial void LogGroupInvitationEvent(this ILogger<EventService> logger, long request, long user, long group);
 
     [LoggerMessage(EventId = 999, Level = LogLevel.Error, Message = "Handle {event} exception")]
     public static partial void LogHandleEventException(this ILogger<EventService> logger, string @event, Exception e);

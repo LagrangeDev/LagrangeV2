@@ -36,4 +36,11 @@ public partial class EntityConvert
         new FriendRequestEventData(@event.InitiatorUid, @event.InitiatorUin, 
             @event.Message, @event.Source)
     );
+    
+    public GroupInvitationEvent GroupInvitationEvent(LgrEventArgs.BotGroupInvitationEvent @event) => new(
+        @event.EventTime.ToUnixTimeSeconds(),
+        _bot.BotUin,
+        new GroupInvitationEventData(@event.InvitationSeq,
+            @event.InitiatorUin,@event.GroupUin)
+    );
 }

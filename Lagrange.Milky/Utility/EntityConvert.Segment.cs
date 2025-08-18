@@ -71,6 +71,7 @@ public partial class EntityConvert
             (int)video.VideoLength
         ),
         MultiMsgEntity multiMsg => new ForwardIncomingSegment(multiMsg.ResId!),
+        LightAppEntity lightApp => new LightAppIncomingSegment(lightApp.AppName, lightApp.Payload),
         // ? => new MarketFaceSegment(...),
         // ? => new LightAppSegment(...),
         // ? => new XmlSegment(...),
