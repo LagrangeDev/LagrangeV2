@@ -41,6 +41,6 @@ public partial class EntityConvert
         @event.EventTime.ToUnixTimeSeconds(),
         _bot.BotUin,
         new GroupInvitationEventData(@event.InvitationSeq,
-            @event.InitiatorUin,@event.GroupUin)
+            @event.InitiatorUin, @event.GroupUin)
     );
 }
