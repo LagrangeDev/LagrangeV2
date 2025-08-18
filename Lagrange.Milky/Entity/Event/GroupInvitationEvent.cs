@@ -8,7 +8,7 @@ public class GroupInvitationEvent(long time, long selfId, GroupInvitationEventDa
 public class GroupInvitationEventData(long invitationSeq, long initiatorId, long groupId)
 {
     [JsonPropertyName("invitation_seq")] 
-    public long InviationSeq { get; } = invitationSeq;
+    public long InvitationSeq { get; } = invitationSeq;
 
     [JsonPropertyName("initiator_id")] 
     public long InitiatorID { get; } = initiatorId;
