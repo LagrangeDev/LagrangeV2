@@ -235,12 +235,6 @@ internal class PushLogic(BotContext context) : ILogic
     private enum Event0x210SubType
     {
         FriendRequestNotice = 35,
-        GroupMemberEnterNotice = 38,
-        FriendDeleteOrPinChangedNotice = 39,
-        FriendRecallNotice = 138,
-        ServicePinChanged = 199, // e.g: My computer | QQ Wallet | ...
-        FriendPokeNotice = 290,
-        GroupKickNotice = 212,
-        FriendRecallPoke = 321,
+        FriendRecallNudgeNotice = 321,
     }
 }
