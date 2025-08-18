@@ -31,6 +31,7 @@ public class EventService(ILogger<EventService> logger, IOptions<MilkyConfigurat
         _bot.EventInvoker.RegisterEvent<LgrEvents.BotMessageEvent>(HandleMessageEvent);
         _bot.EventInvoker.RegisterEvent<LgrEvents.BotGroupNudgeEvent>(HandleGroupNudgeEvent);
         _bot.EventInvoker.RegisterEvent<LgrEvents.BotGroupMemberDecreaseEvent>(HandleGroupMemberDecreaseEvent);
+        _bot.EventInvoker.RegisterEvent<LgrEvents.BotFriendRequestEvent>(HandleFriendRequestEvent);
 
         return Task.CompletedTask;
     }
@@ -149,6 +150,32 @@ public class EventService(ILogger<EventService> logger, IOptions<MilkyConfigurat
         }
     }
 
+    private void HandleFriendRequestEvent(BotContext bot, LgrEvents.BotFriendRequestEvent @event)
+    {
+        try
+        {
+            _logger.LogBotFriendRequestEvent(
+                @event.InitiatorUid,
+                @event.InitiatorUin,
+                @event.Message,
+                @event.Source
+            );
+            var result = _convert.FriendRequestEvent(@event);
+            byte[] bytes = JsonUtility.SerializeToUtf8Bytes(result.GetType(), result);
+            using (_lock.UsingReadLock())
+            {
+                foreach (var handler in _handlers)
+                {
+                    handler(bytes);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogHandleEventException(nameof(LgrEvents.BotFriendRequestEvent), e);
+        }
+    }
+
     public Task StopAsync(CancellationToken token)
     {
         // TODO: unregister
@@ -190,6 +217,9 @@ public static partial class EventServiceLoggerExtension
     
     [LoggerMessage(EventId = 4, Level = LogLevel.Debug, Message = "BotGroupMemberDecreaseEvent {{ group: {group}, user: {user}, operator: {operator} }}")]
     public static partial void LogGroupMemberDecreaseEvent(this ILogger<EventService> logger, long group, long user, long? @operator);
+    
+    [LoggerMessage(EventId = 5, Level = LogLevel.Debug, Message = "BotFriendRequestEvent {{ request: {request}, user: {user}, message: {message}, source: {source} }}")]
+    public static partial void LogBotFriendRequestEvent(this ILogger<EventService> logger, string request, long user, string? message, string? source);
 
     [LoggerMessage(EventId = 999, Level = LogLevel.Error, Message = "Handle {event} exception")]
     public static partial void LogHandleEventException(this ILogger<EventService> logger, string @event, Exception e);

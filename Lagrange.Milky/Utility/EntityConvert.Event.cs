@@ -29,4 +29,11 @@ public partial class EntityConvert
         _bot.BotUin,
         new GroupMemberDecreaseEventData(@event.GroupUin, @event.UserUin, @event.OperatorUin == 0 ? null : @event.OperatorUin)
     );
+    
+    public FriendRequestEvent FriendRequestEvent(LgrEventArgs.BotFriendRequestEvent @event) => new(
+        @event.EventTime.ToUnixTimeSeconds(),
+        _bot.BotUin,
+        new FriendRequestEventData(@event.InitiatorUid, @event.InitiatorUin, 
+            @event.Message, @event.Source)
+    );
 }

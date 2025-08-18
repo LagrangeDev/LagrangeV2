@@ -108,6 +108,8 @@ public static partial class JsonUtility
     [JsonSerializable(typeof(GroupNudgeEvent))]
     // group_member_decrease
     [JsonSerializable(typeof(GroupMemberDecreaseEvent))]
+    // friend_request
+    [JsonSerializable(typeof(FriendRequestEvent))]
     private partial class JsonContext : JsonSerializerContext;
 
     public static string Serialize<T>(T value) where T : class
