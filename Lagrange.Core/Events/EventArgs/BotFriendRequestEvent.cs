@@ -12,9 +12,6 @@ public class BotFriendRequestEvent(string initiatorUid, long initiatorUin, strin
 
     public override string ToEventMessage()
     {
-        return $"{nameof(BotFriendRequestEvent)}: InitiatorUid: {InitiatorUid}, " +
-               $"InitiatorUin: {InitiatorUin}, " +
-               $"Message: {Message}, " +
-               $"Source: {Source}";
+        return $"{nameof(BotFriendRequestEvent)}: InitiatorUid: {InitiatorUid}, InitiatorUin: {InitiatorUin}, Message: {Message}, Source: {Source}";
     }
 }
