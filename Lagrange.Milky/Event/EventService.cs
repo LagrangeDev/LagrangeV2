@@ -32,7 +32,7 @@ public class EventService(ILogger<EventService> logger, IOptions<MilkyConfigurat
         _bot.EventInvoker.RegisterEvent<LgrEvents.BotGroupNudgeEvent>(HandleGroupNudgeEvent);
         _bot.EventInvoker.RegisterEvent<LgrEvents.BotGroupMemberDecreaseEvent>(HandleGroupMemberDecreaseEvent);
         _bot.EventInvoker.RegisterEvent<LgrEvents.BotFriendRequestEvent>(HandleFriendRequestEvent);
-        _bot.EventInvoker.RegisterEvent<LgrEvents.BotGroupInvitationEvent>(HandleGroupInvitationEvent);
+        _bot.EventInvoker.RegisterEvent<LgrEvents.BotGroupInviteSelfEvent>(HandleGroupInvitationEvent);
 
         return Task.CompletedTask;
     }
@@ -177,7 +177,7 @@ public class EventService(ILogger<EventService> logger, IOptions<MilkyConfigurat
         }
     }
     
-    private void HandleGroupInvitationEvent(BotContext bot, LgrEvents.BotGroupInvitationEvent @event)
+    private void HandleGroupInvitationEvent(BotContext bot, LgrEvents.BotGroupInviteSelfEvent @event)
     {
         try
         {
@@ -198,7 +198,7 @@ public class EventService(ILogger<EventService> logger, IOptions<MilkyConfigurat
         }
         catch (Exception e)
         {
-            _logger.LogHandleEventException(nameof(LgrEvents.BotGroupInvitationEvent), e);
+            _logger.LogHandleEventException(nameof(LgrEvents.BotGroupInviteSelfEvent), e);
         }
     }
 

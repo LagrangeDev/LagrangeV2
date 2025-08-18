@@ -37,7 +37,7 @@ public partial class EntityConvert
             @event.Message, @event.Source)
     );
     
-    public GroupInvitationEvent GroupInvitationEvent(LgrEventArgs.BotGroupInvitationEvent @event) => new(
+    public GroupInvitationEvent GroupInvitationEvent(LgrEventArgs.BotGroupInviteSelfEvent @event) => new(
         @event.EventTime.ToUnixTimeSeconds(),
         _bot.BotUin,
         new GroupInvitationEventData(@event.InvitationSeq,

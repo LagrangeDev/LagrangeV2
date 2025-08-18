@@ -1,6 +1,6 @@
 namespace Lagrange.Core.Events.EventArgs;
 
-public class BotGroupInvitationEvent(long invitationSeq, long initiatorUin, long groupUin) : EventBase
+public class BotGroupInviteSelfEvent(long invitationSeq, long initiatorUin, long groupUin) : EventBase
 {
     public long InvitationSeq { get; } = invitationSeq;
 
@@ -10,6 +10,6 @@ public class BotGroupInvitationEvent(long invitationSeq, long initiatorUin, long
 
     public override string ToEventMessage()
     {
-        return $"{nameof(BotGroupInvitationEvent)}: InvitationSeq: {InvitationSeq}, InitiatorUin: {InitiatorUin}, GroupUin: {GroupUin}";
+        return $"{nameof(BotGroupInviteSelfEvent)}: InvitationSeq: {InvitationSeq}, InitiatorUin: {InitiatorUin}, GroupUin: {GroupUin}";
     }
 }

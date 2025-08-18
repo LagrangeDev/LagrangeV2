@@ -37,7 +37,7 @@ internal class PushLogic(BotContext context) : ILogic
                     var query = HttpUtility.ParseQueryString(new Uri(url).Query);
                     long groupUin = uint.Parse(query["groupcode"] ?? throw new Exception("sb tx! Is this '/group/invite_join'?"));
                     long sequence = long.Parse(query["msgseq"] ?? throw new Exception("sb tx! Is this '/group/invite_join'?"));
-                    context.EventInvoker.PostEvent(new BotGroupInvitationEvent(
+                    context.EventInvoker.PostEvent(new BotGroupInviteSelfEvent(
                         sequence,
                         message.Contact.Uin,
                         groupUin
