@@ -274,4 +274,14 @@ internal class OperationLogic(BotContext context) : ILogic
             );
         }
     }
+
+    public async Task SetGroupReaction(long groupUin, ulong sequence, string code, bool isAdd)
+    {
+        if (isAdd) await context.EventContext.SendEvent<AddGroupReactionEventResp>(
+            new AddGroupReactionEventReq(groupUin, sequence, code)
+        );
+        else await context.EventContext.SendEvent<ReduceGroupReactionEventResp>(
+            new ReduceGroupReactionEventReq(groupUin, sequence, code)
+        );
+    }
 }

@@ -38,4 +38,7 @@ public static class OperationExt
 
     public static Task SetGroupNotification(this BotContext context, long groupUin, ulong sequence, BotGroupNotificationType type, bool isFiltered, GroupNotificationOperate operate, string message = "") =>
         context.EventContext.GetLogic<OperationLogic>().SetGroupNotification(groupUin, sequence, type, isFiltered, operate, message);
+
+    public static Task SetGroupReaction(this BotContext context, long groupUin, ulong sequence, string code, bool isAdd) =>
+        context.EventContext.GetLogic<OperationLogic>().SetGroupReaction(groupUin, sequence, code, isAdd);
 }

@@ -8,11 +8,11 @@ namespace Lagrange.Core.Internal.Context;
 internal class PacketContext(BotContext context)
 {
     private readonly ConcurrentDictionary<int, SsoPacketValueTaskSource> _pendingTasks = new();
-    
+
     private readonly BotKeystore _keystore = context.Keystore;
     private readonly SsoPacker _ssoPacker = new(context);
     private readonly ServicePacker _servicePacker = new(context);
-    
+
     internal readonly IBotSignProvider SignProvider = context.Config.SignProvider ?? context.Config.Protocol switch
     {
         Protocols.Linux or Protocols.Windows or Protocols.MacOs => new DefaultBotSignProvider(context),
@@ -28,7 +28,7 @@ internal class PacketContext(BotContext context)
         Task.Run(async () => // Schedule the task to the ThreadPool
         {
             ReadOnlyMemory<byte> frame;
-            
+
             switch (options.RequestType)
             {
                 case RequestType.D2Auth:
@@ -58,10 +58,10 @@ internal class PacketContext(BotContext context)
                     throw new InvalidOperationException($"Unknown RequestType: {options.RequestType}");
                 }
             }
-            
+
             await context.SocketContext.Send(frame);
         });
-        
+
         return new ValueTask<SsoPacket>(tcs, 0);
     }
 
@@ -69,7 +69,7 @@ internal class PacketContext(BotContext context)
     {
         var service = _servicePacker.Parse(buffer);
         var sso = _ssoPacker.Parse(service);
-        
+
         if (_pendingTasks.TryRemove(sso.Sequence, out var tcs))
         {
             if (sso is { RetCode: not 0, Extra: var extra })
@@ -84,7 +84,7 @@ internal class PacketContext(BotContext context)
         }
         else
         {
-            _ = context.EventContext.HandleServerPacket(sso);
+            Task.Run(() => context.EventContext.HandleServerPacket(sso));
         }
     }
 }
