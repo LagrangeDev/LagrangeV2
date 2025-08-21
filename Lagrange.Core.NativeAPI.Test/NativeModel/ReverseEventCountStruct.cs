@@ -8,10 +8,13 @@ public struct ReverseEventCountStruct
     public ReverseEventCountStruct() { }
 
     public int BotCaptchaEventCount = 0;
+    public int BotFriendRequestEventCount = 0;
     public int BotGroupInviteNotificationEventCount = 0;
+    public int BotGroupInviteSelfEventCount = 0;
     public int BotGroupJoinNotificationEventCount = 0;
     public int BotGroupMemberDecreaseEventCount = 0;
     public int BotGroupNudgeEventCount = 0;
+    public int BotGroupReactionEventCount = 0;
     public int BotLoginEventCount = 0;
     public int BotLogEventCount = 0;
     public int BotMessageEventCount = 0;

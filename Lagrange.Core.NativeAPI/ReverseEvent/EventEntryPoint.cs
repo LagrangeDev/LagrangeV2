@@ -13,10 +13,13 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
             var eventCount = new ReverseEventCountStruct
             {
                 BotCaptchaEventCount = Program.Contexts[index].EventInvoker.BotCaptchaEvent.Events.Count,
+                BotFriendRequestEventCount = Program.Contexts[index].EventInvoker.BotFriendRequestEvent.Events.Count,
                 BotGroupInviteNotificationEventCount = Program.Contexts[index].EventInvoker.BotGroupInviteNotificationEvent.Events.Count,
+                BotGroupInviteSelfEventCount = Program.Contexts[index].EventInvoker.BotGroupInviteSelfEvent.Events.Count,
                 BotGroupJoinNotificationEventCount = Program.Contexts[index].EventInvoker.BotGroupJoinNotificationEvent.Events.Count,
                 BotGroupMemberDecreaseEventCount = Program.Contexts[index].EventInvoker.BotGroupMemberDecreaseEvent.Events.Count,
                 BotGroupNudgeEventCount = Program.Contexts[index].EventInvoker.BotGroupNudgeEvent.Events.Count,
+                BotGroupReactionEventCount = Program.Contexts[index].EventInvoker.BotGroupReactionEvent.Events.Count,
                 BotLoginEventCount = Program.Contexts[index].EventInvoker.BotLoginEvent.Events.Count,
                 BotLogEventCount = Program.Contexts[index].EventInvoker.BotLogEvent.Events.Count,
                 BotMessageEventCount = Program.Contexts[index].EventInvoker.BotMessageEvent.Events.Count,
@@ -33,7 +36,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
 
             return eventCountPtr;
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "GetCaptchaEvent")]
         public static IntPtr GetCaptchaEvent(int index)
         {
@@ -49,18 +52,48 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
             return eventPtr;
         }
 
-        [UnmanagedCallersOnly(EntryPoint = "GetGroupInviteNotificationEvent")]     
+        [UnmanagedCallersOnly(EntryPoint = "GetBotFriendRequestEvent")]
+        public static IntPtr GetBotFriendRequestEvent(int index)
+        {
+            if (index >= Program.Contexts.Count)
+            {
+                return IntPtr.Zero;
+            }
+
+            var botFriendRequestEvent = Program.Contexts[index].EventInvoker.BotFriendRequestEvent;
+
+            IntPtr eventPtr = GetEventStructPtr<BotFriendRequestEventStruct>(botFriendRequestEvent);
+
+            return eventPtr;
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "GetGroupInviteNotificationEvent")]
         public static IntPtr GetGroupInviteNotificationEvent(int index)
         {
             if (index >= Program.Contexts.Count)
             {
                 return IntPtr.Zero;
             }
-            
+
             var botGroupInviteNotificationEvent = Program.Contexts[index].EventInvoker.BotGroupInviteNotificationEvent;
-            
+
             IntPtr eventPtr = GetEventStructPtr<BotGroupInviteNotificationEventStruct>(botGroupInviteNotificationEvent);
-           
+
+            return eventPtr;
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "GetBotGroupInviteSelfEvent")]
+        public static IntPtr GetBotGroupInviteSelfEvent(int index)
+        {
+            if (index >= Program.Contexts.Count)
+            {
+                return IntPtr.Zero;
+            }
+
+            var botGroupInviteSelfEvent = Program.Contexts[index].EventInvoker.BotGroupInviteSelfEvent;
+
+            IntPtr eventPtr = GetEventStructPtr<BotGroupInviteSelfEventStruct>(botGroupInviteSelfEvent);
+
             return eventPtr;
         }
 
@@ -109,6 +142,21 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
             return eventPtr;
         }
 
+        [UnmanagedCallersOnly(EntryPoint = "GetBotGroupReactionEvent")]
+        public static IntPtr GetBotGroupReactionEvent(int index)
+        {
+            if (index >= Program.Contexts.Count)
+            {
+                return IntPtr.Zero;
+            }
+
+            var botGroupReactionEvent = Program.Contexts[index].EventInvoker.BotGroupReactionEvent;
+
+            IntPtr eventPtr = GetEventStructPtr<BotGroupReactionEventStruct>(botGroupReactionEvent);
+
+            return eventPtr;
+        }
+
         [UnmanagedCallersOnly(EntryPoint = "GetLoginEvent")]
         public static IntPtr GetLoginEvent(int index)
         {
@@ -116,14 +164,14 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
             {
                 return IntPtr.Zero;
             }
-            
+
             var botLoginEvent = Program.Contexts[index].EventInvoker.BotLoginEvent;
-            
+
             IntPtr eventPtr = GetEventStructPtr<BotLoginEventStruct>(botLoginEvent);
-            
+
             return eventPtr;
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "GetBotLogEvent")]
         public static IntPtr GetBotLogEvent(int index)
         {
@@ -131,14 +179,14 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
             {
                 return IntPtr.Zero;
             }
-            
+
             var botLogEvent = Program.Contexts[index].EventInvoker.BotLogEvent;
-            
+
             IntPtr eventPtr = GetEventStructPtr<BotLogEventStruct>(botLogEvent);
-            
+
             return eventPtr;
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "GetMessageEvent")]
         public static IntPtr GetMessageEvent(int index)
         {
@@ -153,7 +201,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
 
             return eventPtr;
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "GetNewDeviceVerifyEvent")]
         public static IntPtr GetNewDeviceVerifyEvent(int index)
         {
@@ -168,7 +216,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
 
             return eventPtr;
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "GetOnlineEvent")]
         public static IntPtr GetOnlineEvent(int index)
         {
@@ -183,7 +231,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
 
             return eventPtr;
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "GetQrCodeEvent")]
         public static IntPtr GetQrCodeEvent(int index)
         {
@@ -198,7 +246,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
 
             return eventPtr;
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "GetQrCodeQueryEvent")]
         public static IntPtr GetQrCodeQueryEvent(int index)
         {
@@ -213,7 +261,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
 
             return eventPtr;
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "GetRefreshKeystoreEvent")]
         public static IntPtr GetRefreshKeystoreEvent(int index)
         {
@@ -228,7 +276,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
 
             return eventPtr;
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "GetSMSEvent")]
         public static IntPtr GetSMSEvent(int index)
         {
@@ -247,7 +295,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
         private static IntPtr GetEventStructPtr<T>(ReverseEventBase reverseEvent) where T : IEventStruct
         {
             EventArrayStruct result = new EventArrayStruct();
-    
+
             if (reverseEvent.Events.Count == 0)
             {
                 result.Events = IntPtr.Zero;
@@ -257,7 +305,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
             {
                 result.Events = Marshal.AllocHGlobal(reverseEvent.Events.Count * Marshal.SizeOf<T>());
                 result.Count = reverseEvent.Events.Count;
-        
+
                 for (int i = 0; i < reverseEvent.Events.Count; i++)
                 {
                     Marshal.StructureToPtr(
@@ -266,10 +314,10 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
                         false
                     );
                 }
-        
+
                 reverseEvent.Events.Clear();
             }
-    
+
             IntPtr resultPtr = Marshal.AllocHGlobal(Marshal.SizeOf<EventArrayStruct>());
             Marshal.StructureToPtr(result, resultPtr, false);
             return resultPtr;
