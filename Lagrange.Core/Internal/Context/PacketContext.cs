@@ -98,7 +98,7 @@ internal class PacketContext
         }
         else
         {
-            Task.Run(() => context.EventContext.HandleServerPacket(sso));
+            Task.Run(() => _context.EventContext.HandleServerPacket(sso));
         }
     }
 }
