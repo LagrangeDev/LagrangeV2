@@ -5,20 +5,34 @@ using Lagrange.Core.Internal.Services;
 
 namespace Lagrange.Core.Internal.Context;
 
-internal class PacketContext(BotContext context)
+internal class PacketContext
 {
     private readonly ConcurrentDictionary<int, SsoPacketValueTaskSource> _pendingTasks = new();
     
-    private readonly BotKeystore _keystore = context.Keystore;
-    private readonly SsoPacker _ssoPacker = new(context);
-    private readonly ServicePacker _servicePacker = new(context);
+    private readonly BotKeystore _keystore;
+    private readonly SsoPacker _ssoPacker;
+    private readonly ServicePacker _servicePacker;
     
-    internal readonly IBotSignProvider SignProvider = context.Config.SignProvider ?? context.Config.Protocol switch
+    internal readonly BotSignProvider SignProvider;
+
+    private readonly BotContext _context;
+
+    public PacketContext(BotContext context)
     {
-        Protocols.Linux or Protocols.Windows or Protocols.MacOs => new DefaultBotSignProvider(context),
-        Protocols.AndroidPhone or Protocols.AndroidPad => new DefaultAndroidBotSignProvider(context),
-        _ => throw new ArgumentOutOfRangeException(nameof(context.Config.Protocol))
-    };
+        _context = context;
+        _keystore = context.Keystore;
+        _ssoPacker = new SsoPacker(context);
+        _servicePacker = new ServicePacker(context);
+        
+        SignProvider = context.Config.SignProvider ?? context.Config.Protocol switch
+        {
+            Protocols.Linux or Protocols.Windows or Protocols.MacOs => new DefaultBotSignProvider(),
+            Protocols.AndroidPhone or Protocols.AndroidPad => new DefaultAndroidBotSignProvider(),
+            _ => throw new ArgumentOutOfRangeException(nameof(context.Config.Protocol))
+        };
+        
+        SignProvider.Context = context; // Initialize the sign provider with the context
+    }
 
     public ValueTask<SsoPacket> SendPacket(SsoPacket packet, ServiceAttribute options)
     {
@@ -59,7 +73,7 @@ internal class PacketContext(BotContext context)
                 }
             }
             
-            await context.SocketContext.Send(frame);
+            await _context.SocketContext.Send(frame);
         });
         
         return new ValueTask<SsoPacket>(tcs, 0);
@@ -84,7 +98,7 @@ internal class PacketContext(BotContext context)
         }
         else
         {
-            _ = context.EventContext.HandleServerPacket(sso);
+            _ = _context.EventContext.HandleServerPacket(sso);
         }
     }
 }
