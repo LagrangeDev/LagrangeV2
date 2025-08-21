@@ -10,10 +10,10 @@ public abstract class BotSignProvider
 {
     private BotContext? _context;
     
-    protected internal BotContext Context
+    public BotContext Context
     {
         get => _context ?? throw new InvalidOperationException("Context is not initialized.");
-        set => _context = value;
+        internal set => _context = value;
     }
     
     public abstract bool IsWhiteListCommand(string cmd);
