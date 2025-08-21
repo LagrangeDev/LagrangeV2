@@ -24,8 +24,8 @@ public class GetHistoryMessagesHandler(BotContext bot, EntityConvert convert) : 
 
         var messages = parameter.MessageScene switch
         {
-            "friend" => await _bot.GetC2CMessage(parameter.PeerId, start, end),
-            "group" => await _bot.GetGroupMessage(parameter.PeerId, start, end),
+            "friend" => await _bot.GetC2CMessage(parameter.PeerId, (ulong)start, (ulong)end),
+            "group" => await _bot.GetGroupMessage(parameter.PeerId, (ulong)start, (ulong)end),
             "temp" => throw new ApiException(-1, "temp not supported"),
             _ => throw new NotSupportedException(),
         };

@@ -278,7 +278,7 @@ internal partial class VideoFile
 [ProtoPackable]
 internal partial class SourceMsg
 {
-    [ProtoMember(1)] public uint[] OrigSeqs { get; set; } // 原消息seq
+    [ProtoMember(1)] public ulong[] OrigSeqs { get; set; } // 原消息seq
 
     [ProtoMember(2)] public ulong SenderUin { get; set; } // 所属发送者uin
 

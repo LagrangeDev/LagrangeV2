@@ -2,13 +2,13 @@
 
 namespace Lagrange.Core.Internal.Events.Message;
 
-internal class GetGroupMessageEventReq(long groupUin, int startSequence, int endSequence) : ProtocolEvent
+internal class GetGroupMessageEventReq(long groupUin, ulong startSequence, ulong endSequence) : ProtocolEvent
 {
     public long GroupUin { get; } = groupUin;
 
-    public int StartSequence { get; } = startSequence;
+    public ulong StartSequence { get; } = startSequence;
 
-    public int EndSequence { get; } = endSequence;
+    public ulong EndSequence { get; } = endSequence;
 }
 
 internal class GetGroupMessageEventResp(List<CommonMessage> chains) : ProtocolEvent

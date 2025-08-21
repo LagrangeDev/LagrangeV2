@@ -70,7 +70,7 @@ internal class OperationLogic(BotContext context) : ILogic
 
     public async Task GroupFSDelete(long groupUin, string fileId) => await context.EventContext.SendEvent<GroupFSDeleteEventResp>(new GroupFSDeleteEventReq(groupUin, fileId));
 
-    public async Task<(int, DateTime)> SendFriendFile(long targetUin, Stream fileStream, string? fileName)
+    public async Task<(ulong, DateTime)> SendFriendFile(long targetUin, Stream fileStream, string? fileName)
     {
         fileName = ResolveFileName(fileStream, fileName);
 
@@ -128,7 +128,7 @@ internal class OperationLogic(BotContext context) : ILogic
             if (!success) throw new OperationException(-1, "File upload failed");
         }
 
-        int sequence = Random.Shared.Next(10000, 99999);
+        ulong sequence = (ulong)Random.Shared.NextInt64(10000, 99999);
         uint random = (uint)Random.Shared.Next();
         var sendResult = await context.EventContext.SendEvent<SendMessageEventResp>(new SendFriendFileEventReq(friend, request, result, sequence, random));
         if (sendResult.Result != 0) throw new OperationException(sendResult.Result);
@@ -226,10 +226,17 @@ internal class OperationLogic(BotContext context) : ILogic
         return uploadResp.FileId;
     }
 
-    public async Task<List<BotGroupNotificationBase>> FetchGroupNotifications(ulong count)
+    public async Task<List<BotGroupNotificationBase>> FetchGroupNotifications(ulong count, ulong start)
     {
-        var req = new FetchGroupNotificationsEventReq(count);
+        var req = new FetchGroupNotificationsEventReq(count, start);
         var resp = await context.EventContext.SendEvent<FetchGroupNotificationsEventResp>(req);
+        return resp.GroupNotifications;
+    }
+
+    public async Task<List<BotGroupNotificationBase>> FetchFilteredGroupNotifications(ulong count, ulong start)
+    {
+        var req = new FetchFilteredGroupNotificationsEventReq(count, start);
+        var resp = await context.EventContext.SendEvent<FetchFilteredGroupNotificationsEventResp>(req);
         return resp.GroupNotifications;
     }
 
@@ -240,14 +247,41 @@ internal class OperationLogic(BotContext context) : ILogic
         return resp.Stranger;
     }
 
-    public async Task SetGroupNotification(long groupUin, ulong sequence, BotGroupNotificationType type, GroupNotificationOperate operate, string message)
+    public async Task SetGroupNotification(long groupUin, ulong sequence, BotGroupNotificationType type, bool isFiltered, GroupNotificationOperate operate, string message)
     {
-        await context.EventContext.SendEvent<SetGroupNotificationEventResp>(new SetGroupNotificationEventReq(
-            groupUin,
-            sequence,
-            type,
-            operate,
-            message
-        ));
+        if (isFiltered)
+        {
+            await context.EventContext.SendEvent<SetFilteredGroupNotificationEventResp>(
+                new SetFilteredGroupNotificationEventReq(
+                    groupUin,
+                    sequence,
+                    type,
+                    operate,
+                    message
+                )
+            );
+        }
+        else
+        {
+            await context.EventContext.SendEvent<SetGroupNotificationEventResp>(
+                new SetGroupNotificationEventReq(
+                    groupUin,
+                    sequence,
+                    type,
+                    operate,
+                    message
+                )
+            );
+        }
+    }
+
+    public async Task SetGroupReaction(long groupUin, ulong sequence, string code, bool isAdd)
+    {
+        if (isAdd) await context.EventContext.SendEvent<AddGroupReactionEventResp>(
+            new AddGroupReactionEventReq(groupUin, sequence, code)
+        );
+        else await context.EventContext.SendEvent<ReduceGroupReactionEventResp>(
+            new ReduceGroupReactionEventReq(groupUin, sequence, code)
+        );
     }
 }

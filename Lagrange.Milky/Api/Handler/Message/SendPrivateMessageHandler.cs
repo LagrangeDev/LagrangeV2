@@ -18,7 +18,7 @@ public class SendPrivateMessageHandler(BotContext bot, EntityConvert convert) : 
         var result = await _bot.SendFriendMessage(parameter.UserId, chain);
 
         return new SendPrivateMessageResult(
-            result.Sequence,
+            (long)result.Sequence,
             new DateTimeOffset(result.Time).ToUnixTimeSeconds()
         );
     }

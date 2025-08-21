@@ -23,7 +23,7 @@ internal partial class GroupRecall
 [ProtoPackable]
 internal partial class RecallMessage
 {
-    [ProtoMember(1)] public uint Sequence { get; set; }
+    [ProtoMember(1)] public ulong Sequence { get; set; }
 
     [ProtoMember(2)] public uint Time { get; set; }
 

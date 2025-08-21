@@ -1,6 +1,6 @@
 namespace Lagrange.Core.Common.Entity;
 
-public class BotGroupJoinNotification(long group, ulong sequence, long targetUin, string targetUid, BotGroupNotificationState state, long? operatorUin, string? operatorUid, string comment) : BotGroupNotificationBase(group, sequence, BotGroupNotificationType.Join, targetUin, targetUid)
+public class BotGroupJoinNotification(long group, ulong sequence, long targetUin, string targetUid, BotGroupNotificationState state, long? operatorUin, string? operatorUid, string comment, bool isFiltered) : BotGroupNotificationBase(group, sequence, BotGroupNotificationType.Join, targetUin, targetUid)
 {
     public BotGroupNotificationState State { get; } = state;
 
@@ -9,4 +9,6 @@ public class BotGroupJoinNotification(long group, ulong sequence, long targetUin
     public string? OperatorUid { get; } = operatorUid;
 
     public string Comment { get; } = comment;
+
+    public bool IsFiltered { get; } = isFiltered;
 }

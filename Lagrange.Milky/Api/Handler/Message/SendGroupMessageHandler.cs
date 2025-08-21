@@ -17,7 +17,7 @@ public class SendGroupMessageHandler(BotContext bot, EntityConvert convert) : IA
         var chain = await _convert.GroupSegmentsAsync(parameter.Message, parameter.GroupId, token);
         var result = await _bot.SendGroupMessage(parameter.GroupId, chain);
 
-        return new SendGroupMessageResult(result.Sequence, new DateTimeOffset(result.Time).ToUnixTimeSeconds());
+        return new SendGroupMessageResult((long)result.Sequence, new DateTimeOffset(result.Time).ToUnixTimeSeconds());
     }
 }
 

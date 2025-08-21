@@ -9,7 +9,7 @@ internal class SendMessageEventReq(BotMessage message) : ProtocolEvent
     public BotMessage Message { get; } = message;
 }
 
-internal class SendFriendFileEventReq(BotFriend friend, FileUploadEventReq request, FileUploadEventResp response, int clientSequence, uint sequence) : ProtocolEvent
+internal class SendFriendFileEventReq(BotFriend friend, FileUploadEventReq request, FileUploadEventResp response, ulong clientSequence, uint sequence) : ProtocolEvent
 {
     public BotFriend Friend { get; } = friend;
     
@@ -17,16 +17,16 @@ internal class SendFriendFileEventReq(BotFriend friend, FileUploadEventReq reque
     
     public FileUploadEventResp Response { get; } = response;
     
-    public int ClientSequence { get; } = clientSequence;
+    public ulong ClientSequence { get; } = clientSequence;
     
     public uint Sequence { get; } = sequence;
 }
 
-internal class SendMessageEventResp(int result, long sendTime, int sequence) : ProtocolEvent
+internal class SendMessageEventResp(int result, long sendTime, ulong sequence) : ProtocolEvent
 {
     public int Result { get; } = result;
     
     public long SendTime { get; } = sendTime;
     
-    public int Sequence { get; } = sequence;
+    public ulong Sequence { get; } = sequence;
 }

@@ -11,7 +11,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Message.Entity
 
         public ulong SrcUid;
 
-        public int SrcSequence;
+        public ulong SrcSequence;
 
         public IntPtr Source;
 

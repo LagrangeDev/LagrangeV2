@@ -49,7 +49,7 @@ public partial class EntityConvert
         MentionEntity mention when mention.Uin != 0 => new MentionIncomingSegment(mention.Uin),
         MentionEntity mention when mention.Uin == 0 => new MentionAllIncomingSegment(),
         // ? => new FaceSegment(...),
-        ReplyEntity reply => new ReplyIncomingSegment(reply.SrcSequence),
+        ReplyEntity reply => new ReplyIncomingSegment((long)reply.SrcSequence),
         ImageEntity image => new ImageIncomingSegment(
             image.FileUuid,
             image.FileUrl,
@@ -71,6 +71,7 @@ public partial class EntityConvert
             (int)video.VideoLength
         ),
         MultiMsgEntity multiMsg => new ForwardIncomingSegment(multiMsg.ResId!),
+        LightAppEntity lightApp => new LightAppIncomingSegment(lightApp.AppName, lightApp.Payload),
         // ? => new MarketFaceSegment(...),
         // ? => new LightAppSegment(...),
         // ? => new XmlSegment(...),
@@ -125,16 +126,16 @@ public partial class EntityConvert
 
     private async Task<IMessageEntity> ReplyGroupSegmentAsync(ReplyOutgoingSegment reply, long uin, CancellationToken token)
     {
-        int sequence = (int)reply.Data.MessageSeq;
-        var message = await _cache.GetMessageAsync(MessageType.Group, uin, sequence, token);
+        long sequence = reply.Data.MessageSeq;
+        var message = await _cache.GetMessageAsync(MessageType.Group, uin, (ulong)sequence, token);
         if (message == null) throw new Exception("message not found");
 
         return new ReplyEntity(message);
     }
     private async Task<IMessageEntity> ReplyFriendSegmentAsync(ReplyOutgoingSegment reply, long uin, CancellationToken token)
     {
-        int sequence = (int)reply.Data.MessageSeq;
-        var message = await _cache.GetMessageAsync(MessageType.Private, uin, sequence, token);
+        long sequence = reply.Data.MessageSeq;
+        var message = await _cache.GetMessageAsync(MessageType.Private, uin, (ulong)sequence, token);
         if (message == null) throw new Exception("message not found");
 
         return new ReplyEntity(message);

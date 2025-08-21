@@ -27,7 +27,7 @@ internal partial class GroupReactionData2
 [ProtoPackable]
 internal partial class GroupReactionTarget
 {
-    [ProtoMember(1)] public long Sequence { get; set; }
+    [ProtoMember(1)] public ulong Sequence { get; set; }
 }
 
 [ProtoPackable]
@@ -35,7 +35,7 @@ internal partial class GroupReactionData3
 {
     [ProtoMember(1)] public string Code { get; set; }
 
-    [ProtoMember(3)] public uint Count { get; set; }
+    [ProtoMember(3)] public uint CurrentCount { get; set; }
 
     [ProtoMember(4)] public string OperatorUid { get; set; }
 

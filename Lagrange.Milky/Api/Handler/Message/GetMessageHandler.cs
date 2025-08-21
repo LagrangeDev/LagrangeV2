@@ -25,7 +25,7 @@ public class GetMessageHandler(BotContext bot, MessageCache cache, EntityConvert
                 _ => throw new NotSupportedException(),
             },
             parameter.PeerId,
-            (int)parameter.MessageSeq,
+            (ulong)parameter.MessageSeq,
             token
         );
 

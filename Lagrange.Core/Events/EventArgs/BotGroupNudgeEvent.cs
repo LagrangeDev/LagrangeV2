@@ -1,12 +1,12 @@
 ﻿namespace Lagrange.Core.Events.EventArgs;
 
-public class BotGroupNudgeEvent(Int64 groupUin, Int64 operatorUin, Int64 targetUin) : EventBase
+public class BotGroupNudgeEvent(long groupUin, long operatorUin, long targetUin) : EventBase
 {
-    public Int64 GroupUin { get; } = groupUin;
+    public long GroupUin { get; } = groupUin;
 
-    public Int64 OperatorUin { get; } = operatorUin;
+    public long OperatorUin { get; } = operatorUin;
 
-    public Int64 TargetUin { get; } = targetUin;
+    public long TargetUin { get; } = targetUin;
 
     public override string ToEventMessage()
     {

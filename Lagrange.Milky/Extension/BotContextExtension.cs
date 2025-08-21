@@ -5,6 +5,8 @@ using Lagrange.Core;
 
 namespace Lagrange.Milky.Extension;
 
+[UnconditionalSuppressMessage("Trimming", "IL2026")]
+[UnconditionalSuppressMessage("Trimming", "IL2075")]
 public static class BotContextExtension
 {
     private delegate ValueTask<(int RetCode, string Extra, ReadOnlyMemory<byte> Data)> SendPacketDelegate(BotContext bot, string cmd, int sequence, byte[] data);
@@ -14,8 +16,6 @@ public static class BotContextExtension
     private const string EncryptTypeFullName = "Lagrange.Core.Internal.Packets.Struct.EncryptType";
     private const string ServiceAttributeFullName = "Lagrange.Core.Internal.Services.ServiceAttribute";
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026")]
-    [UnconditionalSuppressMessage("Trimming", "IL2075")]
     private static readonly Lazy<SendPacketDelegate> _sendPacket = new(() =>
     {
         var coreAssembly = Assembly.GetAssembly(typeof(BotContext));

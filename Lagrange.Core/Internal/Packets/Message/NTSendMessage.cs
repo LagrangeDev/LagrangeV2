@@ -13,7 +13,7 @@ internal partial class PbSendMsgReq
     
     [ProtoMember(3)] public MessageBody MessageBody { get; set; }
     
-    [ProtoMember(4)] public int ClientSequence { get; set; }
+    [ProtoMember(4)] public ulong ClientSequence { get; set; }
     
     [ProtoMember(5)] public uint Random { get; set; }
 }
@@ -29,9 +29,9 @@ internal partial class PbSendMsgResp
     
     [ProtoMember(10)] public uint MsgInfoFlag { get; set; }
     
-    [ProtoMember(11)] public int Sequence { get; set; }
+    [ProtoMember(11)] public ulong Sequence { get; set; }
     
-    [ProtoMember(14)] public int ClientSequence { get; set; }
+    [ProtoMember(14)] public ulong ClientSequence { get; set; }
 }
 
 [ProtoPackable]

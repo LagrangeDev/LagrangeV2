@@ -6,14 +6,22 @@ using Lagrange.Proto;
 
 namespace Lagrange.Core.Common;
 
-public interface IBotSignProvider
+public abstract class BotSignProvider
 {
-    bool IsWhiteListCommand(string cmd);
+    private BotContext? _context;
+    
+    public BotContext Context
+    {
+        get => _context ?? throw new InvalidOperationException("Context is not initialized.");
+        internal set => _context = value;
+    }
+    
+    public abstract bool IsWhiteListCommand(string cmd);
 
-    Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body);
+    public abstract Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body);
 }
 
-internal class DefaultBotSignProvider(BotContext context) : IBotSignProvider, IDisposable
+internal class DefaultBotSignProvider : BotSignProvider, IDisposable
 {
     private const string Tag =  nameof(DefaultBotSignProvider);
     
@@ -64,19 +72,19 @@ internal class DefaultBotSignProvider(BotContext context) : IBotSignProvider, ID
     
     private readonly HttpClient _client = new();
     
-    private readonly string _url = context.Config.Protocol switch
+    private string Url => Context.Config.Protocol switch
     {
         Protocols.Windows => throw new NotSupportedException("Windows is not supported"),
         Protocols.MacOs => throw new NotSupportedException("MacOs is not supported"),
-        Protocols.Linux => $"https://sign.lagrangecore.org/api/sign/{context.AppInfo.AppClientVersion}",
+        Protocols.Linux => $"https://sign.lagrangecore.org/api/sign/{Context.AppInfo.AppClientVersion}",
         Protocols.AndroidPhone => throw new NotSupportedException("AndroidPhone is not supported"),
         Protocols.AndroidPad => throw new NotSupportedException("AndroidPad is not supported"),
         _ => throw new ArgumentOutOfRangeException()
     };
     
-    public bool IsWhiteListCommand(string cmd) => WhiteListCommand.Contains(cmd);
+    public override bool IsWhiteListCommand(string cmd) => WhiteListCommand.Contains(cmd);
 
-    public async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
+    public override async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
     {
         try
         {
@@ -87,7 +95,7 @@ internal class DefaultBotSignProvider(BotContext context) : IBotSignProvider, ID
                 ["src"] = Convert.ToHexString(body.Span),
             };
             
-            var response = await _client.PostAsync(_url, new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
+            var response = await _client.PostAsync(Url, new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
             if (!response.IsSuccessStatusCode) return null;
             
             var content = JsonHelper.Deserialize<Root>(await response.Content.ReadAsStringAsync());
@@ -102,7 +110,7 @@ internal class DefaultBotSignProvider(BotContext context) : IBotSignProvider, ID
         }
         catch (Exception e)
         {
-            context.LogWarning(Tag, $"Failed to get sign: {e.Message}");
+            Context.LogWarning(Tag, $"Failed to get sign: {e.Message}");
             return null;
         }
     }

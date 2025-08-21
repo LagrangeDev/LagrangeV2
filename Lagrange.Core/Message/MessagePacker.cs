@@ -170,7 +170,7 @@ internal class MessagePacker
         return ProtoHelper.Serialize(proto);
     }
 
-    public static ReadOnlyMemory<byte> BuildTrans0X211(BotFriend friend, FileUploadEventReq req, FileUploadEventResp resp, int clientSequence, uint random)
+    public static ReadOnlyMemory<byte> BuildTrans0X211(BotFriend friend, FileUploadEventReq req, FileUploadEventResp resp, ulong clientSequence, uint random)
     {
         var extra = new FileExtra
         {

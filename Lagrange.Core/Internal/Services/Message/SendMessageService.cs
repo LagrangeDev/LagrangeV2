@@ -35,7 +35,7 @@ internal class SendMessageService : BaseService<ProtocolEvent, ProtocolEvent>
     protected override ValueTask<ProtocolEvent> Parse(ReadOnlyMemory<byte> input, BotContext context)
     {
         var response = ProtoHelper.Deserialize<PbSendMsgResp>(input.Span);
-        int sequence = response.ClientSequence == 0 ? response.Sequence : response.ClientSequence;
+        ulong sequence = response.ClientSequence == 0 ? response.Sequence : response.ClientSequence;
         return new ValueTask<ProtocolEvent>(new SendMessageEventResp(response.Result, response.SendTime, sequence));
     }
 }

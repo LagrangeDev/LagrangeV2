@@ -3,7 +3,7 @@ using Lagrange.Core.Common;
 
 namespace Lagrange.Core.Runner;
 
-public partial class InteropSignProvider : IBotSignProvider
+public partial class InteropSignProvider : BotSignProvider
 {
     private static readonly HashSet<string> WhiteListCommand =
     [
@@ -71,9 +71,9 @@ public partial class InteropSignProvider : IBotSignProvider
         if (!ok) throw new Exception("Failed to attach to MicroblockSign library.");
     }
 
-    public bool IsWhiteListCommand(string cmd) => WhiteListCommand.Contains(cmd);
+    public override bool IsWhiteListCommand(string cmd) => WhiteListCommand.Contains(cmd);
 
-    public Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
+    public override Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
     {
         nuint extraOutSize = 0u;
         nuint tokenOutSize = 0u;

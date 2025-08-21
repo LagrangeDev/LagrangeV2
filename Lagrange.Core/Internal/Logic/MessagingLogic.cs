@@ -14,7 +14,7 @@ internal class MessagingLogic(BotContext context) : ILogic
 
     public Task<CommonMessage> BuildFake(BotMessage msg) => _packer.BuildFake(msg);
 
-    public async Task<List<BotMessage>> GetGroupMessage(long groupUin, int startSequence, int endSequence)
+    public async Task<List<BotMessage>> GetGroupMessage(long groupUin, ulong startSequence, ulong endSequence)
     {
         var result = await context.EventContext.SendEvent<GetGroupMessageEventResp>(new GetGroupMessageEventReq(groupUin, startSequence, endSequence));
         var messages = new List<BotMessage>(result.Chains.Count);
@@ -31,7 +31,7 @@ internal class MessagingLogic(BotContext context) : ILogic
         return messages;
     }
     
-    public async Task<List<BotMessage>> GetC2CMessage(long peerUin, int startSequence, int endSequence)
+    public async Task<List<BotMessage>> GetC2CMessage(long peerUin, ulong startSequence, ulong endSequence)
     {
         string peerUid = context.CacheContext.ResolveCachedUid(peerUin) ?? throw new InvalidTargetException(peerUin);
         var result = await context.EventContext.SendEvent<GetC2CMessageEventResp>(new GetC2CMessageEventReq(peerUid, startSequence, endSequence));

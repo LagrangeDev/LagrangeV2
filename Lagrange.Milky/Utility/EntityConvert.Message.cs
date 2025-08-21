@@ -17,7 +17,7 @@ public partial class EntityConvert
 
     public FriendMessage FriendMessage(BotMessage message) => new(
         message.Contact.Uin == _bot.BotUin ? message.Receiver.Uin : message.Contact.Uin,
-        message.ClientSequence,
+        (long)message.ClientSequence,
         message.Contact.Uin,
         message.Time.ToUnixTimeSeconds(),
         Segments(message.Entities),
@@ -26,7 +26,7 @@ public partial class EntityConvert
 
     public GroupMessage GroupMessage(BotMessage message) => new(
         ((BotGroupMember)message.Contact).Group.Uin,
-        message.Sequence,
+        (long)message.Sequence,
         message.Contact.Uin,
         message.Time.ToUnixTimeSeconds(),
         Segments(message.Entities),
@@ -36,7 +36,7 @@ public partial class EntityConvert
 
     public TempMessage TempMessage(BotMessage message) => new(
         message.Contact.Uin == _bot.BotUin ? message.Receiver.Uin : message.Contact.Uin,
-        message.Sequence,
+        (long)message.Sequence,
         message.Contact.Uin,
         message.Time.ToUnixTimeSeconds(),
         Segments(message.Entities),

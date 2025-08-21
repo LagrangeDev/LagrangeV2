@@ -11,7 +11,7 @@ public static class MessageExt
     public static Task<BotMessage> SendGroupMessage(this BotContext context, long groupUin, MessageChain chain)
         => context.EventContext.GetLogic<MessagingLogic>().SendGroupMessage(groupUin, chain);
     
-    public static Task<List<BotMessage>> GetGroupMessage(this BotContext context, long groupUin, int startSequence, int endSequence)
+    public static Task<List<BotMessage>> GetGroupMessage(this BotContext context, long groupUin, ulong startSequence, ulong endSequence)
         => context.EventContext.GetLogic<MessagingLogic>().GetGroupMessage(groupUin, startSequence, endSequence);
     
     public static Task<List<BotMessage>> GetRoamMessage(this BotContext context, long friendUin, uint timestamp, uint count)
@@ -23,10 +23,10 @@ public static class MessageExt
         return context.EventContext.GetLogic<MessagingLogic>().GetRoamMessage(target.Contact.Uin, timestamp, count);
     }
     
-    public static Task<List<BotMessage>> GetC2CMessage(this BotContext context, long peerUin, int startSequence, int endSequence)
+    public static Task<List<BotMessage>> GetC2CMessage(this BotContext context, long peerUin, ulong startSequence, ulong endSequence)
         => context.EventContext.GetLogic<MessagingLogic>().GetC2CMessage(peerUin, startSequence, endSequence);
 
-    public static Task<(int Sequence, DateTime Time)> SendFriendFile(this BotContext context, long targetUin, Stream fileStream, string? fileName = null)
+    public static Task<(ulong Sequence, DateTime Time)> SendFriendFile(this BotContext context, long targetUin, Stream fileStream, string? fileName = null)
         => context.EventContext.GetLogic<OperationLogic>().SendFriendFile(targetUin, fileStream, fileName);
 
     public static Task<string> SendGroupFile(this BotContext context, long groupUin, Stream fileStream, string? fileName = null, string parentDirectory = "/")

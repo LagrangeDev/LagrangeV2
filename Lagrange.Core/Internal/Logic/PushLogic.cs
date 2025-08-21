@@ -1,4 +1,5 @@
-using System.Text;
+using System.Text.Json;
+using System.Web;
 using Lagrange.Core.Common;
 using Lagrange.Core.Common.Entity;
 using Lagrange.Core.Events.EventArgs;
@@ -6,6 +7,7 @@ using Lagrange.Core.Internal.Events;
 using Lagrange.Core.Internal.Events.Message;
 using Lagrange.Core.Internal.Events.System;
 using Lagrange.Core.Internal.Packets.Notify;
+using Lagrange.Core.Message.Entities;
 using Lagrange.Core.Utility.Binary;
 using ProtoHelper = Lagrange.Core.Utility.ProtoHelper;
 
@@ -25,6 +27,23 @@ internal class PushLogic(BotContext context) : ILogic
             case Type.TempMessage:
             {
                 var message = await context.EventContext.GetLogic<MessagingLogic>().Parse(messageEvent.MsgPush.CommonMessage);
+                if (message.Entities[0] is LightAppEntity { AppName: "com.tencent.qun.invite" } || message.Entities[0] is LightAppEntity { AppName: "com.tencent.tuwen.lua" })
+                {
+                    var app = (LightAppEntity)message.Entities[0];
+                    using var document = JsonDocument.Parse(app.Payload);
+                    var root = document.RootElement;
+
+                    string url = root.GetProperty("meta").GetProperty("news").GetProperty("jumpUrl").GetString() ?? throw new Exception("sb tx! Is this 'com.tencent.qun.invite' or 'com.tencent.tuwen.lua'?");
+                    var query = HttpUtility.ParseQueryString(new Uri(url).Query);
+                    long groupUin = uint.Parse(query["groupcode"] ?? throw new Exception("sb tx! Is this '/group/invite_join'?"));
+                    long sequence = long.Parse(query["msgseq"] ?? throw new Exception("sb tx! Is this '/group/invite_join'?"));
+                    context.EventInvoker.PostEvent(new BotGroupInviteSelfEvent(
+                        sequence,
+                        message.Contact.Uin,
+                        groupUin
+                    ));
+                    break;
+                }
                 context.EventInvoker.PostEvent(new BotMessageEvent(message, messageEvent.Raw));
                 break;
             }
@@ -128,6 +147,31 @@ internal class PushLogic(BotContext context) : ILogic
                 }
                 break;
             }
+            case Type.Event0x210:
+            {
+                var pkgType210 = (Event0x210SubType)messageEvent.MsgPush.CommonMessage.ContentHead.SubType;
+                switch (pkgType210)
+                {
+                    case Event0x210SubType.FriendRequestNotice when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
+                    {
+                        var friendRequest = ProtoHelper.Deserialize<FriendRequest>(content.Span);
+                        context.EventInvoker.PostEvent(new BotFriendRequestEvent(
+                            friendRequest.Info!.SourceUid,
+                            messageEvent.MsgPush.CommonMessage.RoutingHead.FromUin,
+                            friendRequest.Info.Message,
+                            friendRequest.Info.Source ?? string.Empty
+                        ));
+                        break;
+                    }
+                    default:
+                    {
+                        context.LogWarning(nameof(PushLogic), "Unknown 0x210 sub type: {0}", null, pkgType210);
+                        break;
+                    }
+                }
+
+                break;
+            }
             case Type.Event0x2DC:
             {
                 var pkgType = (Event0x2DCSubType)messageEvent.MsgPush.CommonMessage.ContentHead.SubType;
@@ -136,7 +180,7 @@ internal class PushLogic(BotContext context) : ILogic
                     case Event0x2DCSubType.GroupGreyTipNotice20 when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
                     {
                         var packet = new BinaryPacket(content);
-                        Int64 groupUin = packet.Read<Int32>(); // group uin
+                        long groupUin = packet.Read<int>(); // group uin
                         _ = packet.Read<byte>(); // unknown byte
                         var proto = packet.ReadBytes(Prefix.Int16 | Prefix.LengthOnly);
                         var greyTip = ProtoHelper.Deserialize<NotifyMessageBody>(proto);
@@ -154,6 +198,40 @@ internal class PushLogic(BotContext context) : ILogic
                                 uint.Parse(templates["uin_str1"]),
                                 uint.Parse(templates["uin_str2"]))
                             );
+                        }
+                        break;
+                    }
+                    case Event0x2DCSubType.SubType16 when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
+                    {
+                        var reader = new BinaryPacket(content);
+                        // group uin and 1 byte
+                        reader.Skip(4 + 1);
+                        var proto = reader.ReadBytes(Prefix.Int16 | Prefix.LengthOnly);
+                        var body = ProtoHelper.Deserialize<NotifyMessageBody>(proto);
+
+                        switch ((Event0x2DCSubType16SubType)body.SubType)
+                        {
+                            case Event0x2DCSubType16SubType.GroupReactionNotice:
+                            {
+                                var reaction = body.Reaction.Data.Data;
+
+                                long @operator = context.CacheContext.ResolveUin(reaction.Data.OperatorUid);
+
+                                context.EventInvoker.PostEvent(new BotGroupReactionEvent(
+                                    body.GroupUin,
+                                    reaction.Target.Sequence,
+                                    @operator,
+                                    reaction.Data.Type == 1,
+                                    reaction.Data.Code,
+                                    reaction.Data.CurrentCount
+                                ));
+                                break;
+                            }
+                            default:
+                            {
+                                context.LogWarning(nameof(PushLogic), "Unknown 0x2DCSub16 sub type: {0}", null, body.SubType);
+                                break;
+                            }
                         }
                         break;
                     }
@@ -206,11 +284,14 @@ internal class PushLogic(BotContext context) : ILogic
         GroupGreyTipNotice20 = 20,
     }
 
-    private enum Event0x2DCSubType16Field13
+    private enum Event0x2DCSubType16SubType
     {
-        GroupMemberSpecialTitleNotice = 6,
-        GroupNameChangeNotice = 12,
-        GroupTodoNotice = 23,
         GroupReactionNotice = 35,
+    }
+
+    private enum Event0x210SubType
+    {
+        FriendRequestNotice = 35,
+        FriendRecallNudgeNotice = 321,
     }
 }

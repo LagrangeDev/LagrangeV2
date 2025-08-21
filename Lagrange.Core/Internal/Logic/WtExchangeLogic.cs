@@ -12,6 +12,7 @@ using Lagrange.Core.Internal.Packets.Login;
 using Lagrange.Core.Internal.Packets.System;
 using Lagrange.Core.Utility;
 using Lagrange.Core.Utility.Binary;
+using Lagrange.Core.Utility.Cryptography;
 using Lagrange.Core.Utility.Extension;
 
 namespace Lagrange.Core.Internal.Logic;
@@ -118,206 +119,211 @@ internal class WtExchangeLogic : ILogic, IDisposable
     
     private async Task<bool> ManualLogin(long uin, string? password)
     {
-        if (string.IsNullOrEmpty(password) && (_context.Config.Protocol.IsAndroid() && _context.Config.Protocol is not Protocols.AndroidWatch)) // watch can use QRLogin
+        if (string.IsNullOrEmpty(password) && _context.Config.Protocol.IsAndroid())
         {
-            _context.LogCritical(Tag, "Android Platform (except AndroidWatch) can not use QRLogin, Please fill in password");
+            _context.LogCritical(Tag, "Android Platform can not use QRLogin, Please fill in password");
             return false;
         }
 
         if (_context.Config.Protocol.IsPC() && _context.Keystore.WLoginSigs is { A1.Length: not 0 })
         {
-            return await LoginByEasyLoginPC();
-        }
-        
-        if (string.IsNullOrEmpty(password))
-        {
-            return await LoginByQrCode();
-        }
-        else
-        {
-            if (_context.Config.Protocol is Protocols.AndroidWatch)
-            {
-                _context.LogError(Tag, "AndroidWatch can not use password login");
-                return false;
-            }
+            if (!await KeyExchange()) return false;
             
-            _context.LogInfo(Tag, "Password is filled, try to login");
-
-            return _context.Config.Protocol.IsAndroid()
-                ? await LoginByPasswordAndroid(uin, password)
-                : await LoginByPasswordPC(uin, password);
-        }
-    }
-
-    private async Task<bool> LoginByQrCode()
-    {
-        _context.LogInfo(Tag, "Password is empty or null, use QRCode Login");
-            
-        var transEmp31 = await _context.EventContext.SendEvent<TransEmp31EventResp>(new TransEmp31EventReq(null));
-
-        _transEmpSource = new TaskCompletionSource<bool>();
-        _context.EventInvoker.PostEvent(new BotQrCodeEvent(transEmp31.Url, transEmp31.Image));
-            
-        _context.Keystore.State.QrSig = transEmp31.QrSig;
-        _timers[QueryStateTag].Change(0, 2000);
-
-        if (await _transEmpSource.Task) return await Online();
-        return false;
-    }
-
-    private async Task<bool> LoginByEasyLoginPC()
-    {
-        if (!await KeyExchange()) return false;
-            
-        var result = await _context.EventContext.SendEvent<EasyLoginEventResp>(new EasyLoginEventReq());
-        _token?.ThrowIfCancellationRequested();
-            
-        switch (result.State)
-        {
-            case NTLoginRetCode.LOGIN_SUCCESS:
-                _context.EventInvoker.PostEvent(new BotLoginEvent(0, null));
-                _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
-                return await Online();
-            case NTLoginRetCode.LOGIN_ERROR_UNUSUAL_DEVICE when result.UnusualSigs is { } sig:
-                _context.LogInfo(Tag, "Unusual device detected, waiting for confirmation");
-
-                var transEmp31 = await _context.EventContext.SendEvent<TransEmp31EventResp>(new TransEmp31EventReq(sig));
-
-                _context.Keystore.State.QrSig = transEmp31.QrSig;
-                _transEmpSource = new TaskCompletionSource<bool>();
-                await _timers[QueryStateTag].DisposeAsync();
-                _timers[QueryStateTag] = new Timer(OnQueryState, true, 0, 2000);
-                if (await _transEmpSource.Task) return await Online();
-
-                return false;
-            default:
-                _context.LogError(Tag, "Login failed: {0} | Message: {1}", null, result.State, result.Tips);
-                _context.EventInvoker.PostEvent(new BotLoginEvent((int)result.State, result.Tips));
-                return false;
-        }
-    }
-
-    private async Task<bool> LoginByPasswordPC(long uin, string password)
-    {
-        _context.Keystore.Uin = uin;
-        if (_context.Keystore.State.KeyExchangeSession is null && !await KeyExchange()) return false;
-
-        var result = await _context.EventContext.SendEvent<PasswordLoginEventResp>(new PasswordLoginEventReq(password, null));
-        while (true)
-        {
+            var result = await _context.EventContext.SendEvent<EasyLoginEventResp>(new EasyLoginEventReq());
             _token?.ThrowIfCancellationRequested();
-                    
+            
             switch (result.State)
             {
                 case NTLoginRetCode.LOGIN_SUCCESS:
                     _context.EventInvoker.PostEvent(new BotLoginEvent(0, null));
                     _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
                     return await Online();
-                case NTLoginRetCode.LOGIN_ERROR_PROOF_WATER:
-                    _context.LogInfo(Tag, "Captcha required, URL: {0}", result.JumpingUrl);
-                    
-                    _context.EventInvoker.PostEvent(new BotCaptchaEvent(result.JumpingUrl));
-                    _captchaSource = new TaskCompletionSource<(string, string)>();
+                case NTLoginRetCode.LOGIN_ERROR_UNUSUAL_DEVICE when result.UnusualSigs is { } sig:
+                    _context.LogInfo(Tag, "Unusual device detected, waiting for confirmation");
 
-                    string sid = result.JumpingUrl.Split("&sid=")[1].Split("&")[0];
-                    var (ticket, randStr) = await _captchaSource.Task;
-                    result = await _context.EventContext.SendEvent<PasswordLoginEventResp>(new PasswordLoginEventReq(password, (ticket, randStr, sid)));
-                    break;
-                case NTLoginRetCode.LOGIN_ERROR_NEW_DEVICE:
-                    _context.LogInfo(Tag, "New device login required");
-                            
-                    var parsed = HttpUtility.ParseQueryString(result.JumpingUrl);
-                    string interfaceUrl = $"https://oidb.tim.qq.com/v3/oidbinterface/oidb_0xc9e_8?uid={uin}&getqrcode=1&sdkappid=39998&actype=2";
-                    string request = JsonHelper.Serialize(new NTNewDeviceQrCodeRequest
-                    {
-                        Uint32Flag = 1,
-                        Uint32UrlType = 0,
-                        StrDevAuthToken = parsed["sig"] ?? "",
-                        StrUinToken = parsed["uin-token"] ?? "",
-                        StrDevType = _context.AppInfo.Os,
-                        StrDevName = _context.Keystore.DeviceName
-                    });
-                    var response = await (_client ??= new HttpClient()).PostAsync(interfaceUrl, new StringContent(request, Encoding.UTF8, "application/json"));
-                    var json = JsonHelper.Deserialize<NTNewDeviceQrCodeResponse>(await response.Content.ReadAsStringAsync()) ?? throw new InvalidOperationException();
-                    _context.EventInvoker.PostEvent(new BotNewDeviceVerifyEvent(json.StrUrl));
-                            
-                    string url = HttpUtility.ParseQueryString(json.StrUrl.Split("?")[1])["str_url"] ?? throw new InvalidOperationException();
-                    request = JsonHelper.Serialize(new NTNewDeviceQrCodeQuery { Uint32Flag = 0, Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(url.Replace('*', '+').Replace('-', '/').Replace("==", ""))) });
-                            
-                    _timers[NewDeviceTag] = new Timer(OnNewDevice, (interfaceUrl, request), 0, 2000);
+                    var transEmp31 = await _context.EventContext.SendEvent<TransEmp31EventResp>(new TransEmp31EventReq(sig));
+
+                    _context.Keystore.State.QrSig = transEmp31.QrSig;
                     _transEmpSource = new TaskCompletionSource<bool>();
+                    await _timers[QueryStateTag].DisposeAsync();
+                    _timers[QueryStateTag] = new Timer(OnQueryState, true, 0, 2000);
                     if (await _transEmpSource.Task) return await Online();
-
-                    return false;
+                    break;
                 default:
                     _context.LogError(Tag, "Login failed: {0} | Message: {1}", null, result.State, result.Tips);
                     _context.EventInvoker.PostEvent(new BotLoginEvent((int)result.State, result.Tips));
-                    return false;
+                    break;
             }
         }
-    }
-
-    private async Task<bool> LoginByPasswordAndroid(long uin, string password)
-    {
-        _context.Keystore.Uin = uin;
-        _context.Keystore.WLoginSigs.TgtgtKey = new byte[16];
-        Random.Shared.NextBytes(_context.Keystore.WLoginSigs.TgtgtKey);
-                
-        var result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.Tgtgt, password));
-
-        if (result.State == LoginEventResp.States.CaptchaVerify)
+        
+        if (string.IsNullOrEmpty(password))
         {
-            string captchaUrl = Encoding.UTF8.GetString(result.Tlvs[0x192]);
-            _context.LogInfo(Tag, "Captcha required, URL: {0}", captchaUrl);
-            _context.EventInvoker.PostEvent(new BotCaptchaEvent(captchaUrl));
-                    
-            _captchaSource = new TaskCompletionSource<(string, string)>();
-            var (ticket, _) = await _captchaSource.Task;
-            _context.LogInfo(Tag, "Captcha ticket: {0}, try to login", ticket);
-                    
-            _token?.ThrowIfCancellationRequested();
-            result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.Captcha) { Ticket = ticket });
-        }
+            _context.LogInfo(Tag, "Password is empty or null, use QRCode Login");
+            
+            var transEmp31 = await _context.EventContext.SendEvent<TransEmp31EventResp>(new TransEmp31EventReq(null));
 
-        if (result.State == LoginEventResp.States.DeviceLockViaSmsNewArea)
-        {
-            string? url = null;
-            if (result.Tlvs.TryGetValue(0x204, out var tlv204)) url = Encoding.UTF8.GetString(tlv204);
+            _transEmpSource = new TaskCompletionSource<bool>();
+            _context.EventInvoker.PostEvent(new BotQrCodeEvent(transEmp31.Url, transEmp31.Image));
+            
+            _context.Keystore.State.QrSig = transEmp31.QrSig;
+            _timers[QueryStateTag].Change(0, 2000);
 
-            var tlv178 = new BinaryPacket(result.Tlvs[0x178].AsSpan());
-            string countryCode = tlv178.ReadString(Prefix.Int16 | Prefix.LengthOnly);
-            string phone = tlv178.ReadString(Prefix.Int16 | Prefix.LengthOnly);
-                    
-            _token?.ThrowIfCancellationRequested();
-            result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.FetchSMSCode));
-            if (result.State == LoginEventResp.States.SmsRequired)
-            {
-                ExtractTlvStates(result.Tlvs);
-                        
-                _context.LogInfo(Tag, "SMS Verification required, Phone: {0}-{1} | URL: {2}", countryCode, phone, url);
-                _context.EventInvoker.PostEvent(new BotSMSEvent(url, $"{countryCode}-{phone}"));
-                        
-                _smsSource = new TaskCompletionSource<string>();
-                string code = await _smsSource.Task;
-                result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.SubmitSMSCode) { Code = code });
-            }
-        }
-                
-        if (result.State == LoginEventResp.States.Success)
-        {
-            ReadWLoginSigs(result.Tlvs);
-                    
-            _context.EventInvoker.PostEvent(new BotLoginEvent(0, null));
-            _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
-
-            return await Online();
+            if (await _transEmpSource.Task) return await Online();
         }
         else
         {
-            _context.LogError(Tag, "Login failed: {0} | Message: {1}", null, result.RetCode, result.Error);
-            _context.EventInvoker.PostEvent(new BotLoginEvent(result.RetCode, result.Error));
-            return false;
+            _context.LogInfo(Tag, "Password is filled, try to login");
+
+            if (_context.Config.Protocol.IsAndroid())
+            {
+                _context.Keystore.Uin = uin;
+                _context.Keystore.WLoginSigs.TgtgtKey = new byte[16];
+                Random.Shared.NextBytes(_context.Keystore.WLoginSigs.TgtgtKey);
+                
+                var result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.Tgtgt, password));
+
+                if (result.State == LoginEventResp.States.CaptchaVerify)
+                {
+                    if (result.Tlvs.TryGetValue(0x104, out var tlv104))
+                    {
+                        _context.Keystore.State.Tlv104 = tlv104;
+                        _context.LogDebug(Tag, "Tlv104 received, length: {0}", tlv104.Length);
+                    }
+                    
+                    if (result.Tlvs.TryGetValue(0x546, out var tlv546))
+                    {
+                        _context.Keystore.State.Tlv547 = PowProvider.GenerateTlv547(tlv546);
+                        _context.LogDebug(Tag, "Tlv546 received, calculated Tlv547 with length {0}", _context.Keystore.State.Tlv547.Length);
+                    }
+                    
+                    string captchaUrl = Encoding.UTF8.GetString(result.Tlvs[0x192]);
+                    _context.LogInfo(Tag, "Captcha required, URL: {0}", captchaUrl);
+                    _context.EventInvoker.PostEvent(new BotCaptchaEvent(captchaUrl));
+                    
+                    _captchaSource = new TaskCompletionSource<(string, string)>();
+                    var (ticket, _) = await _captchaSource.Task;
+                    _context.LogInfo(Tag, "Captcha ticket: {0}, try to login", ticket);
+                    
+                    _token?.ThrowIfCancellationRequested();
+                    result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.Captcha) { Ticket = ticket });
+                }
+
+                if (result.State == LoginEventResp.States.DeviceLockViaSmsNewArea)
+                {
+                    if (result.Tlvs.TryGetValue(0x104, out var tlv104))
+                    {
+                        _context.Keystore.State.Tlv104 = tlv104;
+                        _context.LogDebug(Tag, "Tlv104 received, length: {0}", tlv104.Length);
+                    }
+                    
+                    if (result.Tlvs.TryGetValue(0x174, out var tlv174))
+                    {
+                        _context.Keystore.State.Tlv174 = tlv174;
+                        _context.LogDebug(Tag, "Tlv174 received, length: {0}", tlv174.Length);
+                    }
+                    
+                    string? url = null;
+                    if (result.Tlvs.TryGetValue(0x204, out var tlv204)) url = Encoding.UTF8.GetString(tlv204);
+
+                    var tlv178 = new BinaryPacket(result.Tlvs[0x178].AsSpan());
+                    string countryCode = tlv178.ReadString(Prefix.Int16 | Prefix.LengthOnly);
+                    string phone = tlv178.ReadString(Prefix.Int16 | Prefix.LengthOnly);
+                    
+                    _token?.ThrowIfCancellationRequested();
+                    result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.FetchSMSCode));
+                    if (result.State == LoginEventResp.States.SmsRequired)
+                    {
+                        if (result.Tlvs.TryGetValue(0x104, out var tlv1048))
+                        {
+                            _context.Keystore.State.Tlv104 = tlv1048;
+                            _context.LogDebug(Tag, "Tlv104 received, length: {0}", tlv1048.Length);
+                        }
+                        
+                        _context.LogInfo(Tag, "SMS Verification required, Phone: {0}-{1} | URL: {2}", countryCode, phone, url);
+                        _context.EventInvoker.PostEvent(new BotSMSEvent(url, $"{countryCode}-{phone}"));
+                        
+                        _smsSource = new TaskCompletionSource<string>();
+                        string code = await _smsSource.Task;
+                        result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.SubmitSMSCode) { Code = code });
+                    }
+                }
+                
+                if (result.State == LoginEventResp.States.Success)
+                {
+                    ReadWLoginSigs(result.Tlvs);
+                    
+                    _context.EventInvoker.PostEvent(new BotLoginEvent(0, null));
+                    _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
+
+                    return await Online();
+                }
+                else
+                {
+                    _context.LogError(Tag, "Login failed: {0} | Message: {1}", null, result.RetCode, result.Error);
+                    _context.EventInvoker.PostEvent(new BotLoginEvent(result.RetCode, result.Error));
+                }
+            }
+            else
+            {
+                _context.Keystore.Uin = uin;
+                if (_context.Keystore.State.KeyExchangeSession is null && !await KeyExchange()) return false;
+
+                var result = await _context.EventContext.SendEvent<PasswordLoginEventResp>(new PasswordLoginEventReq(password, null));
+                while (true)
+                {
+                    _token?.ThrowIfCancellationRequested();
+                    
+                    switch (result.State)
+                    {
+                        case NTLoginRetCode.LOGIN_SUCCESS:
+                            _context.EventInvoker.PostEvent(new BotLoginEvent(0, null));
+                            _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
+                            return await Online();
+                        case NTLoginRetCode.LOGIN_ERROR_PROOF_WATER:
+                            _context.LogInfo(Tag, "Captcha required, URL: {0}", result.JumpingUrl);
+                            
+                            _context.EventInvoker.PostEvent(new BotCaptchaEvent(result.JumpingUrl));
+                            _captchaSource = new TaskCompletionSource<(string, string)>();
+
+                            string sid = result.JumpingUrl.Split("&sid=")[1].Split("&")[0];
+                            var (ticket, randStr) = await _captchaSource.Task;
+                            result = await _context.EventContext.SendEvent<PasswordLoginEventResp>(new PasswordLoginEventReq(password, (ticket, randStr, sid)));
+                            break;
+                        case NTLoginRetCode.LOGIN_ERROR_NEW_DEVICE:
+                            _context.LogInfo(Tag, "New device login required");
+                            
+                            var parsed = HttpUtility.ParseQueryString(result.JumpingUrl);
+                            string interfaceUrl = $"https://oidb.tim.qq.com/v3/oidbinterface/oidb_0xc9e_8?uid={uin}&getqrcode=1&sdkappid=39998&actype=2";
+                            string request = JsonHelper.Serialize(new NTNewDeviceQrCodeRequest
+                            {
+                                Uint32Flag = 1,
+                                Uint32UrlType = 0,
+                                StrDevAuthToken = parsed["sig"] ?? "",
+                                StrUinToken = parsed["uin-token"] ?? "",
+                                StrDevType = _context.AppInfo.Os,
+                                StrDevName = _context.Keystore.DeviceName
+                            });
+                            var response = await (_client ??= new HttpClient()).PostAsync(interfaceUrl, new StringContent(request, Encoding.UTF8, "application/json"));
+                            var json = JsonHelper.Deserialize<NTNewDeviceQrCodeResponse>(await response.Content.ReadAsStringAsync()) ?? throw new InvalidOperationException();
+                            _context.EventInvoker.PostEvent(new BotNewDeviceVerifyEvent(json.StrUrl));
+                            
+                            string url = HttpUtility.ParseQueryString(json.StrUrl.Split("?")[1])["str_url"] ?? throw new InvalidOperationException();
+                            request = JsonHelper.Serialize(new NTNewDeviceQrCodeQuery { Uint32Flag = 0, Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(url.Replace('*', '+').Replace('-', '/').Replace("==", ""))) });
+                            
+                            _timers[NewDeviceTag] = new Timer(OnNewDevice, (interfaceUrl, request), 0, 2000);
+                            _transEmpSource = new TaskCompletionSource<bool>();
+                            if (await _transEmpSource.Task) return await Online();
+                            break;
+                        default:
+                            _context.LogError(Tag, "Login failed: {0} | Message: {1}", null, result.State, result.Tips);
+                            _context.EventInvoker.PostEvent(new BotLoginEvent((int)result.State, result.Tips));
+                            return false;
+                    }
+                }
+            }
         }
+        
+        return false;
     }
     
     public async Task<long> ResolveUinByQid(string qid)
@@ -520,87 +526,89 @@ internal class WtExchangeLogic : ILogic, IDisposable
             }
         }
     });
-    
-    private static readonly Dictionary<ushort, Action<BotContext, byte[]>> TlvHandlers = new()
-    {
-        [0x103] = (ctx, val) => ctx.Keystore.WLoginSigs.StWeb = val,
-        [0x143] = (ctx, val) => ctx.Keystore.WLoginSigs.D2 = val,
-        [0x108] = (ctx, val) => ctx.Keystore.WLoginSigs.Ksid = val,
-        [0x10A] = (ctx, val) => ctx.Keystore.WLoginSigs.A2 = val,
-        [0x10C] = (ctx, val) => ctx.Keystore.WLoginSigs.A1Key = val,
-        [0x10D] = (ctx, val) => ctx.Keystore.WLoginSigs.A2Key = val,
-        [0x10E] = (ctx, val) => ctx.Keystore.WLoginSigs.StKey = val,
-        [0x114] = (ctx, val) => ctx.Keystore.WLoginSigs.St = val,
-        [0x120] = (ctx, val) => ctx.Keystore.WLoginSigs.SKey = val,
-        [0x133] = (ctx, val) => ctx.Keystore.WLoginSigs.WtSessionTicket = val,
-        [0x134] = (ctx, val) => ctx.Keystore.WLoginSigs.WtSessionTicketKey = val,
-        [0x305] = (ctx, val) => ctx.Keystore.WLoginSigs.D2Key = val,
-        [0x106] = (ctx, val) => ctx.Keystore.WLoginSigs.A1 = val,
-        [0x16A] = (ctx, val) => ctx.Keystore.WLoginSigs.NoPicSig = val,
-        [0x16D] = (ctx, val) => ctx.Keystore.WLoginSigs.SuperKey = val,
 
-        [0x11A] = (context, value) =>
-        {
-            var reader = new BinaryPacket(value.AsSpan());
-            reader.Read<ushort>(); // FaceId
-            byte age = reader.Read<byte>();
-            byte gender = reader.Read<byte>();
-            string nickname = reader.ReadString(Prefix.Int8 | Prefix.LengthOnly);
-            context.Keystore.BotInfo = new BotInfo(age, gender, nickname);
-        },
-        [0x512] = (context, value) =>
-        {
-            context.Keystore.WLoginSigs.PsKey.Clear();
-            
-            var reader = new BinaryPacket(value.AsSpan());
-            short domainCount = reader.Read<short>();
-            for (int i = 0; i < domainCount; i++)
-            {
-                string domain = reader.ReadString(Prefix.Int16 | Prefix.LengthOnly);
-                string key = reader.ReadString(Prefix.Int16 | Prefix.LengthOnly);
-                string pt4Token = reader.ReadString(Prefix.Int16 | Prefix.LengthOnly);
-                context.Keystore.WLoginSigs.PsKey[domain] = key;
-            }
-        },
-        [0x543] = (context, value) =>
-        {
-            var resp = ProtoHelper.Deserialize<ThirdPartyLoginResponse>(value);
-            context.Keystore.Uid = resp.CommonInfo.RspNT.Uid;
-        }
-    };
-    
     private void ReadWLoginSigs(Dictionary<ushort, byte[]> tlvs)
-    {
-        foreach (var (tag, value) in tlvs)
-        {
-            if (TlvHandlers.TryGetValue(tag, out var handler))
-            {
-                handler(_context, value);
-            }
-            else
-            {
-                _context.LogTrace(Tag, "Unknown TLV: {0:X}", tag);
-            }
-        }
-    }
-    
-    private void ExtractTlvStates(Dictionary<ushort, byte[]> tlvs)
     {
         foreach (var (tag, value) in tlvs)
         {
             switch (tag)
             {
-                case 0x104:
-                    _context.Keystore.State.Tlv104 = value;
-                    _context.LogDebug(Tag, "Tlv104 received, length: {0}", value.Length);
+                case 0x103:
+                    _context.Keystore.WLoginSigs.StWeb = value;
                     break;
-                case 0x174:
-                    _context.Keystore.State.Tlv174 = value;
-                    _context.LogDebug(Tag, "Tlv174 received, length: {0}", value.Length);
+                case 0x143:
+                    _context.Keystore.WLoginSigs.D2 = value;
                     break;
-                case 0x547:
-                    _context.Keystore.State.Tlv547 = value;
-                    _context.LogDebug(Tag, "Tlv547 received, length: {0}", value.Length);
+                case 0x108:
+                    _context.Keystore.WLoginSigs.Ksid = value;
+                    break;
+                case 0x10A:
+                    _context.Keystore.WLoginSigs.A2 = value;
+                    break;
+                case 0x10C:
+                    _context.Keystore.WLoginSigs.A1Key = value;
+                    break;
+                case 0x10D:
+                    _context.Keystore.WLoginSigs.A2Key = value;
+                    break;
+                case 0x10E:
+                    _context.Keystore.WLoginSigs.StKey = value;
+                    break;
+                case 0x114:
+                    _context.Keystore.WLoginSigs.St = value;
+                    break;
+                case 0x11A:
+                {
+                    var reader = new BinaryPacket(value.AsSpan());
+                    reader.Read<ushort>(); // FaceId
+                    byte age = reader.Read<byte>();
+                    byte gender = reader.Read<byte>();
+                    string nickname = reader.ReadString(Prefix.Int8 | Prefix.LengthOnly);
+                    _context.Keystore.BotInfo = new BotInfo(age, gender, nickname);
+                    break;
+                }
+                case 0x120:
+                    _context.Keystore.WLoginSigs.SKey = value;
+                    break;
+                case 0x133:
+                    _context.Keystore.WLoginSigs.WtSessionTicket = value;
+                    break;
+                case 0x134:
+                    _context.Keystore.WLoginSigs.WtSessionTicketKey = value;
+                    break;
+                case 0x305:
+                    _context.Keystore.WLoginSigs.D2Key = value;
+                    break;
+                case 0x106:
+                    _context.Keystore.WLoginSigs.A1 = value;
+                    break;
+                case 0x16A:
+                    _context.Keystore.WLoginSigs.NoPicSig = value;
+                    break;
+                case 0x16D:
+                    _context.Keystore.WLoginSigs.SuperKey = value;
+                    break;
+                case 0x512:
+                {
+                    _context.Keystore.WLoginSigs.PsKey.Clear();
+                    
+                    var reader = new BinaryPacket(value.AsSpan());
+                    short domainCount = reader.Read<short>();
+                    for (int i = 0; i < domainCount; i++)
+                    {
+                        string domain = reader.ReadString(Prefix.Int16 | Prefix.LengthOnly);
+                        string key = reader.ReadString(Prefix.Int16 | Prefix.LengthOnly);
+                        string pt4Token = reader.ReadString(Prefix.Int16 | Prefix.LengthOnly);
+                        _context.Keystore.WLoginSigs.PsKey[domain] = key;
+                    }
+                    break;
+                }
+                case 0x543:
+                    var resp = ProtoHelper.Deserialize<ThirdPartyLoginResponse>(value);
+                    _context.Keystore.Uid = resp.CommonInfo.RspNT.Uid;
+                    break;
+                default:
+                    _context.LogTrace(Tag, "Unknown TLV: {0:X}", tag);
                     break;
             }
         }

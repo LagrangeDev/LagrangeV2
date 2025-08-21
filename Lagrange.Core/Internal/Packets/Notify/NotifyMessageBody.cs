@@ -7,7 +7,7 @@ namespace Lagrange.Core.Internal.Packets.Notify;
 [ProtoPackable]
 internal partial class NotifyMessageBody
 {
-    [ProtoMember(1)] public uint Type { get; set; }
+    [ProtoMember(1)] public uint NotifyType { get; set; }
 
     [ProtoMember(4)] public long GroupUin { get; set; }
 
@@ -15,7 +15,7 @@ internal partial class NotifyMessageBody
 
     [ProtoMember(11)] public GroupRecall Recall { get; set; }
 
-    [ProtoMember(13)] public uint? Field13 { get; set; }
+    [ProtoMember(13)] public uint SubType { get; set; }
 
     [ProtoMember(21)] public string OperatorUid { get; set; }
 
@@ -23,7 +23,7 @@ internal partial class NotifyMessageBody
 
     [ProtoMember(33)] public EssenceMessage EssenceMessage;
 
-    [ProtoMember(37)] public long MsgSequence { get; set; }
+    [ProtoMember(37)] public ulong MsgSequence { get; set; }
 
     [ProtoMember(39)] public uint Field39 { get; set; }
 

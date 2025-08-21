@@ -8,7 +8,7 @@ public class ReplyEntity : IMessageEntity
 {
     public ulong SrcUid { get; private init; }
 
-    public int SrcSequence { get; private init; }
+    public ulong SrcSequence { get; private init; }
 
     public BotContact? Source { get; private set; }
 
@@ -46,7 +46,7 @@ public class ReplyEntity : IMessageEntity
         {
             SrcMsg = new SourceMsg
             {
-                OrigSeqs = [(uint)SrcSequence],
+                OrigSeqs = [SrcSequence],
                 SenderUin = 0,
                 Time = (uint)DateTimeOffset.Now.ToUnixTimeSeconds(),
                 Flag = 0, // intentional, force the client to fetch the original message
@@ -82,7 +82,7 @@ public class ReplyEntity : IMessageEntity
             return new ReplyEntity
             {
                 SrcUid = resvAttr.SourceMsgId,
-                SrcSequence = (int)srcMsg.OrigSeqs[0],
+                SrcSequence = srcMsg.OrigSeqs[0],
                 Elems = (srcMsg.Elems ?? []).Select(x => ProtoHelper.Deserialize<Elem>(x.Span)).ToList(),
                 SourceUin = (long)srcMsg.SenderUin,
             };

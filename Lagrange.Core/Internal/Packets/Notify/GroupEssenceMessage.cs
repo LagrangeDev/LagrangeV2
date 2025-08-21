@@ -9,7 +9,7 @@ internal partial class EssenceMessage
 {
     [ProtoMember(1)] public long GroupUin;
 
-    [ProtoMember(2)] public long MsgSequence;
+    [ProtoMember(2)] public ulong MsgSequence;
 
     [ProtoMember(3)] public uint Random;
 
@@ -21,7 +21,7 @@ internal partial class EssenceMessage
 
     [ProtoMember(7)] public uint TimeStamp;
 
-    [ProtoMember(8)] public uint MsgSequence2; // removed 0
+    [ProtoMember(8)] public ulong MsgSequence2; // removed 0
 
     [ProtoMember(9)] public string OperatorNickName;
 

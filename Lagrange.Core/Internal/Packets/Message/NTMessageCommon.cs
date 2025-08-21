@@ -25,7 +25,7 @@ internal partial class ContentHead
     
     [ProtoMember(4)] public uint Random { get; set; }
     
-    [ProtoMember(5)] public int Sequence { get; set; } // msg_seq
+    [ProtoMember(5)] public ulong Sequence { get; set; } // msg_seq
     
     [ProtoMember(6)] public long Time { get; set; }
     
@@ -37,7 +37,7 @@ internal partial class ContentHead
     
     [ProtoMember(10)] public int AutoReply { get; set; }
     
-    [ProtoMember(11)] public int ClientSequence { get; set; } // nt_msg_seq
+    [ProtoMember(11)] public ulong ClientSequence { get; set; } // nt_msg_seq
     
     [ProtoMember(12)] public ulong MsgUid { get; set; }
 }

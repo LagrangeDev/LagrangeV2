@@ -20,9 +20,9 @@ internal partial class SsoGetGroupMsgInfo
 {
     [ProtoMember(1)] public long GroupUin { get; set; }
     
-    [ProtoMember(2)] public int StartSequence { get; set; }
+    [ProtoMember(2)] public ulong StartSequence { get; set; }
     
-    [ProtoMember(3)] public int EndSequence { get; set; }
+    [ProtoMember(3)] public ulong EndSequence { get; set; }
 }
 
 [ProtoPackable]
@@ -44,9 +44,9 @@ internal partial class SsoGetGroupMsgRspBody
 
     [ProtoMember(3)] public uint GroupUin { get; set; }
 
-    [ProtoMember(4)] public uint StartSequence { get; set; }
+    [ProtoMember(4)] public ulong StartSequence { get; set; }
 
-    [ProtoMember(5)] public uint EndSequence { get; set; }
+    [ProtoMember(5)] public ulong EndSequence { get; set; }
 
     [ProtoMember(6)] public List<CommonMessage>? Messages { get; set; }
 }

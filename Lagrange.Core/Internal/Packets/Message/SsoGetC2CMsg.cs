@@ -11,9 +11,9 @@ internal partial class SsoGetC2CMsgReq
     
     [ProtoMember(2)] public string? PeerUid { get; set; }
 
-    [ProtoMember(3)] public int StartSequence { get; set; }
+    [ProtoMember(3)] public ulong StartSequence { get; set; }
 
-    [ProtoMember(4)] public int EndSequence { get; set; }
+    [ProtoMember(4)] public ulong EndSequence { get; set; }
 }
 
 [ProtoPackable]
@@ -23,9 +23,9 @@ internal partial class SsoGetC2CMsgRsp
 
     [ProtoMember(2)] public string Message { get; set; }
     
-    [ProtoMember(3)] public uint StartSequence { get; set; }
+    [ProtoMember(3)] public ulong StartSequence { get; set; }
 
-    [ProtoMember(4)] public uint EndSequence { get; set; }
+    [ProtoMember(4)] public ulong EndSequence { get; set; }
     
     [ProtoMember(7)] public List<CommonMessage> Messages { get; set; }
 }

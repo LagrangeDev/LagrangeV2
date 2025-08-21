@@ -14,7 +14,7 @@ public class UploadPrivateFileHandler(BotContext bot, ResourceResolver resolver)
     public async Task<UploadPrivateFileResult> HandleAsync(UploadPrivateFileParameter parameter, CancellationToken token)
     {
         using var stream = await _resolver.ToMemoryStreamAsync(parameter.FileUri, token);
-        (int _, _) = await _bot.SendFriendFile(parameter.UserId, stream, parameter.FileName);
+        (_, _) = await _bot.SendFriendFile(parameter.UserId, stream, parameter.FileName);
 
         // TODO: The URL cannot be located at this time
         return new UploadPrivateFileResult(string.Empty);

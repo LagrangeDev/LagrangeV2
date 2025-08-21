@@ -163,7 +163,7 @@ internal class WtLogin : StructBase
     
     public async Task<ReadOnlyMemory<byte>> BuildOicq09Android(string password)
     {
-        var sign = (IAndroidBotSignProvider)_context.PacketContext.SignProvider;
+        var sign = (AndroidBotSignProvider)_context.PacketContext.SignProvider;
         var energy = await sign.GetEnergy(_context.BotUin, "810_9");
         var attach = await sign.GetDebugXwid(_context.BotUin, "810_9");
         
@@ -201,7 +201,7 @@ internal class WtLogin : StructBase
 
     public async Task<ReadOnlyMemory<byte>> BuildOicq02Android(string ticket)
     {
-        var sign = (IAndroidBotSignProvider)_context.PacketContext.SignProvider;
+        var sign = (AndroidBotSignProvider)_context.PacketContext.SignProvider;
         var energy = await sign.GetEnergy(_context.BotUin, "810_2");
         var attach = await sign.GetDebugXwid(_context.BotUin, "810_2");
         
@@ -221,7 +221,7 @@ internal class WtLogin : StructBase
 
     public async Task<ReadOnlyMemory<byte>> BuildOicq04Android(string qid)
     {
-        var sign = (IAndroidBotSignProvider)_context.PacketContext.SignProvider;
+        var sign = (AndroidBotSignProvider)_context.PacketContext.SignProvider;
         var attach = await sign.GetDebugXwid(_context.BotUin, "810_4");
         
         using var tlvs = new Tlv(0x04, _context);
@@ -247,7 +247,7 @@ internal class WtLogin : StructBase
 
     public async Task<ReadOnlyMemory<byte>> BuildOicq07Android(string code)
     {
-        var sign = (IAndroidBotSignProvider)_context.PacketContext.SignProvider;
+        var sign = (AndroidBotSignProvider)_context.PacketContext.SignProvider;
         var energy = await sign.GetEnergy(_context.BotUin, "810_7");
         var attach = await sign.GetDebugXwid(_context.BotUin, "810_7");
         
@@ -268,7 +268,7 @@ internal class WtLogin : StructBase
     
     public async Task<ReadOnlyMemory<byte>> BuildOicq08Android()
     {
-        var sign = (IAndroidBotSignProvider)_context.PacketContext.SignProvider;
+        var sign = (AndroidBotSignProvider)_context.PacketContext.SignProvider;
         var attach = await sign.GetDebugXwid(_context.BotUin, "810_8");
         
         using var tlvs = new Tlv(0x08, _context);
@@ -287,7 +287,7 @@ internal class WtLogin : StructBase
     
     public async Task<ReadOnlyMemory<byte>> BuildOicq15Android()
     {
-        var sign = (IAndroidBotSignProvider)_context.PacketContext.SignProvider;
+        var sign = (AndroidBotSignProvider)_context.PacketContext.SignProvider;
         var energy = await sign.GetEnergy(_context.BotUin, "810_f");
         var attach = await sign.GetDebugXwid(_context.BotUin, "810_f");
         

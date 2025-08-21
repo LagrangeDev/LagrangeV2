@@ -49,7 +49,7 @@ public class BotConfig
     /// <summary>
     /// The Sign Provider for the bot, if null, the bot will use the default sign provider
     /// </summary>
-    public IBotSignProvider? SignProvider { get; set; }
+    public BotSignProvider? SignProvider { get; set; }
 }
 
 /// <summary>

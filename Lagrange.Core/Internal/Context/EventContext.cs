@@ -13,9 +13,9 @@ namespace Lagrange.Core.Internal.Context;
 internal class EventContext : IDisposable
 {
     private const string Tag = nameof(EventContext);
-    
+
     private readonly BotContext _context;
-    
+
     private readonly FrozenDictionary<Type, List<ILogic>> _events;
 
     private readonly FrozenDictionary<Type, ILogic> _logics;
@@ -27,7 +27,7 @@ internal class EventContext : IDisposable
     {
         var events = new Dictionary<Type, List<ILogic>>();
         var logics = new Dictionary<Type, ILogic>();
-        
+
         foreach (var type in typeof(ILogic).Assembly.GetTypes())
         {
             if (type.HasImplemented<ILogic>() && Activator.CreateInstance(type, context) is ILogic instance)
@@ -39,30 +39,30 @@ internal class EventContext : IDisposable
                         list = [];
                         events.Add(@event.EventType, list);
                     }
-                    
+
                     list.Add(instance);
                 }
-                
+
                 logics[type] = instance;
             }
         }
-        
+
         _context = context;
         _events = events.ToFrozenDictionary();
         _logics = logics.ToFrozenDictionary();
     }
-    
+
     public async ValueTask<T> SendEvent<T>(ProtocolEvent @event) where T : ProtocolEvent
     {
         try
         {
             await HandleOutgoingEvent(@event);
-            var (frame, attribute) =  await _context.ServiceContext.Resolve(@event);
+            var (frame, attribute) = await _context.ServiceContext.Resolve(@event);
             if (frame.Sequence == 0) throw new LagrangeException("The sequence number is 0 for the SSOFrame");
-            
+
             var @return = await _context.PacketContext.SendPacket(frame, attribute);
             var resolved = await _context.ServiceContext.Resolve(@return);
-            
+
             if (resolved is T result)
             {
                 await HandleIncomingEvent(result);
@@ -76,7 +76,7 @@ internal class EventContext : IDisposable
             throw new LagrangeException("An error occurred while sending the event", e);
         }
     }
-    
+
     private async ValueTask HandleIncomingEvent(ProtocolEvent @event)
     {
         if (_events.TryGetValue(@event.GetType(), out var logics))
@@ -112,7 +112,7 @@ internal class EventContext : IDisposable
             }
         }
     }
-    
+
     public async ValueTask HandleOutgoingEvent(EventBase @event)
     {
         if (_events.TryGetValue(@event.GetType(), out var logics))
@@ -142,8 +142,12 @@ internal class EventContext : IDisposable
         {
             _context.LogWarning(Tag, "Service not found for command: {0}", e, e.Command);
         }
+        catch (Exception e)
+        {
+            _context.LogError(Tag, "Handle {0} server packet failed", e, packet.Command);
+        }
     }
-    
+
     public T GetLogic<T>() where T : ILogic => (T)_logics[typeof(T)];
 
     public void Dispose()
