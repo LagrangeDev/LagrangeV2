@@ -5,14 +5,14 @@ using Lagrange.Core.Utility;
 
 namespace Lagrange.Core.Common;
 
-public interface IAndroidBotSignProvider : IBotSignProvider
+public abstract class AndroidBotSignProvider : BotSignProvider
 {
-    public Task<byte[]> GetEnergy(long uin, string data);
+    public abstract Task<byte[]> GetEnergy(long uin, string data);
 
-    public Task<byte[]> GetDebugXwid(long uin, string data);
+    public abstract Task<byte[]> GetDebugXwid(long uin, string data);
 }
 
-internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSignProvider, IDisposable
+internal class DefaultAndroidBotSignProvider : AndroidBotSignProvider, IDisposable
 {
     private const string Tag = nameof(DefaultAndroidBotSignProvider);
     
@@ -156,9 +156,9 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
         "OidbSvcTrpcTcp.0xaf6_0", "IncreaseURLSvr.QQHeadUrlReq"
     ];
     
-    public bool IsWhiteListCommand(string cmd) => WhiteListCommand.Contains(cmd);
+    public override bool IsWhiteListCommand(string cmd) => WhiteListCommand.Contains(cmd);
     
-    public async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
+    public override async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
     {
         try
         {
@@ -168,8 +168,8 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
                 ["cmd"] = cmd,
                 ["seq"] = seq,
                 ["buffer"] = Convert.ToHexString(body.Span),
-                ["guid"] = Convert.ToHexString(context.Keystore.Guid),
-                ["version"] = context.AppInfo.PtVersion
+                ["guid"] = Convert.ToHexString(Context.Keystore.Guid),
+                ["version"] = Context.AppInfo.PtVersion
             };
             
             var response = await _client.PostAsync($"{_url}/sign", new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
@@ -187,12 +187,12 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
         }
         catch (Exception e)
         {
-            context.LogWarning(Tag, "Failed to get sign: {0}", e, e.Message);
+            Context.LogWarning(Tag, "Failed to get sign: {0}", e, e.Message);
             return null;
         }
     }
 
-    public async Task<byte[]> GetEnergy(long uin, string data)
+    public override async Task<byte[]> GetEnergy(long uin, string data)
     {
         try
         {
@@ -200,9 +200,9 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
             {
                 ["uin"] = uin,
                 ["data"] = data,
-                ["guid"] = Convert.ToHexString(context.Keystore.Guid),
-                ["ver"] = context.AppInfo.SdkInfo.SdkVersion,
-                ["version"] = context.AppInfo.PtVersion
+                ["guid"] = Convert.ToHexString(Context.Keystore.Guid),
+                ["ver"] = Context.AppInfo.SdkInfo.SdkVersion,
+                ["version"] = Context.AppInfo.PtVersion
             };
             
             var response = await _client.PostAsync($"{_url}/energy", new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
@@ -213,12 +213,12 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
         }
         catch (Exception e)
         {
-            context.LogWarning(Tag, "Failed to get energy: {0}", e, e.Message);
+            Context.LogWarning(Tag, "Failed to get energy: {0}", e, e.Message);
             return [];
         }
     }
 
-    public async Task<byte[]> GetDebugXwid(long uin, string data)
+    public override async Task<byte[]> GetDebugXwid(long uin, string data)
     {
         try
         {
@@ -226,8 +226,8 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
             {
                 ["uin"] = uin,
                 ["data"] = data,
-                ["guid"] = Convert.ToHexString(context.Keystore.Guid),
-                ["version"] = context.AppInfo.PtVersion
+                ["guid"] = Convert.ToHexString(Context.Keystore.Guid),
+                ["version"] = Context.AppInfo.PtVersion
             };
             
             var response = await _client.PostAsync($"{_url}/get_tlv553", new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
@@ -238,7 +238,7 @@ internal class DefaultAndroidBotSignProvider(BotContext context) : IAndroidBotSi
         }
         catch (Exception e)
         {
-            context.LogWarning(Tag, "Failed to get debug_xwid: {0}", e, e.Message);
+            Context.LogWarning(Tag, "Failed to get debug_xwid: {0}", e, e.Message);
             return [];
         }
     }

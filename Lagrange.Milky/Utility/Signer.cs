@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace Lagrange.Milky.Utility;
 
-public class Signer : IAndroidBotSignProvider, IDisposable
+public class Signer : AndroidBotSignProvider, IDisposable
 {
     private static readonly HashSet<string> PcWhiteListCommand =
     [
@@ -227,7 +227,7 @@ public class Signer : IAndroidBotSignProvider, IDisposable
         _semaphore = new(1);
     }
 
-    public bool IsWhiteListCommand(string cmd)
+    public override bool IsWhiteListCommand(string cmd)
     {
         var protocol = _bot.Value.Config.Protocol;
 
@@ -237,7 +237,7 @@ public class Signer : IAndroidBotSignProvider, IDisposable
         return false;
     }
 
-    public async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
+    public override async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
     {
         try
         {
@@ -294,7 +294,7 @@ public class Signer : IAndroidBotSignProvider, IDisposable
         };
     }
 
-    public async Task<byte[]> GetEnergy(long uin, string data)
+    public override async Task<byte[]> GetEnergy(long uin, string data)
     {
         try
         {
@@ -318,7 +318,7 @@ public class Signer : IAndroidBotSignProvider, IDisposable
         }
     }
 
-    public async Task<byte[]> GetDebugXwid(long uin, string data)
+    public override async Task<byte[]> GetDebugXwid(long uin, string data)
     {
         try
         {
