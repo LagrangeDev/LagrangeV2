@@ -1,6 +1,4 @@
-using System.Runtime.InteropServices;
-
-namespace Lagrange.Core.NativeAPI.NativeModel.Event
+﻿namespace Lagrange.Core.NativeAPI.NativeModel.Event
 {
     public interface IEventStruct
     {

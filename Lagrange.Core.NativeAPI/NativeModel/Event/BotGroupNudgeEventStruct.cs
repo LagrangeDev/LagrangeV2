@@ -9,10 +9,14 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Event
     public struct BotGroupNudgeEventStruct : IEventStruct
     {
         public BotGroupNudgeEventStruct() { }
-        public Int64 GroupUin = 0;
-        public Int64 OperatorUin = 0;
+
+        public long GroupUin = 0;
+
+        public long OperatorUin = 0;
+
         public ByteArrayNative Action = new();
-        public Int64 TargetUin = 0;
+        public long TargetUin = 0;
+
         public ByteArrayNative Suffix = new();
 
         public static implicit operator BotGroupNudgeEvent(BotGroupNudgeEventStruct e)
