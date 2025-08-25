@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Lagrange.Core.Common.Interface;
 using Lagrange.Core.NativeAPI.NativeModel.Common;
 using Lagrange.Core.NativeAPI.NativeModel.Message;
@@ -45,7 +45,7 @@ namespace Lagrange.Core.NativeAPI
             {
                 return;
             }
-            
+
             byte[]? sum = summary.IsEmpty() ? null : summary.ToByteArrayWithoutFree();
 
             var context = Program.Contexts[index];
@@ -82,7 +82,7 @@ namespace Lagrange.Core.NativeAPI
                 subType
             );
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "AddRecord")]
         public static void AddRecord(int index, int id, ByteArrayNative byteArrayNative)
         {
@@ -109,7 +109,7 @@ namespace Lagrange.Core.NativeAPI
                 byteArrayNative.ToByteArrayWithoutFree()
             );
         }
-        
+
         [UnmanagedCallersOnly(EntryPoint = "AddVideo")]
         public static void AddVideo(
             int index,
@@ -122,7 +122,7 @@ namespace Lagrange.Core.NativeAPI
             {
                 return;
             }
-            
+
             byte[]? thumb = thumbnail.IsEmpty() ? null : thumbnail.ToByteArrayWithoutFree();
 
             var context = Program.Contexts[index];
@@ -170,12 +170,19 @@ namespace Lagrange.Core.NativeAPI
             {
                 return IntPtr.Zero;
             }
-            
-            var message = context.BotContext.SendFriendMessage(friendUin, chain).GetAwaiter().GetResult();
-            
-            IntPtr messagePtr = Marshal.AllocHGlobal(Marshal.SizeOf<BotMessageStruct>());
-            Marshal.StructureToPtr((BotMessageStruct)message, messagePtr, false);
-            return messagePtr;
+
+            try
+            {
+                var message = context.BotContext.SendFriendMessage(friendUin, chain).GetAwaiter().GetResult();
+
+                IntPtr messagePtr = Marshal.AllocHGlobal(Marshal.SizeOf<BotMessageStruct>());
+                Marshal.StructureToPtr((BotMessageStruct)message, messagePtr, false);
+                return messagePtr;
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
         }
 
         [UnmanagedCallersOnly(EntryPoint = "SendGroupMessage")]
@@ -193,11 +200,18 @@ namespace Lagrange.Core.NativeAPI
                 return IntPtr.Zero;
             }
 
-            var message = context.BotContext.SendGroupMessage(groupUin, chain).GetAwaiter().GetResult();
+            try
+            {
+                var message = context.BotContext.SendGroupMessage(groupUin, chain).GetAwaiter().GetResult();
 
-            IntPtr messagePtr = Marshal.AllocHGlobal(Marshal.SizeOf<BotMessageStruct>());
-            Marshal.StructureToPtr((BotMessageStruct)message, messagePtr, false);
-            return messagePtr;
+                IntPtr messagePtr = Marshal.AllocHGlobal(Marshal.SizeOf<BotMessageStruct>());
+                Marshal.StructureToPtr((BotMessageStruct)message, messagePtr, false);
+                return messagePtr;
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
         }
     }
 }
