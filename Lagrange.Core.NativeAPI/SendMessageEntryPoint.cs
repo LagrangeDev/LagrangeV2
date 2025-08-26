@@ -83,6 +83,46 @@ namespace Lagrange.Core.NativeAPI
             );
         }
 
+        //display可选,可以传结构内Length为0或Data为Zero的ByteArrayNative
+        [UnmanagedCallersOnly(EntryPoint = "AddMention")]
+        public static void AddMention(
+            int index,
+            int id,
+            long uin,
+            ByteArrayNative display
+        )
+        {
+            if (Program.Contexts.Count <= index)
+            {
+                return;
+            }
+
+            byte[]? ds = display.IsEmpty() ? null : display.ToByteArrayWithoutFree();
+
+            var context = Program.Contexts[index];
+            context.SendMessageContext.AddMention(
+                id, uin, ds
+            );
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "AddMultiMsg")]
+        public static void AddMultiMsg(
+            int index,
+            int id,
+            ByteArrayNative resId
+        )
+        {
+            if (Program.Contexts.Count <= index)
+            {
+                return;
+            }
+
+            var context = Program.Contexts[index];
+            context.SendMessageContext.AddMultiMsg(
+                id, resId.ToByteArrayWithoutFree()
+            );
+        }
+
         [UnmanagedCallersOnly(EntryPoint = "AddRecord")]
         public static void AddRecord(int index, int id, ByteArrayNative byteArrayNative)
         {

@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Lagrange.Core.Message;
 
 namespace Lagrange.Core.NativeAPI
@@ -84,6 +84,32 @@ namespace Lagrange.Core.NativeAPI
                 {
                     builder.Image(path: Encoding.UTF8.GetString(path), subType: subType);
                 }
+            }
+        }
+
+        public void AddMention(int id, long uin, byte[]? display = null)
+        {
+            if (MessageBuilders.TryGetValue(id, out var builder))
+            {
+                builder.Mention(uin, display is null ? null : Encoding.UTF8.GetString(display));
+            }
+        }
+
+        public void AddReply(int id /*, BotMessage messages */)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddMultiMsg(int id /*, List<BotMessage> messages */)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddMultiMsg(int id, byte[] resId)
+        {
+            if (MessageBuilders.TryGetValue(id, out var builder))
+            {
+                builder.MultiMsg(Encoding.UTF8.GetString(resId));
             }
         }
 
