@@ -86,7 +86,7 @@ internal class PushLogic(BotContext context) : ILogic
                     }
                     default:
                     {
-                        context.LogWarning(nameof(PushLogic), "Unknown decrease type: {0}", null, decrease.DecreaseType);
+                        context.LogDebug(nameof(PushLogic), "Unknown decrease type: {0}", null, decrease.DecreaseType);
                         break;
                     }
                 }
@@ -148,7 +148,7 @@ internal class PushLogic(BotContext context) : ILogic
                     }
                     default:
                     {
-                        context.LogWarning(nameof(PushLogic), "Unknown 0x20D sub type: {0}", null, @event.SubType);
+                        context.LogDebug(nameof(PushLogic), "Unknown 0x20D sub type: {0}", null, @event.SubType);
                         break;
                     }
                 }
@@ -172,7 +172,7 @@ internal class PushLogic(BotContext context) : ILogic
                     }
                     default:
                     {
-                        context.LogWarning(nameof(PushLogic), "Unknown 0x210 sub type: {0}", null, pkgType210);
+                        context.LogDebug(nameof(PushLogic), "Unknown 0x210 sub type: {0}", null, pkgType210);
                         break;
                     }
                 }
@@ -241,7 +241,7 @@ internal class PushLogic(BotContext context) : ILogic
                             }
                             default:
                             {
-                                context.LogWarning(nameof(PushLogic), "Unknown 0x2DCSub16 sub type: {0}", null, body.SubType);
+                                context.LogDebug(nameof(PushLogic), "Unknown 0x2DCSub16 sub type: {0}", null, body.SubType);
                                 break;
                             }
                         }
@@ -249,7 +249,7 @@ internal class PushLogic(BotContext context) : ILogic
                     }
                     default:
                     {
-                        context.LogWarning(nameof(PushLogic), "Unknown 0x2DC sub type: {0}", null, pkgType);
+                        context.LogDebug(nameof(PushLogic), "Unknown 0x2DC sub type: {0}", null, pkgType);
                         break;
                     }
                 }
@@ -257,7 +257,7 @@ internal class PushLogic(BotContext context) : ILogic
             }
             default:
             {
-                context.LogWarning(nameof(PushLogic), "Unknown push msg type: {0}", null, messageEvent.MsgPush.CommonMessage.ContentHead.Type);
+                context.LogDebug(nameof(PushLogic), "Unknown push msg type: {0}", null, messageEvent.MsgPush.CommonMessage.ContentHead.Type);
                 break;
             }
         }
