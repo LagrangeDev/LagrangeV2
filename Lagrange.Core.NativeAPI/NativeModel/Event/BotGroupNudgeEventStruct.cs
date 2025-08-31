@@ -15,6 +15,9 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Event
         public long OperatorUin = 0;
 
         public ByteArrayNative Action = new();
+
+        public ByteArrayNative ActionImgUrl = new();
+
         public long TargetUin = 0;
 
         public ByteArrayNative Suffix = new();
@@ -25,6 +28,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Event
                 e.GroupUin,
                 e.OperatorUin,
                 Encoding.UTF8.GetString(e.Action),
+                Encoding.UTF8.GetString(e.ActionImgUrl),
                 e.TargetUin,
                 Encoding.UTF8.GetString(e.Suffix)
             );
@@ -37,6 +41,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Event
                 GroupUin = e.GroupUin,
                 OperatorUin = e.OperatorUin,
                 Action = Encoding.UTF8.GetBytes(e.Action),
+                ActionImgUrl = Encoding.UTF8.GetBytes(e.ActionImageUrl),
                 TargetUin = e.TargetUin,
                 Suffix = Encoding.UTF8.GetBytes(e.Suffix)
             };
