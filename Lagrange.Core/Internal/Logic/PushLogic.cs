@@ -204,6 +204,7 @@ internal class PushLogic(BotContext context) : ILogic
                                         groupUin,
                                         long.Parse(@params["uin_str1"]),
                                         @params["action_str"],
+                                        @params["action_img_url"],
                                         long.Parse(@params["uin_str2"]),
                                         @params["suffix_str"]
                                     ));

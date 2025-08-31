@@ -75,7 +75,7 @@ internal class FetchFilteredGroupNotificationsService : OidbService<FetchFiltere
 
     private BotGroupNotificationBase? LogUnknownNotificationType(BotContext context, ulong type)
     {
-        context.LogWarning(nameof(FetchFilteredGroupNotificationsService), "Unknown filtered notification type: {0}", null, type);
+        context.LogDebug(nameof(FetchFilteredGroupNotificationsService), "Unknown filtered notification type: {0}", null, type);
         return null;
     }
 }

@@ -105,7 +105,7 @@ internal class FetchGroupNotificationsService : OidbService<FetchGroupNotificati
 
     private BotGroupNotificationBase? LogUnknownNotificationType(BotContext context, ulong type)
     {
-        context.LogWarning(nameof(FetchGroupNotificationsService), "Unknown notification type: {0}", null, type);
+        context.LogDebug(nameof(FetchGroupNotificationsService), "Unknown notification type: {0}", null, type);
         return null;
     }
 }

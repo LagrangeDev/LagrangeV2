@@ -17,13 +17,13 @@ public partial class EntityConvert
         _bot.BotUin,
         MessageBase(@event.Message)
     );
-    
+
     public GroupNudgeEvent GroupNudgeEvent(LgrEventArgs.BotGroupNudgeEvent @event) => new(
         @event.EventTime.ToUnixTimeSeconds(),
         _bot.BotUin,
-        new GroupNudgeEventData(@event.GroupUin, @event.OperatorUin, @event.TargetUin)
+        new GroupNudgeEventData(@event.GroupUin, @event.OperatorUin, @event.TargetUin, @event.Action, @event.Suffix, @event.ActionImageUrl)
     );
-    
+
     public GroupMemberDecreaseEvent GroupMemberDecreaseEvent(LgrEventArgs.BotGroupMemberDecreaseEvent @event) => new(
         @event.EventTime.ToUnixTimeSeconds(),
         _bot.BotUin,
@@ -33,7 +33,7 @@ public partial class EntityConvert
             @event.OperatorUin == 0 ? null : @event.OperatorUin
         )
     );
-    
+
     public FriendRequestEvent FriendRequestEvent(LgrEventArgs.BotFriendRequestEvent @event) => new(
         @event.EventTime.ToUnixTimeSeconds(),
         _bot.BotUin,

@@ -140,7 +140,7 @@ internal class EventContext : IDisposable
         }
         catch (ServiceNotFoundException e)
         {
-            _context.LogWarning(Tag, "Service not found for command: {0}", e, e.Command);
+            _context.LogDebug(Tag, "Service not found for command: {0}", e, e.Command);
         }
         catch (Exception e)
         {
