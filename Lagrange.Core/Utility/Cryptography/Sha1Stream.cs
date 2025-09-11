@@ -30,7 +30,7 @@ internal class Sha1Stream
         Reset();
     }
 
-    private void Reset()
+    public void Reset()
     {
         _state[0] = 0x67452301;
         _state[1] = 0xEFCDAB89;

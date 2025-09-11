@@ -2,6 +2,7 @@
 using Lagrange.Core.Internal.Packets.Service;
 using Lagrange.Core.Utility;
 using Lagrange.Core.Utility.Cryptography;
+using Lagrange.Core.Utility.Extension;
 
 namespace Lagrange.Core.Internal.Context;
 
@@ -23,59 +24,45 @@ public class FlashTransferContext
 
     public async Task<bool> UploadFile(string uKey, Stream bodyStream)
     {
-        byte[] body;
-        if (bodyStream is MemoryStream ms)
-        {
-            body = ms.ToArray();
-        }
-        else
-        {
-            bodyStream.Position = 0;
-            var buffer = new byte[bodyStream.Length];
-            await bodyStream.ReadExactlyAsync(buffer, 0, buffer.Length);
-            body = buffer;
-        }
+        var sha1StateVs = new FlashTransferSha1StateV { State = [] };
+        var chunkCount = (uint)((bodyStream.Length + ChunkSize - 1) / ChunkSize);
 
-        return await UploadFile(uKey, body);
-    }
-
-    public async Task<bool> UploadFile(string uKey, byte[] body)
-    {
-        var chunkSha1S = new FlashTransferSha1StateV { State = [] };
-        var chunkBuffers = new List<byte[]>();
-        var chunkCount = (uint)((body.Length + ChunkSize - 1) / ChunkSize);
-
-        using var accStream = new MemoryStream();
+        var sha1Stream = new Sha1Stream();
         for (uint i = 0; i < chunkCount; i++)
         {
-            var chunkBuffer = body.AsSpan((int)(i * ChunkSize), (int)Math.Min(ChunkSize, body.Length - i * ChunkSize))
-                .ToArray();
-            chunkBuffers.Add(chunkBuffer);
-
             if (i != chunkCount - 1)
             {
-                accStream.Write(chunkBuffer, 0, chunkBuffer.Length);
-                var accBytes = accStream.ToArray();
-                var sha1Stream = new Sha1Stream();
+                var accLength = (int)((i + 1) * ChunkSize);
+                var accBuffer = new byte[accLength];
+            
+                bodyStream.Position = 0;
+                await bodyStream.ReadExactlyAsync(accBuffer, 0, accLength);
+            
+                var accSpan = accBuffer.AsSpan();
                 var digest = new byte[20];
-                sha1Stream.Update(accBytes);
+                sha1Stream.Update(accSpan);
                 sha1Stream.Hash(digest, false);
-                chunkSha1S.State.Add(digest);
+                sha1Stream.Reset();
+                sha1StateVs.State.Add(digest.ToArray());
             }
             else
             {
-                chunkSha1S.State.Add(SHA1.HashData(body));
+                bodyStream.Position = 0;
+                sha1StateVs.State.Add(bodyStream.Sha1());
             }
         }
 
-        // cnm闹禅tx为什么不能并发,回答我
-        foreach (var chunkBuffer in chunkBuffers)
+        for (uint i = 0; i < chunkCount; i++)
         {
-            var success = await UploadChunk(uKey, (uint)(chunkBuffers.IndexOf(chunkBuffer) * ChunkSize), chunkSha1S, chunkBuffer);
-            if (!success)
-            {
-                return false;
-            }
+            var chunkStart = (long)(i * ChunkSize);
+            var chunkLength = (int)Math.Min(ChunkSize, bodyStream.Length - chunkStart);
+
+            bodyStream.Position = chunkStart;
+            var uploadBuffer = new byte[chunkLength];
+            await bodyStream.ReadExactlyAsync(uploadBuffer, 0, chunkLength);
+
+            var success = await UploadChunk(uKey, (uint)chunkStart, sha1StateVs, uploadBuffer);
+            if (!success) return false;
         }
 
         return true;
