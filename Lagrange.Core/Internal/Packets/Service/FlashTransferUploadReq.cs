@@ -20,7 +20,7 @@ internal partial class FlashTransferUploadBody
     [ProtoMember(3)] public uint Start { get; set; } // Start
     [ProtoMember(4)] public uint End { get; set; } // Start + Size - 1
     [ProtoMember(5)] public byte[] Sha1 { get; set; }
-    [ProtoMember(6)] public FlashTransferSha1StateV Sha1StateV { get; set; }
+    [ProtoMember(6)] public FlashTransferSha1StateV Sha1StateV { get; set; } // 累加Sha1 5寄存器和, 最后一个是完整文件的Sha1
     [ProtoMember(7)] public byte[] Body { get; set; }
 }
 
