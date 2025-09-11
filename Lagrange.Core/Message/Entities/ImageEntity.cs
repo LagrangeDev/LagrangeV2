@@ -46,7 +46,7 @@ public class ImageEntity : RichMediaEntityBase
             if (result.Ext != null)
             {
                 // Aot 和 MacOS 下使用 FlashTransfer 上传
-                if (RuntimeFeature.IsDynamicCodeCompiled || !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                if (RuntimeFeature.IsDynamicCodeCompiled && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
                     await context.HighwayContext.UploadFile(Stream.Value, message.IsGroup() ? 1004 : 1003, ProtoHelper.Serialize(result.Ext));
                 }
