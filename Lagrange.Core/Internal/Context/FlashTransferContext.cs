@@ -8,7 +8,7 @@ namespace Lagrange.Core.Internal.Context;
 
 public class FlashTransferContext
 {
-    private const string Tag = nameof(HighwayContext);
+    private const string Tag = nameof(FlashTransferContext);
     private readonly BotContext _botContext;
     private readonly HttpClient _client;
     private readonly string? _url;
