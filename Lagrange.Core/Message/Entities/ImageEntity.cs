@@ -1,4 +1,6 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Lagrange.Core.Internal.Events.Message;
 using Lagrange.Core.Internal.Packets.Message;
 using Lagrange.Core.Internal.Packets.Service;
@@ -43,7 +45,15 @@ public class ImageEntity : RichMediaEntityBase
 
             if (result.Ext != null)
             {
-                await context.HighwayContext.UploadFile(Stream.Value, message.IsGroup() ? 1004 : 1003, ProtoHelper.Serialize(result.Ext));
+                // Aot 和 MacOS 下使用 FlashTransfer 上传
+                if (RuntimeFeature.IsDynamicCodeCompiled && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    await context.HighwayContext.UploadFile(Stream.Value, message.IsGroup() ? 1004 : 1003, ProtoHelper.Serialize(result.Ext));
+                }
+                else
+                {
+                    await context.FlashTransferContext.UploadFile(result.Ext.UKey, Stream.Value);
+                }
             }
         }
         finally

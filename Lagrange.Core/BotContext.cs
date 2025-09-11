@@ -23,6 +23,7 @@ public class BotContext : IDisposable
         SocketContext = new SocketContext(this);
         EventContext = new EventContext(this);
         HighwayContext = new HighwayContext(this);
+        FlashTransferContext = new FlashTransferContext(this);
     }
 
     public BotConfig Config { get; }
@@ -41,6 +42,7 @@ public class BotContext : IDisposable
     internal EventContext EventContext { get; }
     
     internal HighwayContext HighwayContext { get; }
+    internal FlashTransferContext FlashTransferContext { get; }
 
     #region Shortcut Methods
     
