@@ -153,6 +153,11 @@ public static class DumpCommand
 
         if (type.IsValueType)
         {
+            if (type.IsEnum)
+            {
+                type = Enum.GetUnderlyingType(type);
+            }
+            
             int size = Marshal.SizeOf(type);
             bool isLong = size > 4;
             
