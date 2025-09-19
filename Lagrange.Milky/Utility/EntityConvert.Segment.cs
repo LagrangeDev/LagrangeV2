@@ -70,6 +70,7 @@ public partial class EntityConvert
             (int)video.VideoSize.Y,
             (int)video.VideoLength
         ),
+        GroupFileEntity groupFile => new FileIncomingSegment(groupFile.FileId, groupFile.FileName, groupFile.FileSize),
         MultiMsgEntity multiMsg => new ForwardIncomingSegment(multiMsg.ResId!),
         LightAppEntity lightApp => new LightAppIncomingSegment(lightApp.AppName, lightApp.Payload),
         // ? => new MarketFaceSegment(...),
