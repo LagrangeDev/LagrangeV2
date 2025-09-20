@@ -16,9 +16,9 @@ public class GroupFileEntity : IMessageEntity
 
     public string FileUrl { get; set; }  = string.Empty;
 
-    public async Task Postprocess(BotContext context, BotMessage message)
+    public Task Postprocess(BotContext context, BotMessage message)
     {
-        // TODO: implement group file download event
+        return Task.CompletedTask; // TODO: implement group file download event
     }
 
     Elem[] IMessageEntity.Build() => throw new NotSupportedException();
