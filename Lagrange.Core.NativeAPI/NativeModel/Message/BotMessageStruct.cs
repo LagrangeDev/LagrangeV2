@@ -130,6 +130,14 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Message
                         };
                         Marshal.StructureToPtr((MultiMsgEntityStruct)multiMsgEntity, entities[i].Entity, false);
                         break;
+                    case GroupFileEntity groupFileEntity:
+                        entities[i] = new TypedEntityStruct()
+                        {
+                            Type = (int)EntityType.GroupFileEntity,
+                            Entity = Marshal.AllocHGlobal(Marshal.SizeOf<MultiMsgEntityStruct>())
+                        };
+                        Marshal.StructureToPtr((GroupFileEntityStruct)groupFileEntity, entities[i].Entity, false);
+                        break;
                 }
             }
 

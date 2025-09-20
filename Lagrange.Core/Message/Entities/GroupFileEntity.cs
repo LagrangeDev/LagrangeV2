@@ -12,7 +12,7 @@ public class GroupFileEntity : IMessageEntity
 
     public long FileSize { get; internal init; }
 
-    public byte[] FileMd5 { get; internal init; } = [];
+    public string FileMd5 { get; internal init; } = string.Empty;
 
     public string FileUrl { get; set; }  = string.Empty;
 
@@ -37,7 +37,7 @@ public class GroupFileEntity : IMessageEntity
                 FileId = extra.FileId,
                 FileName = extra.FileName,
                 FileSize = extra.FileSize,
-                FileMd5 = Convert.FromHexString(extra.FileMd5)
+                FileMd5 = extra.FileMd5,
             };
         }
 

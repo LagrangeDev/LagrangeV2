@@ -1,4 +1,4 @@
-namespace Lagrange.Core.NativeAPI.NativeModel.Message.Entity
+﻿namespace Lagrange.Core.NativeAPI.NativeModel.Message.Entity
 {
     public enum EntityType
     {
@@ -9,5 +9,6 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Message.Entity
         VideoEntity = 4,
         TextEntity = 5,
         MultiMsgEntity = 6,
+        GroupFileEntity = 7,
     }
 }
