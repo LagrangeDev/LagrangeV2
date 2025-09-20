@@ -102,32 +102,38 @@ public static partial class ProtoSerializer
     [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
     [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
     private static void SerializeCore<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ProtoWriter writer, T obj)
-    {       
-        ProtoObjectConverter<T> converter;
-        if (ProtoTypeResolver.IsRegistered<T>())
-        {
-            if (ProtoTypeResolver.GetConverter<T>() as ProtoObjectConverter<T> is not { } c)
-            {
-                converter = new ProtoObjectConverter<T>(ProtoTypeResolver.CreateObjectInfo<T>());
-                ProtoTypeResolver.Register(converter);
-            }
-            else
-            {
-                converter = c;
-            }
-        }
-        else
-        {
-            ProtoTypeResolver.Register(converter = new ProtoObjectConverter<T>());
-        }
-        
+    {
+        var converter = GetConverterOf<T>();
         var objectInfo = converter.ObjectInfo;
         object? boxed = obj; // avoid multiple times of boxing
         if (boxed is null) return;
-        
-        foreach (var (tag, info) in objectInfo.Fields)
+        var fields = objectInfo.Fields;
+        uint skipTag = 0;
+        var polymorphicInfo = converter.ObjectInfo.PolymorphicInfo;
+        // check polymorphic type
+        if (polymorphicInfo?.PolymorphicIndicateIndex is > 0)
         {
-            if (info.ShouldSerialize(boxed, objectInfo.IgnoreDefaultFields))
+            // has polymorphic type
+            var index = polymorphicInfo.PolymorphicIndicateIndex;
+            var fieldInfo = objectInfo.Fields.FirstOrDefault(t=>t.Value.Field == index);
+            if (fieldInfo.Value is null) ThrowHelper.ThrowInvalidOperationException_NullPolymorphicDiscriminator(typeof(T));
+            var discriminator = fieldInfo.Value.Get?.Invoke(boxed);
+            if (discriminator is null) ThrowHelper.ThrowInvalidOperationException_NullPolymorphicDiscriminator(typeof(T));
+            if (objectInfo.PolymorphicInfo!.GetTypeFromDiscriminator(discriminator) is not { } derivedTypeInfo)
+            {
+                ThrowHelper.ThrowInvalidOperationException_NullPolymorphicDiscriminator(typeof(T));
+                return; // make compiler happy
+            }
+            skipTag = fieldInfo.Key;
+            writer.EncodeVarInt(fieldInfo.Key);
+            fieldInfo.Value.Write(writer, boxed);
+            
+            (fields, _, _) = GetObjectInfoReflection<T>(derivedTypeInfo);
+        }
+        
+        foreach (var (tag, info) in fields)
+        {
+            if (skipTag != tag && info.ShouldSerialize(boxed, objectInfo.IgnoreDefaultFields))
             {
                 writer.EncodeVarInt(tag);
                 info.Write(writer, boxed);

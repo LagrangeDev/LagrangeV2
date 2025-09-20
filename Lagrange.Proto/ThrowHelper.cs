@@ -66,4 +66,24 @@ internal static class ThrowHelper
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void ThrowInvalidOperationException_InvalidNodesWireType(string fieldName) => throw new InvalidOperationException($"The wire type must be explicitly set for field {fieldName} as the wire type for the ProtoNode, ProtoValue, and ProtoArray types is not known at compile time, to set the wire type, use the NodesWireType Property in ProtoMember attribute");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowInvalidOperationException_NullPolymorphicDiscriminator(Type type) => throw new InvalidOperationException($"The polymorphic discriminator field for type {type.Name} cannot be null. Please ensure that the field is set and has a valid value.");
+    
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowInvalidOperationException_DuplicatePolymorphicDiscriminator(Type type, object key) => throw new InvalidOperationException($"The polymorphic discriminator key '{key}' for type {type.Name} is duplicated. Please ensure that the keys are unique.");
+    
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowInvalidOperationException_PolymorphicFieldNotFirst(Type type, uint expected, uint actual) => throw new InvalidOperationException($"The polymorphic discriminator field for type {type.Name} must be the first field in the message. Expected field number {expected}, but found {actual}.");
+    
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowInvalidOperationException_FailedParsePolymorphicType(Type type, uint index) => throw new InvalidOperationException($"Failed to parse the polymorphic type from proto for type {type.Name} at '{index}'.");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowInvalidOperationException_UnknownPolymorphicType(Type type, object polyTypeKey) => throw new InvalidOperationException($"Unknown polymorphic type '{polyTypeKey}' for base type {type.Name}. Please ensure that the polymorphic type is registered.");
 }

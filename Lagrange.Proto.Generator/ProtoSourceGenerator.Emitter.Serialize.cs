@@ -25,21 +25,61 @@ public partial class ProtoSourceGenerator
         private const string EncodeStringMethodName = "EncodeString";
         private const string EncodeBytesMethodName = "EncodeBytes";
         private const string EncodeResolvableMethodName = "EncodeResolvable";
+        
 
         private void EmitSerializeMethod(SourceWriter source)
         {
             source.WriteLine($"public static void SerializeHandler({_fullQualifiedName} {ObjectVarName}, {ProtoWriterTypeRef} {WriterVarName})");
             source.WriteLine("{");
             source.Indentation++;
-
+            
+            if (parser.BaseTypeSymbol is not null)
+            {
+                source.WriteLine($"{parser.BaseTypeSymbol.GetFullName()}.SerializeHandler({ObjectVarName},{WriterVarName});");
+            }
+            
+            source.WriteLine($"SerializeHandlerCore({ObjectVarName}, {WriterVarName});");
+            source.Indentation--;
+            source.WriteLine("}");
+            source.WriteLine();
+            
+            source.WriteLine($"private static void SerializeHandlerCore({_fullQualifiedName} {ObjectVarName}, {ProtoWriterTypeRef} {WriterVarName})");
+            source.WriteLine("{");
+            source.Indentation++;
+            if (parser.PolymorphicInfo.PolymorphicIndicateIndex > 0)
+            {
+                // write indicate field first
+                var idx = (int)parser.PolymorphicInfo.PolymorphicIndicateIndex;
+                var indicatorField = parser.Fields[idx];
+                EmitMembers(source, idx, indicatorField);
+                source.WriteLine();
+                
+                source.WriteLine($"switch ({ObjectVarName})");
+                source.WriteLine("{");
+                source.Indentation++;
+                for (var index = 0; index < parser.PolymorphicInfo.PolymorphicTypes.Count; index++)
+                {
+                    var kv = parser.PolymorphicInfo.PolymorphicTypes[index];
+                    source.WriteLine($"case {kv.DerivedType.GetFullName()} derived{index}:");
+                    source.Indentation++;
+                    source.WriteLine($"{kv.DerivedType.GetFullName()}.SerializeHandlerCore(derived{index}, {WriterVarName});");
+                    source.WriteLine("break;");
+                    source.Indentation--;
+                }
+                source.Indentation--;
+                source.WriteLine("}");
+                source.WriteLine();
+            }
             foreach (var kv in parser.Fields)
             {
                 int field = kv.Key;
+                if (parser.PolymorphicInfo.PolymorphicIndicateIndex == field) continue; // already written
                 var info = kv.Value;
                 
                 EmitMembers(source, field, info);
                 source.WriteLine();
             }
+            
             
             source.Indentation--;
             source.WriteLine("}");

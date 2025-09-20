@@ -30,6 +30,10 @@ public partial class ProtoSourceGenerator
         public bool IgnoreDefaultFields { get; private set; }
         
         public Dictionary<int, ProtoFieldInfo> Fields { get; } = new();
+
+        public PolymorphicTypeInfo PolymorphicInfo { get; } = new();
+        
+        public INamedTypeSymbol? BaseTypeSymbol { get; private set; } = null;
         
         public void Parse(CancellationToken token = default)
         {
@@ -41,22 +45,88 @@ public partial class ProtoSourceGenerator
                 ReportDiagnostics(UnableToGetSymbol, context.GetLocation(), context.Identifier.Text);
                 return;
             }
-            
+
+            var checkingBaseTypeSymbol = classSymbol.BaseType;
+            while (checkingBaseTypeSymbol?.BaseType is not null)
+            {
+                if (checkingBaseTypeSymbol.GetAttributes()
+                        .Any(t => t.AttributeClass?.Name == "ProtoPackableAttribute") is true)
+                {
+                    BaseTypeSymbol = checkingBaseTypeSymbol;
+                    break;
+                }
+                checkingBaseTypeSymbol = checkingBaseTypeSymbol?.BaseType;
+            }
+
             if (!classSymbol.Constructors.Any(x => x is { Parameters.Length: 0, DeclaredAccessibility: Accessibility.Public }))
             {
                 ReportDiagnostics(MustContainParameterlessConstructor, context.GetLocation(), context.Identifier.Text);
                 return;
             }
             
-            foreach (var argument in classSymbol.GetAttributes().SelectMany(x => x.NamedArguments))
+            foreach (var attribute in classSymbol.GetAttributes())
             {
-                switch (argument.Key)
+                switch (attribute.AttributeClass?.Name)
                 {
-                    case "IgnoreDefaultFields":
-                    { 
-                        IgnoreDefaultFields = (bool)(argument.Value.Value ?? false);
+                    case "ProtoPackableAttribute":
+                        foreach (var argument in attribute.NamedArguments)
+                        {
+                            switch (argument.Key)
+                            {
+                                case "IgnoreDefaultFields":
+                                    IgnoreDefaultFields = (bool)(argument.Value.Value ?? false);
+                                    break;
+                            }
+                        }
                         break;
-                    }
+                    case "ProtoDerivedTypeAttribute":
+                        if (PolymorphicInfo.PolymorphicIndicateIndex == 0)
+                            PolymorphicInfo.PolymorphicIndicateIndex = 1; // set to default
+                        // get key type
+                        if (attribute.AttributeClass.TypeArguments.First() is not INamedTypeSymbol keyType){
+                            ReportDiagnostics(UnableToGetSymbol, context.GetLocation(),
+                                attribute.AttributeClass.TypeArguments.First().ToDisplayString());
+                            return;
+                        }
+                        PolymorphicInfo.PolymorphicKeyType = keyType;
+
+                        // get derived type, in typeof
+                        var derivedTypeConstant = attribute.ConstructorArguments.First();
+                        if (derivedTypeConstant.Kind != TypedConstantKind.Type)
+                        {
+                            ReportDiagnostics(UnableToGetSymbol, context.GetLocation(),
+                                derivedTypeConstant.ToCSharpString());
+                            return;
+                        }
+
+                        if (derivedTypeConstant.Value is not INamedTypeSymbol derivedType)
+                        {
+                            ReportDiagnostics(UnableToGetSymbol, context.GetLocation(),
+                                derivedTypeConstant.ToCSharpString());
+                            return;
+                        }
+
+                        // get type discriminator
+                        var typeDiscriminatorConstant = attribute.ConstructorArguments.ElementAtOrDefault(1);
+                        PolymorphicInfo.PolymorphicTypes.Add(new PolymorphicDerivedTypeInfo
+                        {
+                            DerivedType = derivedType, Key = typeDiscriminatorConstant
+                        });
+                        break;
+                    case "ProtoPolymorphicAttribute":
+                        foreach (var argument in attribute.NamedArguments)
+                        {
+                            switch (argument.Key)
+                            {
+                                case "FieldNumber":
+                                    PolymorphicInfo.PolymorphicIndicateIndex = (uint)(argument.Value.Value ?? 0);
+                                    break;
+                                case "FallbackToBaseType":
+                                    PolymorphicInfo.PolymorphicFallbackToBaseType = (bool)(argument.Value.Value ?? true);
+                                    break;
+                            }
+                        }
+                        break;
                 }
             }
             
