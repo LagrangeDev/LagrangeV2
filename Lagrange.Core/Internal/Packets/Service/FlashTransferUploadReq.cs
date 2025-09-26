@@ -7,7 +7,7 @@ namespace Lagrange.Core.Internal.Packets.Service;
 internal partial class FlashTransferUploadReq
 {
     [ProtoMember(1)] public uint FieId1 { get; set; } // 0
-    [ProtoMember(2)] public uint AppId { get; set; } // 1407
+    [ProtoMember(2)] public uint AppId { get; set; } // 1402: 私信语音, 1403: 群语音, 1413: 私信视频, 1414: 私信视频封面, 1415: 群视频, 1416: 群视频封面, 1406: 私信图片, 1407: 群聊图片, 14901: 闪传, 14903: 闪传封面
     [ProtoMember(3)] public uint FileId3 { get; set; } // 0
     [ProtoMember(107)] public FlashTransferUploadBody Body { get; set; }
 }

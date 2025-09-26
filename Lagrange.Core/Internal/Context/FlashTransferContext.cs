@@ -22,7 +22,7 @@ public class FlashTransferContext
         _url = "https://multimedia.qfile.qq.com/sliceupload";
     }
 
-    public async Task<bool> UploadFile(string uKey, Stream bodyStream)
+    public async Task<bool> UploadFile(string uKey, uint appId, Stream bodyStream)
     {
         var sha1StateVs = new FlashTransferSha1StateV { State = [] };
         var chunkCount = (uint)((bodyStream.Length + ChunkSize - 1) / ChunkSize);
@@ -61,19 +61,19 @@ public class FlashTransferContext
             var uploadBuffer = new byte[chunkLength];
             await bodyStream.ReadExactlyAsync(uploadBuffer, 0, chunkLength);
 
-            var success = await UploadChunk(uKey, (uint)chunkStart, sha1StateVs, uploadBuffer);
+            var success = await UploadChunk(uKey, appId, (uint)chunkStart, sha1StateVs, uploadBuffer);
             if (!success) return false;
         }
 
         return true;
     }
 
-    private async Task<bool> UploadChunk(string uKey, uint start, FlashTransferSha1StateV chunkSha1S, byte[] body)
+    private async Task<bool> UploadChunk(string uKey, uint appId, uint start, FlashTransferSha1StateV chunkSha1S, byte[] body)
     {
         var req = new FlashTransferUploadReq
         {
             FieId1 = 0,
-            AppId = 1407,
+            AppId = appId,
             FileId3 = 2,
             Body = new FlashTransferUploadBody
             {
