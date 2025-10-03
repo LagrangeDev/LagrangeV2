@@ -7,7 +7,7 @@
     <LangVersion>13</LangVersion>
     <IsAotCompatible>true</IsAotCompatible>
 
-    <Version>2.0.8-beta</Version>
+    <Version>2.0.9-beta</Version>
   </PropertyGroup>
 
   <ItemGroup>

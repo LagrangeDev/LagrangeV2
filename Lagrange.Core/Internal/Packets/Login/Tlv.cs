@@ -525,7 +525,8 @@ internal ref struct Tlv : IDisposable
         var span = writer.CreateReadOnlySpan();
         Span<byte> encrypted = stackalloc byte[TeaProvider.GetCipherLength(span.Length)];
         TeaProvider.Encrypt(span, encrypted, _keystore.Guid);
-        
+
+        _writer.Write(encrypted);
         _writer.ExitLengthBarrier<short>(false);
     }
 

@@ -7,19 +7,27 @@ namespace Lagrange.Proto.Utility;
 
 public static class ProtoHelper
 {
-    private static readonly int[] VarIntValues;
+    private static readonly int[] VarIntBoundaries;
+
+    private static readonly int[] VarIntLengths32;
+    private static readonly int[] VarIntLengths64;
 
     static ProtoHelper()
     {
-        VarIntValues = new int[5];
-        for (int i = 0; i < VarIntValues.Length; i++) VarIntValues[i] = 1 << (7 * i);
+        VarIntBoundaries = new int[5];
+        for (int i = 0; i < VarIntBoundaries.Length; i++) VarIntBoundaries[i] = 1 << (7 * i);
+        
+        VarIntLengths32 = new int[32];
+        VarIntLengths64 = new int[64];
+        for (int i = 0; i < 32; i++) VarIntLengths32[i] = (((38 - i) * 0b10010010010010011) >> 19) + (i >> 5);
+        for (int i = 0; i < 64; i++) VarIntLengths64[i] = (((70 - i) * 0b10010010010010011) >> 19) + (i >> 6);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int GetVarIntMin(int length) => VarIntValues[length - 1];
+    internal static int GetVarIntMin(int length) => VarIntBoundaries[length - 1];
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int GetVarIntMax(int length) => VarIntValues[length] - 1;
+    internal static int GetVarIntMax(int length) => VarIntBoundaries[length] - 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe int GetVarIntLength<T>(T value) where T : unmanaged, INumberBase<T>
@@ -29,12 +37,12 @@ public static class ProtoHelper
         if (sizeof(T) <= 4)
         {
             int leadingZeros = BitOperations.LeadingZeroCount(uint.CreateSaturating(value));
-            return (((38 - leadingZeros) * 0b10010010010010011) >> 19) + (leadingZeros >> 5);
+            return VarIntLengths32[leadingZeros];
         }
         else
         {
             int leadingZeros = BitOperations.LeadingZeroCount(ulong.CreateSaturating(value));
-            return (((70 - leadingZeros) * 0b10010010010010011) >> 19) + (leadingZeros >> 6);
+            return VarIntLengths64[leadingZeros];
         }
     }
     

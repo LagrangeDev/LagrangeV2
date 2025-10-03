@@ -16,6 +16,6 @@ internal class InfoSyncPushService : BaseService<InfoSyncPushEvent, InfoSyncPush
         var obj = ProtoObject.Parse(input.Span);
         var push = ProtoHelper.Deserialize<InfoSyncPush>(input.Span);
         
-        return base.Parse(input, context);
+        return ValueTask.FromResult(new InfoSyncPushEvent());
     }
 }

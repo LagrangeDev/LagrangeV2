@@ -14,6 +14,6 @@ internal class PushParamsService : BaseService<PushParamsEvent, PushParamsEvent>
     {
         var @params = ProtoHelper.Deserialize<PushParams>(input.Span);
         
-        return base.Parse(input, context);
+        return ValueTask.FromResult(new PushParamsEvent());
     }
 }
