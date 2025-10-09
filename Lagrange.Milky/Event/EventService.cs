@@ -147,7 +147,7 @@ public class EventService(ILogger<EventService> logger, IOptions<MilkyConfigurat
         }
         catch (Exception e)
         {
-            _logger.LogHandleEventException(nameof(LgrEvents.BotGroupMemberDecreaseEvent), e);
+            _logger.LogHandleEventException(nameof(LgrEvents.BotGroupMemberIncreaseEvent), e);
         }
     }
     
