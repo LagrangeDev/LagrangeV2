@@ -24,6 +24,17 @@ public partial class EntityConvert
         new GroupNudgeEventData(@event.GroupUin, @event.OperatorUin, @event.TargetUin, @event.Action, @event.Suffix, @event.ActionImageUrl)
     );
 
+    public GroupMemberIncreaseEvent GroupMemberIncreaseEvent(LgrEventArgs.BotGroupMemberIncreaseEvent @event) => new(
+        @event.EventTime.ToUnixTimeSeconds(),
+        _bot.BotUin,
+        new GroupMemberIncreaseEventData(
+            @event.GroupUin,
+            @event.MemberUin,
+            @event.OperatorUin,
+            @event.InvitorUin
+        )
+    );
+    
     public GroupMemberDecreaseEvent GroupMemberDecreaseEvent(LgrEventArgs.BotGroupMemberDecreaseEvent @event) => new(
         @event.EventTime.ToUnixTimeSeconds(),
         _bot.BotUin,

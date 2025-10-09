@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Web;
 using Lagrange.Core.Common;
@@ -52,6 +53,29 @@ internal class PushLogic(BotContext context) : ILogic
                     break;
                 }
                 context.EventInvoker.PostEvent(new BotMessageEvent(message, messageEvent.Raw));
+                break;
+            }
+            case Type.GroupMemberIncreaseNotice when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
+            {
+                var increase = ProtoHelper.Deserialize<GroupChange>(content.Span);
+                var response = await context.EventContext.SendEvent<FetchGroupNotificationsEventResp>(
+                    new FetchGroupNotificationsEventReq(20)
+                );
+                var inviteNotifications = response
+                    .GroupNotifications
+                    .OfType<BotGroupInviteNotification>();
+                var notification = inviteNotifications.FirstOrDefault(notification =>
+                    increase.GroupUin == notification.GroupUin &&
+                    increase.MemberUid == notification.TargetUid &&
+                    notification.State == BotGroupNotificationState.Accept
+                );
+                var operatorUin = notification?.OperatorUin;
+                context.EventInvoker.PostEvent(new BotGroupMemberIncreaseEvent(
+                    increase.GroupUin,
+                    context.CacheContext.ResolveUin(increase.MemberUid),
+                    context.CacheContext.ResolveUin(Encoding.UTF8.GetString(increase.Operator.AsSpan())),
+                    increase.IncreaseType,
+                    operatorUin));
                 break;
             }
             case Type.GroupMemberDecreaseNotice when messageEvent.MsgPush.CommonMessage.MessageBody.MsgContent is { } content:
@@ -266,6 +290,7 @@ internal class PushLogic(BotContext context) : ILogic
 
     private enum Type
     {
+        GroupMemberIncreaseNotice = 33,
         GroupMemberDecreaseNotice = 34,
         GroupMessage = 82,
         GroupJoinNotification = 84,

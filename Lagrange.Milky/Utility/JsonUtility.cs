@@ -117,6 +117,8 @@ public static partial class JsonUtility
     [JsonSerializable(typeof(MessageReceiveEvent))]
     // group_nudge
     [JsonSerializable(typeof(GroupNudgeEvent))]
+    // group_member_increase
+    [JsonSerializable(typeof(GroupMemberIncreaseEvent))]
     // group_member_decrease
     [JsonSerializable(typeof(GroupMemberDecreaseEvent))]
     // friend_request
