@@ -12,13 +12,13 @@ public abstract class AndroidBotSignProvider : BotSignProvider
     public abstract Task<byte[]> GetDebugXwid(long uin, string data);
 }
 
-internal class DefaultAndroidBotSignProvider : AndroidBotSignProvider, IDisposable
+internal class DefaultAndroidBotSignProvider(string? signUrl) : AndroidBotSignProvider, IDisposable
 {
     private const string Tag = nameof(DefaultAndroidBotSignProvider);
     
     private readonly HttpClient _client = new();
 
-    private readonly string _url = "http://127.0.0.1:8081";
+    private readonly string _url = signUrl ?? "http://127.0.0.1:8081";
     
     private static readonly HashSet<string> WhiteListCommand =
     [

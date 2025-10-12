@@ -1,3 +1,4 @@
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -9,22 +10,34 @@ namespace Lagrange.Core.Common;
 public abstract class BotSignProvider
 {
     private BotContext? _context;
-    
+
     public BotContext Context
     {
         get => _context ?? throw new InvalidOperationException("Context is not initialized.");
         internal set => _context = value;
     }
-    
+
     public abstract bool IsWhiteListCommand(string cmd);
 
     public abstract Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body);
 }
 
-internal class DefaultBotSignProvider : BotSignProvider, IDisposable
+internal class DefaultBotSignProvider(string? signUrl) : BotSignProvider, IDisposable
 {
-    private const string Tag =  nameof(DefaultBotSignProvider);
-    
+    private const string Tag = nameof(DefaultBotSignProvider);
+
+    private readonly HttpClient _client = new();
+
+    private string Url => Context.Config.Protocol switch
+    {
+        Protocols.Windows => throw new NotSupportedException("Windows is not supported"),
+        Protocols.MacOs => throw new NotSupportedException("MacOs is not supported"),
+        Protocols.Linux => $"{signUrl ?? "https://sign.lagrangecore.org/api/sign/"}{Context.AppInfo.AppClientVersion}",
+        Protocols.AndroidPhone => throw new NotSupportedException("AndroidPhone is not supported"),
+        Protocols.AndroidPad => throw new NotSupportedException("AndroidPad is not supported"),
+        _ => throw new ArgumentOutOfRangeException()
+    };
+
     private static readonly HashSet<string> WhiteListCommand =
     [
         "trpc.o3.ecdh_access.EcdhAccess.SsoEstablishShareKey",
@@ -69,19 +82,7 @@ internal class DefaultBotSignProvider : BotSignProvider, IDisposable
         "OidbSvcTrpcTcp.0xf67_5",
         "OidbSvcTrpcTcp.0x6d9_4"
     ];
-    
-    private readonly HttpClient _client = new();
-    
-    private string Url => Context.Config.Protocol switch
-    {
-        Protocols.Windows => throw new NotSupportedException("Windows is not supported"),
-        Protocols.MacOs => throw new NotSupportedException("MacOs is not supported"),
-        Protocols.Linux => $"https://sign.lagrangecore.org/api/sign/{Context.AppInfo.AppClientVersion}",
-        Protocols.AndroidPhone => throw new NotSupportedException("AndroidPhone is not supported"),
-        Protocols.AndroidPad => throw new NotSupportedException("AndroidPad is not supported"),
-        _ => throw new ArgumentOutOfRangeException()
-    };
-    
+
     public override bool IsWhiteListCommand(string cmd) => WhiteListCommand.Contains(cmd);
 
     public override async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
@@ -94,17 +95,18 @@ internal class DefaultBotSignProvider : BotSignProvider, IDisposable
                 ["seq"] = seq,
                 ["src"] = Convert.ToHexString(body.Span),
             };
-            
+
+            Debugger.Break();
             var response = await _client.PostAsync(Url, new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
             if (!response.IsSuccessStatusCode) return null;
-            
+
             var content = JsonHelper.Deserialize<Root>(await response.Content.ReadAsStringAsync());
             if (content == null) return null;
-            
+
             return new SsoSecureInfo
             {
                 SecSign = Convert.FromHexString(content.Value.Sign),
-                SecToken = Convert.FromHexString(content.Value.Token), 
+                SecToken = Convert.FromHexString(content.Value.Token),
                 SecExtra = Convert.FromHexString(content.Value.Extra)
             };
         }
@@ -114,7 +116,7 @@ internal class DefaultBotSignProvider : BotSignProvider, IDisposable
             return null;
         }
     }
-    
+
     public void Dispose()
     {
         _client.Dispose();
@@ -125,14 +127,14 @@ internal class DefaultBotSignProvider : BotSignProvider, IDisposable
     {
         [JsonPropertyName("value")] public Response Value { get; set; } = new();
     }
-    
+
     [Serializable]
     internal class Response
     {
         [JsonPropertyName("sign")] public string Sign { get; set; } = string.Empty;
-        
+
         [JsonPropertyName("token")] public string Token { get; set; } = string.Empty;
-        
+
         [JsonPropertyName("extra")] public string Extra { get; set; } = string.Empty;
     }
 }
@@ -142,8 +144,8 @@ internal class DefaultBotSignProvider : BotSignProvider, IDisposable
 public partial class SsoSecureInfo
 {
     [ProtoMember(1)] public byte[]? SecSign { get; set; }
-    
+
     [ProtoMember(2)] public byte[]? SecToken { get; set; }
-    
+
     [ProtoMember(3)] public byte[]? SecExtra { get; set; }
 }

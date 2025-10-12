@@ -1,4 +1,5 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
+using System.Text;
 using Lagrange.Core.Common;
 
 namespace Lagrange.Core.NativeAPI.NativeModel.Common
@@ -6,10 +7,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Common
     [StructLayout(LayoutKind.Sequential)]
     public struct BotConfigStruct
     {
-        public BotConfigStruct()
-        {
-        }
-
+        public BotConfigStruct() { }
         public byte Protocol { get; set; } = 0b00000100;
 
         public bool AutoReconnect { get; set; } = true;
@@ -23,7 +21,9 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Common
         public uint HighwayConcurrent { get; set; } = 4;
 
         public bool AutoReLogin { get; set; } = true;
-        
+
+        public ByteArrayNative SignAddress { get; set; } = new();
+
         public static implicit operator BotConfig(BotConfigStruct config)
         {
             return new BotConfig()
@@ -34,10 +34,11 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Common
                 GetOptimumServer = config.GetOptimumServer,
                 HighwayChunkSize = config.HighwayChunkSize,
                 HighwayConcurrent = config.HighwayConcurrent,
-                AutoReLogin = config.AutoReLogin
+                AutoReLogin = config.AutoReLogin,
+                SignAddress = Encoding.UTF8.GetString(config.SignAddress.ToByteArrayWithoutFree())
             };
         }
-        
+
         public static implicit operator BotConfigStruct(BotConfig config)
         {
             return new BotConfigStruct()
@@ -48,7 +49,8 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Common
                 GetOptimumServer = config.GetOptimumServer,
                 HighwayChunkSize = config.HighwayChunkSize,
                 HighwayConcurrent = config.HighwayConcurrent,
-                AutoReLogin = config.AutoReLogin
+                AutoReLogin = config.AutoReLogin,
+                SignAddress = Encoding.UTF8.GetBytes(config.SignAddress ?? "")
             };
         }
     }

@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Lagrange.Core.Common;
 using Lagrange.Core.Internal.Packets.Struct;
 using Lagrange.Core.Internal.Services;
@@ -8,11 +8,11 @@ namespace Lagrange.Core.Internal.Context;
 internal class PacketContext
 {
     private readonly ConcurrentDictionary<int, SsoPacketValueTaskSource> _pendingTasks = new();
-    
+
     private readonly BotKeystore _keystore;
     private readonly SsoPacker _ssoPacker;
     private readonly ServicePacker _servicePacker;
-    
+
     internal readonly BotSignProvider SignProvider;
 
     private readonly BotContext _context;
@@ -23,14 +23,23 @@ internal class PacketContext
         _keystore = context.Keystore;
         _ssoPacker = new SsoPacker(context);
         _servicePacker = new ServicePacker(context);
-        
+
+        context.LogInfo("PacketContext", context.Config.SignAddress != null
+            ? $"Using custom sign address: {context.Config.SignAddress}"
+            : "Custom sign address isn't set, using default...");
+
+        if (context.Config.SignAddress != null && !context.Config.SignAddress.EndsWith('/'))
+        {
+            context.Config.SignAddress += '/';
+        }
+
         SignProvider = context.Config.SignProvider ?? context.Config.Protocol switch
         {
-            Protocols.Linux or Protocols.Windows or Protocols.MacOs => new DefaultBotSignProvider(),
-            Protocols.AndroidPhone or Protocols.AndroidPad => new DefaultAndroidBotSignProvider(),
+            Protocols.Linux or Protocols.Windows or Protocols.MacOs => new DefaultBotSignProvider(context.Config.SignAddress),
+            Protocols.AndroidPhone or Protocols.AndroidPad => new DefaultAndroidBotSignProvider(context.Config.SignAddress),
             _ => throw new ArgumentOutOfRangeException(nameof(context.Config.Protocol))
         };
-        
+
         SignProvider.Context = context; // Initialize the sign provider with the context
     }
 
@@ -72,7 +81,7 @@ internal class PacketContext
                     throw new InvalidOperationException($"Unknown RequestType: {options.RequestType}");
                 }
             }
-          
+
             await _context.SocketContext.Send(frame);
         });
 

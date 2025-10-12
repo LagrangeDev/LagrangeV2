@@ -1,4 +1,4 @@
-using Lagrange.Core.Events.EventArgs;
+﻿using Lagrange.Core.Events.EventArgs;
 
 namespace Lagrange.Core.Common;
 
@@ -45,7 +45,12 @@ public class BotConfig
     /// Refresh the session when the session is about to expire
     /// </summary>
     public bool AutoReLogin { get; set; } = true;
-    
+
+    /// <summary>
+    /// The Sign Address for the bot
+    /// </summary>
+    public string? SignAddress { get; set; } = null;
+
     /// <summary>
     /// The Sign Provider for the bot, if null, the bot will use the default sign provider
     /// </summary>
