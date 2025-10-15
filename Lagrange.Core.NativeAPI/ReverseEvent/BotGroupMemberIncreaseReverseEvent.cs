@@ -4,13 +4,13 @@ using Lagrange.Core.NativeAPI.ReverseEvent.Abstract;
 
 namespace Lagrange.Core.NativeAPI.ReverseEvent
 {
-    public class BotGroupMemberDecreaseReverseEvent : ReverseEventBase
+    public class BotGroupMemberIncreaseReverseEvent : ReverseEventBase
     {
         public override void RegisterEventHandler(BotContext context)
         {
-            context.EventInvoker.RegisterEvent<BotGroupMemberDecreaseEvent>((ctx, e) =>
+            context.EventInvoker.RegisterEvent<BotGroupMemberIncreaseEvent>((ctx, e) =>
             {
-                Events.Add((BotGroupMemberDecreaseEventStruct)e);
+                Events.Add((BotGroupMemberIncreaseEventStruct)e);
             });
         }
     }

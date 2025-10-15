@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using Lagrange.Core.Events;
 using Lagrange.Core.NativeAPI.NativeModel.Event;
 using Lagrange.Core.NativeAPI.ReverseEvent.Abstract;
 
@@ -17,6 +16,7 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
                 BotGroupInviteNotificationEventCount = Program.Contexts[index].EventInvoker.BotGroupInviteNotificationEvent.Events.Count,
                 BotGroupJoinNotificationEventCount = Program.Contexts[index].EventInvoker.BotGroupJoinNotificationEvent.Events.Count,
                 BotGroupMemberDecreaseEventCount = Program.Contexts[index].EventInvoker.BotGroupMemberDecreaseEvent.Events.Count,
+                BotGroupMemberIncreaseEventCount = Program.Contexts[index].EventInvoker.BotGroupMemberIncreaseEvent.Events.Count,
                 BotGroupNudgeEventCount = Program.Contexts[index].EventInvoker.BotGroupNudgeEvent.Events.Count,
                 BotGroupReactionEventCount = Program.Contexts[index].EventInvoker.BotGroupReactionEvent.Events.Count,
                 BotLoginEventCount = Program.Contexts[index].EventInvoker.BotLoginEvent.Events.Count,
@@ -107,6 +107,21 @@ namespace Lagrange.Core.NativeAPI.ReverseEvent
             var botGroupMemberDecreaseEvent = Program.Contexts[index].EventInvoker.BotGroupMemberDecreaseEvent;
 
             IntPtr eventPtr = GetEventStructPtr<BotGroupMemberDecreaseEventStruct>(botGroupMemberDecreaseEvent);
+
+            return eventPtr;
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "GetGroupMemberIncreaseEvent")]
+        public static IntPtr GetGroupMemberIncreaseEvent(int index)
+        {
+            if (index >= Program.Contexts.Count)
+            {
+                return IntPtr.Zero;
+            }
+
+            var botGroupMemberIncreaseEvent = Program.Contexts[index].EventInvoker.BotGroupMemberIncreaseEvent;
+
+            IntPtr eventPtr = GetEventStructPtr<BotGroupMemberIncreaseEventStruct>(botGroupMemberIncreaseEvent);
 
             return eventPtr;
         }

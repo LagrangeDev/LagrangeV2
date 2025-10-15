@@ -13,6 +13,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Event
         public int BotGroupInviteSelfEventCount = 0;
         public int BotGroupJoinNotificationEventCount = 0;
         public int BotGroupMemberDecreaseEventCount = 0;
+        public int BotGroupMemberIncreaseEventCount = 0;
         public int BotGroupNudgeEventCount = 0;
         public int BotGroupReactionEventCount = 0;
         public int BotLoginEventCount = 0;
