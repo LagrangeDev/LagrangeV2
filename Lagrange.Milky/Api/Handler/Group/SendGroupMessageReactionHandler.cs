@@ -19,11 +19,11 @@ public class SendGroupMessageReactionHandler(BotContext bot) : IEmptyResultApiHa
 public class SendGroupMessageReactionParameter(long groupId, long messageSeq, string reaction, bool isAdd)
 {
     [JsonRequired]
-    [JsonPropertyName("groupId")]
+    [JsonPropertyName("group_id")]
     public long GroupId { get; init; } = groupId;
 
     [JsonRequired]
-    [JsonPropertyName("messageSeq")]
+    [JsonPropertyName("message_seq")]
     public long MessageSeq { get; init; } = messageSeq;
 
     [JsonRequired]
@@ -31,6 +31,6 @@ public class SendGroupMessageReactionParameter(long groupId, long messageSeq, st
     public string Reaction { get; init; } = reaction;
 
     [JsonRequired]
-    [JsonPropertyName("isAdd")]
+    [JsonPropertyName("is_add")]
     public bool IsAdd { get; init; } = isAdd;
 }
