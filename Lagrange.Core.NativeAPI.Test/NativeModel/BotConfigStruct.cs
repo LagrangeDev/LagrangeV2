@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Lagrange.Core.NativeAPI.Test.NativeModel
 {
@@ -22,5 +22,7 @@ namespace Lagrange.Core.NativeAPI.Test.NativeModel
         public uint HighwayConcurrent { get; set; } = 4;
 
         public bool AutoReLogin { get; set; } = true;
+
+        public ByteArrayNative addr { get; set; } = new();
     }
 }

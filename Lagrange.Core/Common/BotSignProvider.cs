@@ -32,7 +32,7 @@ internal class DefaultBotSignProvider(string? signUrl) : BotSignProvider, IDispo
     {
         Protocols.Windows => throw new NotSupportedException("Windows is not supported"),
         Protocols.MacOs => throw new NotSupportedException("MacOs is not supported"),
-        Protocols.Linux => $"{signUrl ?? "https://sign.lagrangecore.org/api/sign/"}{Context.AppInfo.AppClientVersion}",
+        Protocols.Linux => signUrl ?? $"https://sign.lagrangecore.org/api/sign/{Context.AppInfo.AppClientVersion}",
         Protocols.AndroidPhone => throw new NotSupportedException("AndroidPhone is not supported"),
         Protocols.AndroidPad => throw new NotSupportedException("AndroidPad is not supported"),
         _ => throw new ArgumentOutOfRangeException()
@@ -96,7 +96,6 @@ internal class DefaultBotSignProvider(string? signUrl) : BotSignProvider, IDispo
                 ["src"] = Convert.ToHexString(body.Span),
             };
 
-            Debugger.Break();
             var response = await _client.PostAsync(Url, new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
             if (!response.IsSuccessStatusCode) return null;
 

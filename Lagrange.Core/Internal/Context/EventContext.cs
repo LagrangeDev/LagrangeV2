@@ -1,4 +1,5 @@
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Lagrange.Core.Events;
@@ -59,6 +60,7 @@ internal class EventContext : IDisposable
             await HandleOutgoingEvent(@event);
             var (frame, attribute) = await _context.ServiceContext.Resolve(@event);
             if (frame.Sequence == 0) throw new LagrangeException("The sequence number is 0 for the SSOFrame");
+
 
             var @return = await _context.PacketContext.SendPacket(frame, attribute);
             var resolved = await _context.ServiceContext.Resolve(@return);

@@ -13,6 +13,7 @@ class Program
     static async Task Main(string[] args)
     {
         var botConfig = new BotConfigStruct { };
+        botConfig.addr  = Encoding.UTF8.GetBytes("http://103.217.204.57:30366/sign/");
         IntPtr keystorePtr = IntPtr.Zero;
         IntPtr botConfigPtr = Marshal.AllocHGlobal(Marshal.SizeOf(botConfig));
         Marshal.StructureToPtr(botConfig, botConfigPtr, false);

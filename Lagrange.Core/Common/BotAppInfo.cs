@@ -1,4 +1,4 @@
-#pragma warning disable CS8618
+﻿#pragma warning disable CS8618
 
 namespace Lagrange.Core.Common;
 
@@ -33,7 +33,7 @@ public class BotAppInfo
         Os = "Linux",
         Kernel = "Linux",
         VendorOs = "linux",
-        CurrentVersion = "3.2.15-30366",
+        CurrentVersion = "3.2.19-39038",
         PtVersion = "2.0.0",
         SsoVersion = 19,
         PackageName = "com.tencent.qq",
@@ -44,11 +44,11 @@ public class BotAppInfo
             SdkVersion = "nt.wtlogin.0.0.1",
             MiscBitMap = 12058620,
             SubSigMap = 0,
-            MainSigMap = Sig.WLOGIN_STWEB | Sig.WLOGIN_A2 | Sig.WLOGIN_ST | Sig.WLOGIN_SKEY | Sig.WLOGIN_VKEY | Sig.WLOGIN_D2 | Sig.WLOGIN_SID | Sig.WLOGIN_PSKEY | Sig.WLOGIN_DA2 | Sig.WLOGIN_PT4Token
+            MainSigMap = (Sig)169742560,// Sig.WLOGIN_STWEB | Sig.WLOGIN_A2 | Sig.WLOGIN_ST | Sig.WLOGIN_SKEY | Sig.WLOGIN_VKEY | Sig.WLOGIN_D2 | Sig.WLOGIN_SID | Sig.WLOGIN_PSKEY | Sig.WLOGIN_DA2 | Sig.WLOGIN_PT4Token
         },
         AppId = 1600001615,
-        SubAppId = 537258424,
-        AppClientVersion = 30366
+        SubAppId = 537313942,
+        AppClientVersion = 39038
     };
     
     private static readonly BotAppInfo MacOs = new()
