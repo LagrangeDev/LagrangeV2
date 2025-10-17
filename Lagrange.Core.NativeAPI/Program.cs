@@ -10,21 +10,28 @@ public static class Program
     public static List<Context> Contexts { get; set; } = [];
 
     [UnmanagedCallersOnly(EntryPoint = "Initialize")]
-    public static int Initialize(IntPtr botConfigPtr, IntPtr keystorePtr)
+    public static int Initialize(IntPtr botConfigPtr, IntPtr keystorePtr, IntPtr appInfoPtr)
     {
         var botConfigStruct = Marshal.PtrToStructure<BotConfigStruct>(botConfigPtr);
         var botConfig = botConfigStruct;
+
+        BotAppInfo? appInfo = null;
+        if (appInfoPtr != IntPtr.Zero)
+        {
+            var appInfoStruct = Marshal.PtrToStructure<BotAppInfoStruct>(appInfoPtr);
+            appInfo = appInfoStruct;
+        }
 
         int index = Contexts.Count;
         if (keystorePtr != IntPtr.Zero)
         {
             var keystoreStruct = Marshal.PtrToStructure<BotKeystoreStruct>(keystorePtr);
             var keystore = keystoreStruct.ToKeystoreWithoutFree();
-            Contexts.Add(new Context(BotFactory.Create(botConfig, keystore)));
+            Contexts.Add(new Context(BotFactory.Create(botConfig, keystore, appInfo)));
         }
         else
         {
-            Contexts.Add(new Context(BotFactory.Create(botConfig)));
+            Contexts.Add(new Context(BotFactory.Create(botConfig, appInfo)));
         }
 
         return index;
@@ -51,7 +58,7 @@ public static class Program
 
         return StatusCode.Success;
     }
-    
+
     [UnmanagedCallersOnly(EntryPoint = "Stop")]
     public static StatusCode Stop(int index)
     {
@@ -64,7 +71,7 @@ public static class Program
         Contexts.RemoveAt(index);
         return StatusCode.Success;
     }
-    
+
     [UnmanagedCallersOnly(EntryPoint = "FreeMemory")]
     public static void FreeMemory(IntPtr ptr)
     {

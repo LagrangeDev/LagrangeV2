@@ -42,7 +42,7 @@ public class BotAppInfo
         {
             SdkBuildTime = 0,
             SdkVersion = "nt.wtlogin.0.0.1",
-            MiscBitMap = 12058620,
+            MiscBitMap = 32764,
             SubSigMap = 0,
             MainSigMap = (Sig)169742560,// Sig.WLOGIN_STWEB | Sig.WLOGIN_A2 | Sig.WLOGIN_ST | Sig.WLOGIN_SKEY | Sig.WLOGIN_VKEY | Sig.WLOGIN_D2 | Sig.WLOGIN_SID | Sig.WLOGIN_PSKEY | Sig.WLOGIN_DA2 | Sig.WLOGIN_PT4Token
         },
