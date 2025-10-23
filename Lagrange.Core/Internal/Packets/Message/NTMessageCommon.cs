@@ -11,7 +11,7 @@ internal partial class CommonMessage
     
     [ProtoMember(2)] public ContentHead ContentHead { get; set; }
     
-    [ProtoMember(3)] public MessageBody MessageBody { get; set; }
+    [ProtoMember(3)] public MessageBody? MessageBody { get; set; }
 }
 
 [ProtoPackable]
