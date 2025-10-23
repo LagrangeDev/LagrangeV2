@@ -33,7 +33,7 @@ public class BotAppInfo
         Os = "Linux",
         Kernel = "Linux",
         VendorOs = "linux",
-        CurrentVersion = "3.2.19-39038",
+        CurrentVersion = "3.2.15-30366",
         PtVersion = "2.0.0",
         SsoVersion = 19,
         PackageName = "com.tencent.qq",
@@ -42,13 +42,13 @@ public class BotAppInfo
         {
             SdkBuildTime = 0,
             SdkVersion = "nt.wtlogin.0.0.1",
-            MiscBitMap = 32764,
+            MiscBitMap = 12058620,
             SubSigMap = 0,
             MainSigMap = (Sig)169742560,// Sig.WLOGIN_STWEB | Sig.WLOGIN_A2 | Sig.WLOGIN_ST | Sig.WLOGIN_SKEY | Sig.WLOGIN_VKEY | Sig.WLOGIN_D2 | Sig.WLOGIN_SID | Sig.WLOGIN_PSKEY | Sig.WLOGIN_DA2 | Sig.WLOGIN_PT4Token
         },
         AppId = 1600001615,
-        SubAppId = 537313942,
-        AppClientVersion = 39038
+        SubAppId = 537258424,
+        AppClientVersion = 30366
     };
     
     private static readonly BotAppInfo MacOs = new()
