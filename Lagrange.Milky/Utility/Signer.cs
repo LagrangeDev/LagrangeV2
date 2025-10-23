@@ -169,6 +169,7 @@ public class Signer : AndroidBotSignProvider, IDisposable
 
     private readonly string _base;
     private readonly string _version;
+    private readonly string? _token;
     private readonly HttpClient _client;
 
     private BotAppInfo? _info;
@@ -181,6 +182,7 @@ public class Signer : AndroidBotSignProvider, IDisposable
         var signerConfiguration = options.Value.Signer;
         _base = signerConfiguration.Base ?? throw new Exception("Core.Signer.Base cannot be null");
         _version = signerConfiguration.Version ?? throw new Exception("Core.Signer.Version connot be null");
+        _token = signerConfiguration.Token;
         _client = new HttpClient(new HttpClientHandler
         {
             Proxy = signerConfiguration.ProxyUrl == null ? null : new WebProxy
@@ -314,6 +316,7 @@ public class Signer : AndroidBotSignProvider, IDisposable
         using var request = new HttpRequestMessage();
         request.Method = HttpMethod.Post;
         request.RequestUri = new Uri(url);
+        if (!string.IsNullOrWhiteSpace(_token)) request.Headers.Add("X-API-Key", _token);
         request.Content = new StringContent(
             JsonUtility.Serialize(requestJson),
             new MediaTypeHeaderValue(MediaTypeNames.Application.Json)
@@ -338,6 +341,7 @@ public class Signer : AndroidBotSignProvider, IDisposable
             using var request = new HttpRequestMessage();
             request.Method = HttpMethod.Get;
             request.RequestUri = new Uri($"{_base}/{_version}/appinfo_v2");
+            if (!string.IsNullOrWhiteSpace(_token)) request.Headers.Add("X-API-Key", _token);
 
             using var response = await _client.SendAsync(request);
             if (!response.IsSuccessStatusCode) throw new Exception($"Unexpected http status code({response.StatusCode})");

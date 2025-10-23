@@ -23,6 +23,9 @@
             // Signer version
             "Version": "30366",
 
+            // Signer token
+            // "Token": null
+
             // Proxy for connect signer
             // only supports Http proxy
             // "ProxyUrl": null,
