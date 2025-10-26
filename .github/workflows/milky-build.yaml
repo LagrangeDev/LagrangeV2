@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
+      - .github/workflows/milky-build.yaml
       - Lagrange.Codec/**
       - Lagrange.Core/**
       - Lagrange.Proto/**
@@ -12,6 +13,7 @@ on:
   pull_request:
     branches: [ main ]
     paths:
+      - .github/workflows/milky-build.yaml
       - Lagrange.Codec/**
       - Lagrange.Core/**
       - Lagrange.Proto/**
@@ -54,9 +56,15 @@ jobs:
       - name: Publish
         run: dotnet publish Lagrange.Milky -c Release -r ${{ matrix.rid }}
 
-      - name: Upload artifacts
-        if: github.event_name != 'pull_request'
+      - if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: Lagrange.Milky-${{ matrix.rid }}
           path: Lagrange.Milky/bin/Release/net9.0/${{ matrix.rid }}/publish/Lagrange.Milky${{ matrix.binary-extension }}
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lagrange.Milky-${{ matrix.rid }}-symbol-files
+          path: |
+            Lagrange.Milky/bin/Release/net9.0/${{ matrix.rid }}/publish/*
+            !Lagrange.Milky/bin/Release/net9.0/${{ matrix.rid }}/publish/Lagrange.Milky${{ matrix.binary-extension }}
