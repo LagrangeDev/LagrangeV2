@@ -37,7 +37,7 @@ public class BotKeystore
         {
             Guid = guid,
             AndroidId = Convert.ToHexString(androidId),
-            DeviceName = $"lllgggrrr-{Random.Shared.Next(0, 16777215):X6}",
+            DeviceName = $"Lagrange-{Random.Shared.Next(0, 16777215):X6}",
         };
     }
 }
