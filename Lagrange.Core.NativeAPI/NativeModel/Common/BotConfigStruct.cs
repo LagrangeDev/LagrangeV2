@@ -8,6 +8,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Common
     public struct BotConfigStruct
     {
         public BotConfigStruct() { }
+
         public byte Protocol { get; set; } = 0b00000100;
 
         public bool AutoReconnect { get; set; } = true;
@@ -35,7 +36,15 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Common
                 HighwayChunkSize = config.HighwayChunkSize,
                 HighwayConcurrent = config.HighwayConcurrent,
                 AutoReLogin = config.AutoReLogin,
-                SignAddress = Encoding.UTF8.GetString(config.SignAddress.ToByteArrayWithoutFree())
+                SignProvider = (Protocols)config.Protocol switch
+                {
+                    Protocols.Windows => throw new NotSupportedException("Windows is not supported"),
+                    Protocols.MacOs => throw new NotSupportedException("MacOs is not supported"),
+                    Protocols.Linux => new LinuxSignProvider(Encoding.UTF8.GetString(config.SignAddress.ToByteArrayWithoutFree())),
+                    Protocols.AndroidPhone => new AndroidSignProvider(Encoding.UTF8.GetString(config.SignAddress.ToByteArrayWithoutFree())),
+                    Protocols.AndroidPad => new AndroidSignProvider(Encoding.UTF8.GetString(config.SignAddress.ToByteArrayWithoutFree())),
+                    _ => throw new ArgumentOutOfRangeException()
+                }
             };
         }
 
@@ -50,7 +59,6 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Common
                 HighwayChunkSize = config.HighwayChunkSize,
                 HighwayConcurrent = config.HighwayConcurrent,
                 AutoReLogin = config.AutoReLogin,
-                SignAddress = Encoding.UTF8.GetBytes(config.SignAddress ?? "")
             };
         }
     }

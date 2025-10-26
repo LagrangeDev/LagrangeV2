@@ -18,7 +18,7 @@ public class BotContext : IDisposable
         EventInvoker = new EventInvoker(this);
         
         CacheContext = new CacheContext(this);
-        PacketContext = new PacketContext(this); // Including sign-url.
+        PacketContext = new PacketContext(this);
         ServiceContext = new ServiceContext(this);
         SocketContext = new SocketContext(this);
         EventContext = new EventContext(this);

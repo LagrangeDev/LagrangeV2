@@ -24,19 +24,10 @@ internal class PacketContext
         _ssoPacker = new SsoPacker(context);
         _servicePacker = new ServicePacker(context);
 
-        context.LogInfo("PacketContext", context.Config.SignAddress != null
-            ? $"Using custom sign address: {context.Config.SignAddress}"
-            : "Custom sign address isn't set, using default...");
-
-        if (context.Config.SignAddress != null && !context.Config.SignAddress.EndsWith('/'))
-        {
-            context.Config.SignAddress += '/';
-        }
-
         SignProvider = context.Config.SignProvider ?? context.Config.Protocol switch
         {
-            Protocols.Linux or Protocols.Windows or Protocols.MacOs => new DefaultBotSignProvider(context.Config.SignAddress),
-            Protocols.AndroidPhone or Protocols.AndroidPad => new DefaultAndroidBotSignProvider(context.Config.SignAddress),
+            Protocols.Linux or Protocols.Windows or Protocols.MacOs => new DefaultBotSignProvider(),
+            Protocols.AndroidPhone or Protocols.AndroidPad => new DefaultAndroidBotSignProvider(),
             _ => throw new ArgumentOutOfRangeException(nameof(context.Config.Protocol))
         };
 

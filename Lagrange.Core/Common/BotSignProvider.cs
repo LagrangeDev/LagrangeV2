@@ -22,7 +22,7 @@ public abstract class BotSignProvider
     public abstract Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body);
 }
 
-internal class DefaultBotSignProvider(string? signUrl) : BotSignProvider, IDisposable
+internal class DefaultBotSignProvider : BotSignProvider, IDisposable
 {
     private const string Tag = nameof(DefaultBotSignProvider);
 
@@ -32,7 +32,7 @@ internal class DefaultBotSignProvider(string? signUrl) : BotSignProvider, IDispo
     {
         Protocols.Windows => throw new NotSupportedException("Windows is not supported"),
         Protocols.MacOs => throw new NotSupportedException("MacOs is not supported"),
-        Protocols.Linux => signUrl ?? $"https://sign.lagrangecore.org/api/sign/{Context.AppInfo.AppClientVersion}",
+        Protocols.Linux => $"https://sign.lagrangecore.org/api/sign/{Context.AppInfo.AppClientVersion}",
         Protocols.AndroidPhone => throw new NotSupportedException("AndroidPhone is not supported"),
         Protocols.AndroidPad => throw new NotSupportedException("AndroidPad is not supported"),
         _ => throw new ArgumentOutOfRangeException()
