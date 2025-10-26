@@ -7,6 +7,8 @@ namespace Lagrange.Core.Internal.Context;
 
 internal class PacketContext
 {
+    private const string Tag = nameof(PacketContext);
+
     private readonly ConcurrentDictionary<int, SsoPacketValueTaskSource> _pendingTasks = new();
 
     private readonly BotKeystore _keystore;
@@ -24,14 +26,9 @@ internal class PacketContext
         _ssoPacker = new SsoPacker(context);
         _servicePacker = new ServicePacker(context);
 
-        context.LogInfo("PacketContext", context.Config.SignAddress != null
+        context.LogInfo(Tag, context.Config.SignAddress != null
             ? $"Using custom sign address: {context.Config.SignAddress}"
-            : "Custom sign address isn't set, using default...");
-
-        if (context.Config.SignAddress != null && !context.Config.SignAddress.EndsWith('/'))
-        {
-            context.Config.SignAddress += '/';
-        }
+            : "Custom sign address wasn't set, using default...");
 
         SignProvider = context.Config.SignProvider ?? context.Config.Protocol switch
         {

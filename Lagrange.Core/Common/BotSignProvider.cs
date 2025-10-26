@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Lagrange.Core.Utility;
@@ -97,10 +96,16 @@ internal class DefaultBotSignProvider(string? signUrl) : BotSignProvider, IDispo
             };
 
             var response = await _client.PostAsync(Url, new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
-            if (!response.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(response.ReasonPhrase ?? response.StatusCode.ToString());
+            }
 
             var content = JsonHelper.Deserialize<Root>(await response.Content.ReadAsStringAsync());
-            if (content == null) return null;
+            if (content == null)
+            {
+                throw new Exception(response.ReasonPhrase ?? response.StatusCode.ToString());
+            }
 
             return new SsoSecureInfo
             {

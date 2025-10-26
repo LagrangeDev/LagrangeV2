@@ -47,7 +47,7 @@ public class BotConfig
     public bool AutoReLogin { get; set; } = true;
 
     /// <summary>
-    /// The Sign Address for the bot
+    /// The Sign Address for the bot, if null, use the default sign address.
     /// </summary>
     public string? SignAddress { get; set; } = null;
 

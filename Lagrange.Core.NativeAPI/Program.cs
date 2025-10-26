@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Text;
 using Lagrange.Core.Common;
 using Lagrange.Core.Common.Interface;
 using Lagrange.Core.NativeAPI.NativeModel.Common;
@@ -53,6 +54,28 @@ public static class Program
         Task.Run(async () =>
         {
             await Contexts[index].BotContext.Login();
+            await Task.Delay(Timeout.Infinite);
+        });
+
+        return StatusCode.Success;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "StartWithAndroidSigner")]
+    public static StatusCode StartWithAndroidSigner(int index, long uin, ByteArrayNative password)
+    {
+        if (Contexts.Count <= index)
+        {
+            return StatusCode.InvalidIndex;
+        }
+
+        if (Contexts[index].BotContext.IsOnline)
+        {
+            return StatusCode.AlreadyStarted;
+        }
+
+        Task.Run(async () =>
+        {
+            await Contexts[index].BotContext.Login(uin, Encoding.UTF8.GetString(password.ToByteArrayWithoutFree()));
             await Task.Delay(Timeout.Infinite);
         });
 
