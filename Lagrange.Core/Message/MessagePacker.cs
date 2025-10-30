@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Formats.Asn1;
 using System.Text;
+using Lagrange.Core.Common;
 using Lagrange.Core.Common.Entity;
 using Lagrange.Core.Internal.Events.System;
 using Lagrange.Core.Internal.Packets.Message;
@@ -15,9 +16,9 @@ namespace Lagrange.Core.Message;
 internal class MessagePacker
 {
     private readonly BotContext _context;
-    
+
     private readonly List<IMessageEntity> _factory;
-    
+
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "All the types are preserved in the csproj by using the TrimmerRootAssembly attribute")]
     [UnconditionalSuppressMessage("Trimming", "IL2062", Justification = "All the types are preserved in the csproj by using the TrimmerRootAssembly attribute")]
     [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "All the types are preserved in the csproj by using the TrimmerRootAssembly attribute")]
@@ -50,11 +51,11 @@ internal class MessagePacker
             ClientSequence = contentHead.ClientSequence,
             Random = contentHead.Random
         };
-        
+
         if (msg.MessageBody is null)
             return message;
-        
-        if (ParsePttRichText(msg.MessageBody.RichText) is { } record) 
+
+        if (ParsePttRichText(msg.MessageBody.RichText) is { } record)
         {
             message.Entities.Add(record);
         }
@@ -86,46 +87,119 @@ internal class MessagePacker
         switch (type)
         {
             case 166:
-                var friend = await _context.CacheContext.ResolveFriend(routingHead.FromUin);
-                return friend ?? new BotFriend(routingHead.FromUin, routingHead.FromUid, string.Empty, string.Empty, string.Empty, string.Empty, null!);
+                return await _context.CacheContext.ResolveFriend(routingHead.FromUin) ?? new BotFriend(
+                    routingHead.FromUin,
+                    routingHead.FromUid,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    null!);
 
             case 141:
-                return (await _context.CacheContext.ResolveStranger(routingHead.ToUid)).CloneWithSource(routingHead.CommonC2C.FromTinyId);
+                return (await _context.CacheContext.ResolveStranger(routingHead.FromUid))?.CloneWithSource(routingHead.CommonC2C.FromTinyId) ?? new(
+                    routingHead.FromUin,
+                    routingHead.FromUid,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    0,
+                    BotGender.Unset,
+                    DateTime.Now,
+                    null,
+                    0,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    null
+                );
             case 82:
-                var items = await _context.CacheContext.ResolveMember(routingHead.Group.GroupCode, routingHead.FromUin);
-                if (items != null) return items.Value.Item2;
-
-                var dummyGroup = new BotGroup(routingHead.Group.GroupCode, routingHead.Group.GroupName, 0, 0, 0, null, null, null);
-                return new BotGroupMember(dummyGroup, routingHead.FromUin, routingHead.FromUid, routingHead.Group.GroupCard, GroupMemberPermission.Member, 0, routingHead.Group.GroupCard, null, DateTime.Now, DateTime.Now, DateTime.Now);
-
+                return await _context.CacheContext.ResolveGroupMember(routingHead.Group.GroupCode, routingHead.FromUin) ?? new BotGroupMember(
+                    new BotGroup(
+                        routingHead.Group.GroupCode,
+                        routingHead.Group.GroupName,
+                        0,
+                        0,
+                        0,
+                        null,
+                        null,
+                        null
+                    ),
+                    routingHead.FromUin,
+                    routingHead.FromUid,
+                    routingHead.Group.GroupCard,
+                    GroupMemberPermission.Member,
+                    0,
+                    routingHead.Group.GroupCard,
+                    null,
+                    DateTime.Now,
+                    DateTime.Now,
+                    DateTime.Now
+                );
             default:
                 throw new NotImplementedException();
         }
     }
-    
+
     private async Task<BotContact> ResolveReceiver(int type, RoutingHead routingHead)
     {
         switch (type)
         {
             case 166:
-                var friend = await _context.CacheContext.ResolveFriend(routingHead.ToUin);
-                if (friend == null)
-                {
-                    return new BotFriend(routingHead.ToUin, routingHead.ToUid, string.Empty, string.Empty, string.Empty, string.Empty, null!);
-                }
-
-                return friend;
+                return await _context.CacheContext.ResolveFriend(routingHead.ToUin) ?? new BotFriend(
+                    routingHead.ToUin,
+                    routingHead.ToUid,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    new BotFriendCategory(
+                        0,
+                        string.Empty,
+                        0,
+                        0
+                    )
+                );
             case 141:
-                return (await _context.CacheContext.ResolveStranger(routingHead.ToUid)).CloneWithSource(routingHead.CommonC2C.FromTinyId);
+                return (await _context.CacheContext.ResolveStranger(routingHead.ToUid))?.CloneWithSource(routingHead.CommonC2C.FromTinyId) ?? new(
+                    routingHead.ToUin,
+                    routingHead.ToUid,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    0,
+                    BotGender.Unset,
+                    DateTime.Now,
+                    null,
+                    0,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    null
+                );
             case 82:
-                var items = await _context.CacheContext.ResolveMember(routingHead.Group.GroupCode, routingHead.ToUin);
-                if (items == null)
-                {
-                    var dummyGroup = new BotGroup(routingHead.Group.GroupCode, routingHead.Group.GroupName, 0, 0, 0, null, null, null);
-                    return new BotGroupMember(dummyGroup, routingHead.ToUin, routingHead.ToUid, routingHead.Group.GroupCard, GroupMemberPermission.Member, 0, routingHead.Group.GroupCard, null, DateTime.Now, DateTime.Now, DateTime.Now);
-                }
-
-                return items.Value.Item2;
+                return await _context.CacheContext.ResolveGroupMember(routingHead.Group.GroupCode, routingHead.ToUin) ?? new BotGroupMember(
+                    new BotGroup(
+                        routingHead.Group.GroupCode,
+                        routingHead.Group.GroupName,
+                        0,
+                        0,
+                        0,
+                        null,
+                        null,
+                        null
+                    ),
+                    routingHead.ToUin,
+                    routingHead.ToUid,
+                    routingHead.Group.GroupCard,
+                    GroupMemberPermission.Member,
+                    0,
+                    routingHead.Group.GroupCard,
+                    null,
+                    DateTime.Now,
+                    DateTime.Now,
+                    DateTime.Now
+                );
             default:
                 throw new NotImplementedException();
         }
@@ -143,7 +217,7 @@ internal class MessagePacker
             case BotStranger:
                 throw new NotSupportedException();
         }
-        
+
         if (message.Receiver is BotGroup group)
         {
             routingHead.Group = new Grp { GroupUin = group.GroupUin };
@@ -190,7 +264,7 @@ internal class MessagePacker
                 FileIdCrcMedia = resp.CrcMedia
             }
         };
-            
+
         var proto = new PbSendMsgReq
         {
             RoutingHead = new SendRoutingHead
@@ -219,7 +293,7 @@ internal class MessagePacker
         return ProtoHelper.Serialize(proto);
     }
 
-    public Task<CommonMessage> BuildFake(BotMessage msg)
+    public async Task<CommonMessage> BuildFake(BotMessage msg)
     {
         var proto = new CommonMessage
         {
@@ -255,13 +329,13 @@ internal class MessagePacker
             },
             MessageBody = new MessageBody { RichText = new RichText { Elems = [] } }
         };
-        
+
         proto.RoutingHead.FromUin = msg.Contact.Uin;
-        proto.RoutingHead.FromUid = _context.CacheContext.ResolveCachedUid(msg.Contact.Uin) ?? "";
+        proto.RoutingHead.FromUid = (await _context.CacheContext.ResolveStranger(msg.Contact.Uin))?.Uid ?? "";
         if (msg.Receiver is BotFriend f)
         {
             proto.RoutingHead.ToUin = f.Uin;
-            proto.RoutingHead.ToUid = _context.CacheContext.ResolveCachedUid(f.Uin) ?? "";
+            proto.RoutingHead.ToUid = (await _context.CacheContext.ResolveStranger(f.Uin))?.Uid ?? "";
         }
 
         foreach (var entity in msg.Entities)
@@ -270,22 +344,22 @@ internal class MessagePacker
             proto.MessageBody.RichText.Elems.AddRange(elem);
         }
 
-        return Task.FromResult(proto);
+        return proto;
     }
 
     private RecordEntity? ParsePttRichText(RichText richText)
     {
         if (richText.Ptt is not { } ptt) return null;
-        
+
         var kv = new BinaryPacket(stackalloc byte[100]);
         kv.Write("filetype", Prefix.Int32 | Prefix.LengthOnly);
         kv.Write("0", Prefix.Int32 | Prefix.LengthOnly);
         kv.Write("codec", Prefix.Int32 | Prefix.LengthOnly);
         kv.Write("1", Prefix.Int32 | Prefix.LengthOnly);
-            
+
         Span<byte> innerSpan = stackalloc byte[200];
         Span<byte> outerSpan = stackalloc byte[300];
-            
+
         var inner = new AsnWriter(AsnEncodingRules.DER);
         inner.PushSequence();
         inner.WriteInteger(1);
@@ -303,9 +377,9 @@ internal class MessagePacker
         outer.WriteOctetString(innerSpan[..length]); // inner
         outer.WriteOctetString(ReadOnlySpan<byte>.Empty);   // “empty”
         outer.PopSequence();
-            
+
         outer.TryEncode(outerSpan, out length);
-            
+
         return new RecordEntity
         {
             FileUrl = $"https://grouptalk.c2c.qq.com/?ver=2&rkey={Convert.ToHexString(outerSpan[..length])}&voice_codec=1&filetype=0",

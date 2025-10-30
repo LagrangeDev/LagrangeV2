@@ -25,8 +25,8 @@ internal class MessagingLogic(BotContext context) : ILogic
 
     public async Task<List<BotMessage>> GetRoamMessage(long peerUin, uint time, uint count)
     {
-        string peerUid = context.CacheContext.ResolveCachedUid(peerUin) ?? throw new InvalidTargetException(peerUin);
-        var result = await context.EventContext.SendEvent<GetRoamMessageEventResp>(new GetRoamMessageEventReq(peerUid, time, count));
+        var friend = (await context.CacheContext.ResolveFriend(peerUin)) ?? throw new InvalidTargetException(peerUin);
+        var result = await context.EventContext.SendEvent<GetRoamMessageEventResp>(new GetRoamMessageEventReq(friend.Uid, time, count));
         var messages = new List<BotMessage>(result.Chains.Count);
         foreach (var chain in result.Chains) messages.Add(await Parse(chain));
         return messages;
@@ -34,8 +34,8 @@ internal class MessagingLogic(BotContext context) : ILogic
 
     public async Task<List<BotMessage>> GetC2CMessage(long peerUin, ulong startSequence, ulong endSequence)
     {
-        string peerUid = context.CacheContext.ResolveCachedUid(peerUin) ?? throw new InvalidTargetException(peerUin);
-        var result = await context.EventContext.SendEvent<GetC2CMessageEventResp>(new GetC2CMessageEventReq(peerUid, startSequence, endSequence));
+        var friend = (await context.CacheContext.ResolveFriend(peerUin)) ?? throw new InvalidTargetException(peerUin);
+        var result = await context.EventContext.SendEvent<GetC2CMessageEventResp>(new GetC2CMessageEventReq(friend.Uid, startSequence, endSequence));
         var messages = new List<BotMessage>(result.Chains.Count);
         foreach (var chain in result.Chains) messages.Add(await Parse(chain));
         return messages;
@@ -59,8 +59,8 @@ internal class MessagingLogic(BotContext context) : ILogic
 
     public async Task<BotMessage> SendGroupMessage(long groupUin, MessageChain chain)
     {
-        var (group, self) = await context.CacheContext.ResolveMember(groupUin, context.BotUin) ?? throw new InvalidTargetException(context.BotUin, groupUin);
-        var message = await BuildMessage(chain, self, group);
+        var member = await context.CacheContext.ResolveGroupMember(groupUin, context.BotUin) ?? throw new InvalidTargetException(context.BotUin, groupUin);
+        var message = await BuildMessage(chain, member, member.Group);
         var result = await context.EventContext.SendEvent<SendMessageEventResp>(new SendMessageEventReq(message));
 
         if (result == null) throw new InvalidOperationException();

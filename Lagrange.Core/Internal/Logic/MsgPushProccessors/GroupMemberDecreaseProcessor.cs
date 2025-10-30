@@ -1,4 +1,5 @@
 ﻿using Lagrange.Core.Events.EventArgs;
+using Lagrange.Core.Exceptions;
 using Lagrange.Core.Internal.Events.Message;
 using Lagrange.Core.Internal.Packets.Notify;
 using Lagrange.Core.Utility;
@@ -18,25 +19,32 @@ internal class GroupMemberDecreaseProcessor : MsgPushProcessorBase
                 var op = ProtoHelper.Deserialize<OperatorInfo>(decrease.Operator.AsSpan());
                 context.EventInvoker.PostEvent(new BotGroupMemberDecreaseEvent(
                     decrease.GroupUin,
-                    context.CacheContext.ResolveUin(decrease.MemberUid),
-                    op.Operator.Uid != null ? context.CacheContext.ResolveUin(op.Operator.Uid) : null
+                    context.BotUin,
+                    op.Operator.Uid != null ? (await context.CacheContext.ResolveStranger(op.Operator.Uid))?.Uin ?? 0 : null
                 ));
+                await context.CacheContext.RefreshGroups();
                 return true;
             }
             case DecreaseType.Exit:
             {
-                await context.CacheContext.GetMemberList(decrease.GroupUin);
                 context.EventInvoker.PostEvent(new BotGroupMemberDecreaseEvent(
                     decrease.GroupUin,
-                    context.CacheContext.ResolveUin(decrease.MemberUid),
+                    (await context.CacheContext.ResolveStranger(decrease.MemberUid))?.Uin ?? 0,
                     null
                 ));
+                await context.CacheContext.RefreshGroupMembers(decrease.GroupUin);
                 return true;
             }
             case DecreaseType.Kick:
             {
-                await context.CacheContext.GetMemberList(decrease.GroupUin);
-                goto case DecreaseType.KickSelf;
+                var op = ProtoHelper.Deserialize<OperatorInfo>(decrease.Operator.AsSpan());
+                context.EventInvoker.PostEvent(new BotGroupMemberDecreaseEvent(
+                    decrease.GroupUin,
+                    (await context.CacheContext.ResolveStranger(decrease.MemberUid))?.Uin ?? 0,
+                    op.Operator.Uid != null ? (await context.CacheContext.ResolveStranger(op.Operator.Uid))?.Uin ?? 0 : null
+                ));
+                await context.CacheContext.RefreshGroupMembers(decrease.GroupUin);
+                return true;
             }
             default:
             {
@@ -47,7 +55,7 @@ internal class GroupMemberDecreaseProcessor : MsgPushProcessorBase
 
         return false;
     }
-    
+
     private enum DecreaseType
     {
         KickSelf = 3,

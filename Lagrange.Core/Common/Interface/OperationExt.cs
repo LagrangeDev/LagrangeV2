@@ -19,13 +19,13 @@ public static class OperationExt
         context.EventContext.GetLogic<OperationLogic>().FetchClientKey();
 
     public static Task<List<BotFriend>> FetchFriends(this BotContext context, bool refresh = false) =>
-        context.CacheContext.GetFriendList(refresh);
+        context.CacheContext.ResolveFriends(refresh);
 
     public static Task<List<BotGroup>> FetchGroups(this BotContext context, bool refresh = false) =>
-        context.CacheContext.GetGroupList(refresh);
+        context.CacheContext.ResolveGroups(refresh);
 
-    public static Task<List<BotGroupMember>> FetchMembers(this BotContext context, long groupUin, bool refresh = false) =>
-        context.CacheContext.GetMemberList(groupUin, refresh);
+    public static Task<List<BotGroupMember>?> FetchMembers(this BotContext context, long groupUin, bool refresh = false) =>
+        context.CacheContext.ResolveGroupMembers(groupUin, refresh);
 
     public static Task<List<BotGroupNotificationBase>> FetchGroupNotifications(this BotContext context, ulong count, ulong start = 0) =>
         context.EventContext.GetLogic<OperationLogic>().FetchGroupNotifications(count, start);

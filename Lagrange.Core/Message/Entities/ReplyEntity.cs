@@ -28,7 +28,7 @@ public class ReplyEntity : IMessageEntity
         Source = message.Contact switch
         {
             BotFriend => await context.CacheContext.ResolveFriend(SourceUin),
-            BotGroupMember s => (await context.CacheContext.ResolveMember(s.Group.GroupUin, SourceUin)).GetValueOrDefault().Item2,
+            BotGroupMember s => await context.CacheContext.ResolveGroupMember(s.Group.GroupUin, SourceUin),
             BotStranger => await context.CacheContext.ResolveStranger(SourceUin),
             _ => null
         };
