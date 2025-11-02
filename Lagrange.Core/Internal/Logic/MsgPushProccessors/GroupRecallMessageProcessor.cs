@@ -9,7 +9,7 @@ namespace Lagrange.Core.Internal.Logic.MsgPushProccessors;
 [MsgPushProcessor(MsgType.Event0x2DC, 17, true)]
 internal class GroupRecallMessageProcessor : MsgPushProcessorBase
 {
-    internal override ValueTask<bool> Handle(BotContext context, MsgType msgType, int subType, PushMessageEvent msgEvt, ReadOnlyMemory<byte>? content)
+    internal override async ValueTask<bool> Handle(BotContext context, MsgType msgType, int subType, PushMessageEvent msgEvt, ReadOnlyMemory<byte>? content)
     {
         var packet = new BinaryPacket(content!.Value.Span);
         // group uin and 1 byte
@@ -21,13 +21,13 @@ internal class GroupRecallMessageProcessor : MsgPushProcessorBase
             var @event = new BotGroupRecallEvent(
                 notify.GroupUin,
                 message.Sequence,
-                context.CacheContext.ResolveUin(message.AuthorUid),
-                notify.Recall.OperatorUid != null ? context.CacheContext.ResolveUin(notify.Recall.OperatorUid) : 0,
+                (await context.CacheContext.ResolveGroupMember(notify.GroupUin, message.AuthorUid))?.Uin ?? 0,
+                notify.Recall.OperatorUid != null ? (await context.CacheContext.ResolveGroupMember(notify.GroupUin, notify.Recall.OperatorUid))?.Uin ?? 0 : 0,
                 notify.Recall.TipInfo?.Tip ?? string.Empty
             );
             context.EventInvoker.PostEvent(@event);
         }
 
-        return ValueTask.FromResult(true);
+        return true;
     }
 }

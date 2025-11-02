@@ -25,20 +25,49 @@ internal class FetchGroupNotificationsService : OidbService<FetchGroupNotificati
 
     private protected override Task<FetchGroupNotificationsEventResp> ProcessResponse(FetchGroupNotificationsResponse response, BotContext context)
     {
-        if (response.GroupNotifications == null)
+        return Helper.ProcessResponse(response, context, false);
+    }
+}
+
+
+[EventSubscribe<FetchFilteredGroupNotificationsEventReq>(Protocols.All)]
+[Service("OidbSvcTrpcTcp.0x10c0_2")]
+internal class FetchFilteredGroupNotificationsService : OidbService<FetchFilteredGroupNotificationsEventReq, FetchGroupNotificationsEventResp, FetchGroupNotificationsRequest, FetchGroupNotificationsResponse>
+{
+    private protected override uint Command => 0x10c0;
+
+    private protected override uint Service => 2;
+
+    private protected override Task<FetchGroupNotificationsRequest> ProcessRequest(FetchFilteredGroupNotificationsEventReq request, BotContext context)
+    {
+        return Task.FromResult(new FetchGroupNotificationsRequest
         {
-            return Task.FromResult(new FetchGroupNotificationsEventResp([]));
-        }
+            Count = request.Count,
+            StartSequence = request.Start
+        });
+    }
+
+    private protected override Task<FetchGroupNotificationsEventResp> ProcessResponse(FetchGroupNotificationsResponse response, BotContext context)
+    {
+        return Helper.ProcessResponse(response, context, true);
+    }
+}
+
+file class Helper
+{
+    public static async Task<FetchGroupNotificationsEventResp> ProcessResponse(FetchGroupNotificationsResponse response, BotContext context, bool isFiltered)
+    {
+        if (response.GroupNotifications == null) return new FetchGroupNotificationsEventResp([]);
 
         List<BotGroupNotificationBase> notifications = [];
         foreach (var request in response.GroupNotifications)
         {
-            var targetUin = context.CacheContext.ResolveUin(request.Target.Uid);
+            long targetUin = (await context.CacheContext.ResolveStranger(request.Target.Uid))?.Uin ?? 0;
             long? operatorUin = request.Operator != null
-                ? context.CacheContext.ResolveUin(request.Operator.Uid)
+                ? (await context.CacheContext.ResolveStranger(request.Operator.Uid))?.Uin ?? 0
                 : null;
             long? inviterUin = request.Inviter != null
-                ? context.CacheContext.ResolveUin(request.Inviter.Uid)
+                ? (await context.CacheContext.ResolveStranger(request.Inviter.Uid))?.Uin ?? 0
                 : null;
 
             var notification = request.Type switch
@@ -52,7 +81,7 @@ internal class FetchGroupNotificationsService : OidbService<FetchGroupNotificati
                     operatorUin,
                     request.Operator?.Uid,
                     request.Comment,
-                    false
+                    isFiltered
                 ),
                 3 => new BotGroupSetAdminNotification(
                     request.Group.GroupUin,
@@ -94,18 +123,18 @@ internal class FetchGroupNotificationsService : OidbService<FetchGroupNotificati
                     request.Operator?.Uid,
                     inviterUin ?? 0,
                     request.Inviter?.Uid ?? string.Empty,
-                    false
+                    isFiltered
                 ),
                 _ => LogUnknownNotificationType(context, request.Type),
             };
             if (notification != null) notifications.Add(notification);
         }
-        return Task.FromResult(new FetchGroupNotificationsEventResp(notifications));
+        return new FetchGroupNotificationsEventResp(notifications);
     }
 
-    private BotGroupNotificationBase? LogUnknownNotificationType(BotContext context, ulong type)
+    private static BotGroupNotificationBase? LogUnknownNotificationType(BotContext context, ulong type)
     {
-        context.LogDebug(nameof(FetchGroupNotificationsService), "Unknown notification type: {0}", null, type);
+        context.LogDebug(nameof(FetchFilteredGroupNotificationsService), "Unknown filtered notification type: {0}", null, type);
         return null;
     }
 }

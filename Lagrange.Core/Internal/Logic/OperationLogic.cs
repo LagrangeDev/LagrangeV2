@@ -41,21 +41,13 @@ internal class OperationLogic(BotContext context) : ILogic
 
     public async Task GroupSetSpecialTitle(long groupUin, long targetUin, string title)
     {
-        if (context.CacheContext.ResolveCachedUid(targetUin) is not { } uid)
-        {
-            await context.CacheContext.GetMemberList(groupUin, true);
-            uid = context.CacheContext.ResolveCachedUid(targetUin) ?? throw new InvalidTargetException(targetUin);
-        }
+        string uid = (await context.CacheContext.ResolveGroupMember(groupUin, targetUin) ?? throw new InvalidTargetException(targetUin, groupUin)).Uid;
         await context.EventContext.SendEvent<GroupSetSpecialTitleEventResp>(new GroupSetSpecialTitleEventReq(groupUin, uid, title));
     }
 
     public async Task GroupMemberRename(long groupUin, long targetUin, string name)
     {
-        if (context.CacheContext.ResolveCachedUid(targetUin) is not { } uid)
-        {
-            await context.CacheContext.GetMemberList(groupUin, true);
-            uid = context.CacheContext.ResolveCachedUid(targetUin) ?? throw new InvalidTargetException(targetUin);
-        }
+        string uid = (await context.CacheContext.ResolveGroupMember(groupUin, targetUin) ?? throw new InvalidTargetException(targetUin, groupUin)).Uid;
         await context.EventContext.SendEvent<GroupMemberRenameEventResp>(new GroupMemberRenameEventReq(groupUin, uid, name));
     }
 
@@ -241,7 +233,7 @@ internal class OperationLogic(BotContext context) : ILogic
     public async Task<List<BotGroupNotificationBase>> FetchFilteredGroupNotifications(ulong count, ulong start)
     {
         var req = new FetchFilteredGroupNotificationsEventReq(count, start);
-        var resp = await context.EventContext.SendEvent<FetchFilteredGroupNotificationsEventResp>(req);
+        var resp = await context.EventContext.SendEvent<FetchGroupNotificationsEventResp>(req);
         return resp.GroupNotifications;
     }
 

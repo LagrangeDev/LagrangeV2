@@ -7,190 +7,363 @@ namespace Lagrange.Core.Internal.Context;
 
 internal class CacheContext(BotContext context)
 {
-    private List<BotFriend>? _friends;
+    private readonly ConcurrentDictionary<long, BotStranger> _uinStrangers = [];
+    private readonly ConcurrentDictionary<string, BotStranger> _uidStrangers = [];
 
-    private List<BotGroup>? _groups;
+    private readonly ConcurrentDictionary<long, BotFriend> _uinFriends = [];
+    private readonly ConcurrentDictionary<string, BotFriend> _uidFriends = [];
 
-    private readonly ConcurrentDictionary<long, string> _uinToUid = new();
-    private readonly ConcurrentDictionary<string, long> _uidToUin = new();
+    private readonly ConcurrentDictionary<int, BotFriendCategory> _categories = [];
 
-    private readonly ConcurrentDictionary<long, List<BotGroupMember>> _members = new();
+    private readonly ConcurrentDictionary<long, BotGroup> _groups = [];
+    private readonly ConcurrentDictionary<long, (ConcurrentDictionary<long, BotGroupMember> UinMembers, ConcurrentDictionary<string, BotGroupMember> UidMembers)> _members = [];
 
-    private readonly Dictionary<int, BotFriendCategory> _categories = [];
-
-    private readonly Dictionary<string, BotStranger> _strangersWithUid = [];
-    private readonly Dictionary<long, BotStranger> _strangersWithUin = [];
-    private readonly SemaphoreSlim _strangersLock = new(1);
-
-    public async Task<List<BotFriend>> GetFriendList(bool refresh = false)
+    public async Task<BotStranger?> ResolveStranger(long strangerUin, bool forceRefresh = false)
     {
-        if (refresh || _friends == null) Interlocked.Exchange(ref _friends, await FetchFriends());
-
-        return _friends;
-    }
-
-    public async Task<List<BotGroup>> GetGroupList(bool refresh = false)
-    {
-        if (refresh) Interlocked.Exchange(ref _groups, await FetchGroups());
-        Interlocked.CompareExchange(ref _groups, await FetchGroups(), null);
-
-        return _groups;
-    }
-
-    public async Task<List<BotGroupMember>> GetMemberList(long groupUin, bool refresh = false)
-    {
-        if (refresh || !_members.TryGetValue(groupUin, out var members))
+        do
         {
-            members = _members[groupUin] = await FetchGroupMembers(groupUin);
-        }
+            if (forceRefresh) await RefreshStranger(strangerUin);
 
-        return members;
+            if (_uinStrangers.TryGetValue(strangerUin, out var stranger)) return stranger;
+        } while (forceRefresh = !forceRefresh);
+        return null;
     }
 
-    public async Task<List<BotFriendCategory>> GetCategories(bool refresh = false)
+    public async Task<BotStranger?> ResolveStranger(string strangerUid, bool forceRefresh = false)
     {
-        if (refresh || _categories.Count == 0) Interlocked.Exchange(ref _friends, await FetchFriends());
-
-        return _categories.Values.ToList();
-    }
-
-    public async Task<BotFriend?> ResolveFriend(long uin)
-    {
-        if (_friends == null) Interlocked.Exchange(ref _friends, await FetchFriends());
-        var friend = _friends?.FirstOrDefault(f => f.Uin == uin);
-
-        if (friend == null)
+        do
         {
-            _friends = Interlocked.Exchange(ref _friends, await FetchFriends());
-            friend = _friends?.FirstOrDefault(f => f.Uin == uin);
-        }
+            if (forceRefresh) await RefreshStranger(strangerUid);
 
-        return friend;
+            if (_uidStrangers.TryGetValue(strangerUid, out var stranger)) return stranger;
+        } while (forceRefresh = !forceRefresh);
+        return null;
     }
 
-    public async Task<(BotGroup, BotGroupMember)?> ResolveMember(long groupUin, long memberUin)
+    public async Task<List<BotFriend>> ResolveFriends(bool forceRefresh = false)
     {
-        var group = await ResolveGroup(groupUin);
-        if (group == null) return null;
+        if (forceRefresh) await RefreshFriendsAndCategories();
 
-        if (!_members.TryGetValue(groupUin, out var members))
+        return [.. _uinFriends.Values];
+    }
+
+    public async Task<BotFriend?> ResolveFriend(long friendUin, bool forceRefresh = false)
+    {
+        do
         {
-            members = _members[groupUin] = await FetchGroupMembers(groupUin);
-        }
-        var member = members.FirstOrDefault(m => m.Uin == memberUin);
-        return member == null ? null : (group, member);
+            if (forceRefresh) await RefreshFriendsAndCategories();
+
+            if (_uinFriends.TryGetValue(friendUin, out var friend)) return friend;
+        } while (forceRefresh = !forceRefresh);
+        return null;
     }
 
-    public async Task<BotGroup?> ResolveGroup(long groupUin)
+    public async Task<BotFriend?> ResolveFriend(string friendUid, bool forceRefresh = false)
     {
-        if (_groups == null) Interlocked.Exchange(ref _groups, await FetchGroups());
-        var group = _groups?.FirstOrDefault(f => f.GroupUin == groupUin);
-
-        if (group == null)
+        do
         {
-            _groups = Interlocked.Exchange(ref _groups, await FetchGroups());
-            group = _groups?.FirstOrDefault(f => f.GroupUin == groupUin);
-        }
+            if (forceRefresh) await RefreshFriendsAndCategories();
 
-        return group;
+            if (_uidFriends.TryGetValue(friendUid, out var friend)) return friend;
+        } while (forceRefresh = !forceRefresh);
+        return null;
     }
 
-    public async Task<BotStranger> ResolveStranger(long uin)
+    public async Task<List<BotGroup>> ResolveGroups(bool forceRefresh = false)
     {
-        await _strangersLock.WaitAsync();
-        try
+        if (forceRefresh) await RefreshGroups();
+
+        return [.. _groups.Values];
+    }
+
+    public async Task<BotGroup?> ResolveGroup(long groupUin, bool forceRefresh = false)
+    {
+        do
         {
-            if (_strangersWithUin.TryGetValue(uin, out BotStranger? stranger)) return stranger;
+            if (forceRefresh) await RefreshGroups();
 
-            stranger = await FetchStranger(uin);
-            _strangersWithUin.Add(uin, stranger);
-
-            return stranger;
-        }
-        finally { _strangersLock.Release(); }
+            if (_groups.TryGetValue(groupUin, out var group)) return group;
+        } while (forceRefresh = !forceRefresh);
+        return null;
     }
 
-    public async Task<BotStranger> ResolveStranger(string uid)
+    public async Task<List<BotGroupMember>?> ResolveGroupMembers(long groupUin, bool forceRefresh = false)
     {
-        await _strangersLock.WaitAsync();
-        try
+        do
         {
-            if (_strangersWithUid.TryGetValue(uid, out BotStranger? stranger)) return stranger;
+            if (forceRefresh) await RefreshGroupMembers(groupUin);
 
-            stranger = await FetchStranger(uid);
-            _strangersWithUin.TryAdd(stranger.Uin, stranger);
-            _strangersWithUid.Add(uid, stranger);
-
-            return stranger;
-        }
-        finally { _strangersLock.Release(); }
+            if (_members.TryGetValue(groupUin, out var members)) return [.. members.UinMembers.Values];
+        } while (forceRefresh = !forceRefresh);
+        return null;
     }
 
-    public string? ResolveCachedUid(long uin) => _uinToUid.GetValueOrDefault(uin);
-
-    public long ResolveUin(string uid)
+    public async Task<BotGroupMember?> ResolveGroupMember(long groupUin, long groupMemberUin, bool forceRefresh = false)
     {
-        if (_uidToUin.TryGetValue(uid, out long value)) return value;
+        do
+        {
+            if (forceRefresh) await RefreshGroupMembers(groupUin);
 
-        long uin = _uinToUid.FirstOrDefault(kvp => kvp.Value == uid).Key;
-        if (uin != 0) return uin;
-
-        return ResolveStranger(uid).GetAwaiter().GetResult().Uin;
+            if (_members.TryGetValue(groupUin, out var members) && members.UinMembers.TryGetValue(groupMemberUin, out var member)) return member;
+        } while (forceRefresh = !forceRefresh);
+        return null;
     }
 
-    /// <summary>
-    /// Fetches the friends list from the server.
-    /// </summary>
-    private async Task<List<BotFriend>> FetchFriends()
+    public async Task<BotGroupMember?> ResolveGroupMember(long groupUin, string groupMemberUid, bool forceRefresh = false)
     {
-        var friends = new List<BotFriend>();
+        do
+        {
+            if (forceRefresh) await RefreshGroupMembers(groupUin);
 
+            if (_members.TryGetValue(groupUin, out var members) && members.UidMembers.TryGetValue(groupMemberUid, out var member)) return member;
+        } while (forceRefresh = !forceRefresh);
+        return null;
+    }
+
+    public async Task RefreshStranger(long strangerUin)
+    {
+        var result = await context.EventContext.SendEvent<FetchStrangerEventResp>(new FetchStrangerByUinEventReq(strangerUin));
+        _uinStrangers[result.Stranger.Uin] = result.Stranger;
+        _uidStrangers[result.Stranger.Uid] = result.Stranger;
+    }
+
+    public async Task RefreshStranger(string strangerUid)
+    {
+        var result = await context.EventContext.SendEvent<FetchStrangerEventResp>(new FetchStrangerByUidEventReq(strangerUid));
+        _uinStrangers[result.Stranger.Uin] = result.Stranger;
+        _uidStrangers[result.Stranger.Uid] = result.Stranger;
+    }
+
+    public async Task RefreshFriendsAndCategories()
+    {
         byte[]? cookie = null;
         do
         {
             var result = await context.EventContext.SendEvent<FetchFriendsEventResp>(new FetchFriendsEventReq(cookie));
             cookie = result.Cookie;
 
-            friends.AddRange(result.Friends);
-            foreach (var category in result.Category) _categories[category.Id] = category;
-            foreach (var friend in friends) _uinToUid[friend.Uin] = friend.Uid;
+            foreach (var friend in result.Friends)
+            {
+                _uinFriends[friend.Uin] = friend;
+                _uidFriends[friend.Uid] = friend;
+            }
+
+            foreach (var category in result.Categories)
+            {
+                _categories[category.Id] = category;
+            }
         } while (cookie != null);
-
-        return friends;
     }
 
-    private async Task<List<BotGroup>> FetchGroups()
+    public async Task RefreshGroups()
     {
-        var result = await context.EventContext.SendEvent<FetchGroupsEventResp>(new FetchGroupsEventReq());
-        return result.Groups;
+        foreach (var group in (await context.EventContext.SendEvent<FetchGroupsEventResp>(new FetchGroupsEventReq())).Groups)
+        {
+            _groups[group.Uin] = group;
+        }
     }
 
-    private async Task<List<BotGroupMember>> FetchGroupMembers(long groupUin)
+    public async Task RefreshGroupMembers(long groupUin)
     {
-        var members = new List<BotGroupMember>();
-
         byte[]? cookie = null;
         do
         {
             var result = await context.EventContext.SendEvent<FetchGroupMembersEventResp>(new FetchGroupMembersEventReq(groupUin, cookie));
             cookie = result.Cookie;
-
-            members.AddRange(result.GroupMembers);
-            foreach (var member in result.GroupMembers) _uinToUid[member.Uin] = member.Uid;
+            var (uinMembers, uidMembers) = _members.GetOrAdd(groupUin, _ => ([], []));
+            foreach (var member in result.GroupMembers)
+            {
+                uinMembers[member.Uin] = member;
+                uidMembers[member.Uid] = member;
+            }
         } while (cookie != null);
-
-        return members;
-    }
-
-    private async Task<BotStranger> FetchStranger(long uin)
-    {
-        var result = await context.EventContext.SendEvent<FetchStrangerEventResp>(new FetchStrangerByUinEventReq(uin));
-        return result.Stranger;
-    }
-
-    private async Task<BotStranger> FetchStranger(string uid)
-    {
-        var result = await context.EventContext.SendEvent<FetchStrangerEventResp>(new FetchStrangerByUidEventReq(uid));
-        return result.Stranger;
     }
 }
+// {
+//     private List<BotFriend>? _friends;
+
+//     private List<BotGroup>? _groups;
+
+//     private readonly ConcurrentDictionary<long, string> _uinToUid = new();
+//     private readonly ConcurrentDictionary<string, long> _uidToUin = new();
+
+//     private readonly ConcurrentDictionary<long, List<BotGroupMember>> _members = new();
+
+//     private readonly Dictionary<int, BotFriendCategory> _categories = [];
+
+//     private readonly Dictionary<string, BotStranger> _strangersWithUid = [];
+//     private readonly Dictionary<long, BotStranger> _strangersWithUin = [];
+//     private readonly SemaphoreSlim _strangersLock = new(1);
+
+//     public async Task<List<BotFriend>> GetFriendList(bool refresh = false)
+//     {
+//         if (refresh || _friends == null) Interlocked.Exchange(ref _friends, await FetchFriends());
+
+//         return _friends;
+//     }
+
+//     public async Task<List<BotGroup>> GetGroupList(bool refresh = false)
+//     {
+//         if (refresh) Interlocked.Exchange(ref _groups, await FetchGroups());
+//         Interlocked.CompareExchange(ref _groups, await FetchGroups(), null);
+
+//         return _groups;
+//     }
+
+//     public async Task<List<BotGroupMember>> GetMemberList(long groupUin, bool refresh = false)
+//     {
+//         if (refresh || !_members.TryGetValue(groupUin, out var members))
+//         {
+//             members = _members[groupUin] = await FetchGroupMembers(groupUin);
+//         }
+
+//         return members;
+//     }
+
+//     public async Task<List<BotFriendCategory>> GetCategories(bool refresh = false)
+//     {
+//         if (refresh || _categories.Count == 0) Interlocked.Exchange(ref _friends, await FetchFriends());
+
+//         return _categories.Values.ToList();
+//     }
+
+//     public async Task<BotFriend?> ResolveFriend(long uin)
+//     {
+//         if (_friends == null) Interlocked.Exchange(ref _friends, await FetchFriends());
+//         var friend = _friends?.FirstOrDefault(f => f.Uin == uin);
+
+//         if (friend == null)
+//         {
+//             _friends = Interlocked.Exchange(ref _friends, await FetchFriends());
+//             friend = _friends?.FirstOrDefault(f => f.Uin == uin);
+//         }
+
+//         return friend;
+//     }
+
+//     public async Task<(BotGroup, BotGroupMember)?> ResolveMember(long groupUin, long memberUin)
+//     {
+//         var group = await ResolveGroup(groupUin);
+//         if (group == null) return null;
+
+//         if (!_members.TryGetValue(groupUin, out var members))
+//         {
+//             members = _members[groupUin] = await FetchGroupMembers(groupUin);
+//         }
+//         var member = members.FirstOrDefault(m => m.Uin == memberUin);
+//         return member == null ? null : (group, member);
+//     }
+
+//     public async Task<BotGroup?> ResolveGroup(long groupUin)
+//     {
+//         if (_groups == null) Interlocked.Exchange(ref _groups, await FetchGroups());
+//         var group = _groups?.FirstOrDefault(f => f.GroupUin == groupUin);
+
+//         if (group == null)
+//         {
+//             _groups = Interlocked.Exchange(ref _groups, await FetchGroups());
+//             group = _groups?.FirstOrDefault(f => f.GroupUin == groupUin);
+//         }
+
+//         return group;
+//     }
+
+//     public async Task<BotStranger> ResolveStranger(long uin)
+//     {
+//         await _strangersLock.WaitAsync();
+//         try
+//         {
+//             if (_strangersWithUin.TryGetValue(uin, out BotStranger? stranger)) return stranger;
+
+//             stranger = await FetchStranger(uin);
+//             _strangersWithUin.Add(uin, stranger);
+
+//             return stranger;
+//         }
+//         finally { _strangersLock.Release(); }
+//     }
+
+//     public async Task<BotStranger> ResolveStranger(string uid)
+//     {
+//         await _strangersLock.WaitAsync();
+//         try
+//         {
+//             if (_strangersWithUid.TryGetValue(uid, out BotStranger? stranger)) return stranger;
+
+//             stranger = await FetchStranger(uid);
+//             _strangersWithUin.TryAdd(stranger.Uin, stranger);
+//             _strangersWithUid.Add(uid, stranger);
+
+//             return stranger;
+//         }
+//         finally { _strangersLock.Release(); }
+//     }
+
+//     public string? ResolveCachedUid(long uin) => _uinToUid.GetValueOrDefault(uin);
+
+//     public long ResolveUin(string uid)
+//     {
+//         if (_uidToUin.TryGetValue(uid, out long value)) return value;
+
+//         long uin = _uinToUid.FirstOrDefault(kvp => kvp.Value == uid).Key;
+//         if (uin != 0) return uin;
+
+//         return ResolveStranger(uid).GetAwaiter().GetResult().Uin;
+//     }
+
+//     /// <summary>
+//     /// Fetches the friends list from the server.
+//     /// </summary>
+//     private async Task<List<BotFriend>> FetchFriends()
+//     {
+//         var friends = new List<BotFriend>();
+
+//         byte[]? cookie = null;
+//         do
+//         {
+//             var result = await context.EventContext.SendEvent<FetchFriendsEventResp>(new FetchFriendsEventReq(cookie));
+//             cookie = result.Cookie;
+
+//             friends.AddRange(result.Friends);
+//             foreach (var category in result.Category) _categories[category.Id] = category;
+//             foreach (var friend in friends) _uinToUid[friend.Uin] = friend.Uid;
+//         } while (cookie != null);
+
+//         return friends;
+//     }
+
+//     private async Task<List<BotGroup>> FetchGroups()
+//     {
+//         var result = await context.EventContext.SendEvent<FetchGroupsEventResp>(new FetchGroupsEventReq());
+//         return result.Groups;
+//     }
+
+//     private async Task<List<BotGroupMember>> FetchGroupMembers(long groupUin)
+//     {
+//         var members = new List<BotGroupMember>();
+
+//         byte[]? cookie = null;
+//         do
+//         {
+//             var result = await context.EventContext.SendEvent<FetchGroupMembersEventResp>(new FetchGroupMembersEventReq(groupUin, cookie));
+//             cookie = result.Cookie;
+
+//             members.AddRange(result.GroupMembers);
+//             foreach (var member in result.GroupMembers) _uinToUid[member.Uin] = member.Uid;
+//         } while (cookie != null);
+
+//         return members;
+//     }
+
+//     private async Task<BotStranger> FetchStranger(long uin)
+//     {
+//         var result = await context.EventContext.SendEvent<FetchStrangerEventResp>(new FetchStrangerByUinEventReq(uin));
+//         return result.Stranger;
+//     }
+
+//     private async Task<BotStranger> FetchStranger(string uid)
+//     {
+//         var result = await context.EventContext.SendEvent<FetchStrangerEventResp>(new FetchStrangerByUidEventReq(uid));
+//         return result.Stranger;
+//     }
+// }

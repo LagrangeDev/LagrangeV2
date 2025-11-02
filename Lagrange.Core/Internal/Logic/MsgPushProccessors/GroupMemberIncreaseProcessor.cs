@@ -28,8 +28,8 @@ internal class GroupMemberIncreaseProcessor : MsgPushProcessorBase
         var operatorUin = notification?.OperatorUin;
         context.EventInvoker.PostEvent(new BotGroupMemberIncreaseEvent(
             increase.GroupUin,
-            context.CacheContext.ResolveUin(increase.MemberUid),
-            context.CacheContext.ResolveUin(Encoding.UTF8.GetString(increase.Operator.AsSpan())),
+            (await context.CacheContext.ResolveGroupMember(increase.GroupUin, increase.MemberUid))?.Uin ?? 0,
+            (await context.CacheContext.ResolveGroupMember(increase.GroupUin, Encoding.UTF8.GetString(increase.Operator.AsSpan())))?.Uin ?? 0,
             increase.IncreaseType,
             operatorUin));
         return true;

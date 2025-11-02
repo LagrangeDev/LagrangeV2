@@ -29,7 +29,7 @@ internal class RichTextMsgProcessor : MsgPushProcessorBase
                 groupUin,
                 sequence,
                 context.BotUin,
-                context.CacheContext.ResolveCachedUid(context.BotUin) ?? string.Empty,
+                (await context.CacheContext.ResolveFriend(context.BotUin))?.Uid ?? string.Empty,
                 BotGroupNotificationState.Wait,
                 null,
                 null,

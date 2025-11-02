@@ -9,7 +9,7 @@ namespace Lagrange.Core.Internal.Logic.MsgPushProccessors;
 [MsgPushProcessor(MsgType.Event0x2DC, 16, true)]
 internal class GroupReactionProcessor : MsgPushProcessorBase
 {
-    internal override ValueTask<bool> Handle(BotContext context, MsgType msgType, int subType,
+    internal override async ValueTask<bool> Handle(BotContext context, MsgType msgType, int subType,
         PushMessageEvent msgEvt, ReadOnlyMemory<byte>? content)
     {
         var reader = new BinaryPacket(content!.Value.Span);
@@ -17,10 +17,10 @@ internal class GroupReactionProcessor : MsgPushProcessorBase
         reader.Skip(4 + 1);
         var proto = reader.ReadBytes(Prefix.Int16 | Prefix.LengthOnly);
         var body = ProtoHelper.Deserialize<NotifyMessageBody>(proto);
-        if (body.SubType != 35) return ValueTask.FromResult(false); // GroupReactionNotice
+        if (body.SubType != 35) return false; // GroupReactionNotice
         var reaction = body.Reaction.Data.Data;
 
-        long @operator = context.CacheContext.ResolveUin(reaction.Data.OperatorUid);
+        long @operator = (await context.CacheContext.ResolveGroupMember(body.GroupUin, reaction.Data.OperatorUid))?.Uin ?? 0;
 
         context.EventInvoker.PostEvent(new BotGroupReactionEvent(
             body.GroupUin,
@@ -30,6 +30,6 @@ internal class GroupReactionProcessor : MsgPushProcessorBase
             reaction.Data.Code,
             reaction.Data.CurrentCount
         ));
-        return ValueTask.FromResult(true);
+        return true;
     }
 }

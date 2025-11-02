@@ -9,12 +9,12 @@ namespace Lagrange.Core.Internal.Logic.MsgPushProccessors;
 [MsgPushProcessor(MsgType.Event0x210, 139, true)]
 internal class FriendRecallMessageProcessor : MsgPushProcessorBase
 {
-    internal override ValueTask<bool> Handle(BotContext bot, MsgType msgType, int subType, PushMessageEvent msgEvt, ReadOnlyMemory<byte>? content)
+    internal override async ValueTask<bool> Handle(BotContext bot, MsgType msgType, int subType, PushMessageEvent msgEvt, ReadOnlyMemory<byte>? content)
     {
         var recall = ProtoHelper.Deserialize<FriendRecall>(content!.Value.Span);
 
-        long fromUin = bot.CacheContext.ResolveUin(recall.Info.FromUid);
-        long toUin = bot.CacheContext.ResolveUin(recall.Info.ToUid);
+        long fromUin = (await bot.CacheContext.ResolveFriend(recall.Info.FromUid))?.Uin ?? 0;
+        long toUin = (await bot.CacheContext.ResolveFriend(recall.Info.ToUid))?.Uin ?? 0;
         var @event = new BotFriendRecallEvent(
                 fromUin == bot.BotUin ? toUin : fromUin,
                 fromUin,
@@ -23,6 +23,6 @@ internal class FriendRecallMessageProcessor : MsgPushProcessorBase
             );
             bot.EventInvoker.PostEvent(@event);
 
-        return ValueTask.FromResult(true);
+        return true;
     }
 }

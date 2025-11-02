@@ -24,12 +24,12 @@ public class MentionEntity(long uin, string? display) : IMessageEntity
             switch (message.Receiver)
             {
                 case BotGroup group: 
-                    (_, contact) = await context.CacheContext.ResolveMember(group.Uin, Uin) ?? throw new InvalidTargetException(Uin, group.Uin);
+                    contact = await context.CacheContext.ResolveGroupMember(group.Uin, Uin) ?? throw new InvalidTargetException(Uin, group.Uin);
                     break;
-                case BotFriend friend:
-                    contact = await context.CacheContext.ResolveFriend(Uin) ?? throw new InvalidTargetException(Uin, friend.Uin);
+                case BotFriend: // Maybe self
+                    contact = await context.CacheContext.ResolveFriend(Uin) ?? throw new InvalidTargetException(Uin);
                     break;
-                case BotStranger stranger:
+                case BotStranger stranger: // hummmm...
                     contact = stranger;
                     break;
                 default:
