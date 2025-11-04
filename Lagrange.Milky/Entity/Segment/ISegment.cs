@@ -30,7 +30,7 @@ public interface IIncomingSegment
 [JsonDerivedType(typeof(ImageOutgoingSegment), typeDiscriminator: "image")]
 [JsonDerivedType(typeof(RecordOutgoingSegment), typeDiscriminator: "record")]
 [JsonDerivedType(typeof(VideoOutgoingSegment), typeDiscriminator: "video")]
-// [JsonDerivedType(typeof(ForwardOutgoingSegment), typeDiscriminator: "forward")]
+[JsonDerivedType(typeof(ForwardOutgoingSegment), typeDiscriminator: "forward")]
 public interface IOutgoingSegment
 {
     object? Data { get; }

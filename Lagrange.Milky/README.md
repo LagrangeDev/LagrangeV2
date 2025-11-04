@@ -154,7 +154,7 @@ Current Milky version: [77c6cbd](https://github.com/SaltifyDev/milky/tree/77c6cb
 - [x] image
 - [x] record
 - [ ] video
-- [ ] forward
+- [x] forward
 
 #### forward
 

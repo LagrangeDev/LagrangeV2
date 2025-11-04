@@ -121,7 +121,7 @@ public partial class EntityConvert
             video.Data.ThumbUri != null ? await _resolver.ToMemoryStreamAsync(video.Data.ThumbUri, token) : null,
             disposeOnCompletion: true
         ),
-        // TODO: ForwardOutgoingSegment
+        ForwardOutgoingSegment forwardOutgoingSegment => await BuildMultiMsgEntityAsync(forwardOutgoingSegment.Data.Messages, token),
         _ => throw new NotSupportedException(),
     };
 
@@ -140,5 +140,18 @@ public partial class EntityConvert
         if (message == null) throw new Exception("message not found");
 
         return new ReplyEntity(message);
+    }
+
+    private async Task<MultiMsgEntity> BuildMultiMsgEntityAsync(IReadOnlyList<ForwardOutgoingSegmentDataItem> data, CancellationToken token)
+    {
+        var multiMsgEntity = new MultiMsgEntity();
+        foreach (var segment in data)
+        {
+            var msgChain = await FakeSegmentsAsync(segment.Segments, token);
+            var msg = BotMessage.CreateCustomFriend(segment.UserId, segment.SenderName, 0, string.Empty, DateTime.Now, msgChain);
+            multiMsgEntity.Messages.Add(msg);
+        }
+
+        return multiMsgEntity;
     }
 }
