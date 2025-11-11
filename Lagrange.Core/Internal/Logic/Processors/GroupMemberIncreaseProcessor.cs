@@ -6,7 +6,7 @@ using Lagrange.Core.Internal.Events.System;
 using Lagrange.Core.Internal.Packets.Notify;
 using Lagrange.Core.Utility;
 
-namespace Lagrange.Core.Internal.Logic.MsgPushProccessors;
+namespace Lagrange.Core.Internal.Logic.Processors;
 
 [MsgPushProcessor(MsgType.GroupMemberIncreaseNotice, true)]
 internal class GroupMemberIncreaseProcessor : MsgPushProcessorBase

@@ -3,7 +3,7 @@ using Lagrange.Core.Internal.Events.Message;
 using Lagrange.Core.Internal.Packets.Notify;
 using Lagrange.Core.Utility;
 
-namespace Lagrange.Core.Internal.Logic.MsgPushProccessors;
+namespace Lagrange.Core.Internal.Logic.Processors;
 
 [MsgPushProcessor(MsgType.Event0x210, 35, true)] // FriendRequestNotice
 internal class FriendRequestProcessor : MsgPushProcessorBase

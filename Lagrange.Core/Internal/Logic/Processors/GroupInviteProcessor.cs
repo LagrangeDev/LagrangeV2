@@ -5,7 +5,7 @@ using Lagrange.Core.Internal.Events.System;
 using Lagrange.Core.Internal.Packets.Notify;
 using Lagrange.Core.Utility;
 
-namespace Lagrange.Core.Internal.Logic.MsgPushProccessors;
+namespace Lagrange.Core.Internal.Logic.Processors;
 
 [MsgPushProcessor(MsgType.Event0x20D, true)]
 internal class GroupInviteProcessor : MsgPushProcessorBase

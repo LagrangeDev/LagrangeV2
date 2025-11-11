@@ -4,7 +4,7 @@ using Lagrange.Core.Internal.Packets.Notify;
 using Lagrange.Core.Utility;
 using Lagrange.Core.Utility.Binary;
 
-namespace Lagrange.Core.Internal.Logic.MsgPushProccessors;
+namespace Lagrange.Core.Internal.Logic.Processors;
 
 [MsgPushProcessor(MsgType.Event0x2DC, 16, true)]
 internal class GroupReactionProcessor : MsgPushProcessorBase

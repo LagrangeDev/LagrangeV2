@@ -6,7 +6,7 @@ using Lagrange.Core.Internal.Events.Message;
 using Lagrange.Core.Message;
 using Lagrange.Core.Message.Entities;
 
-namespace Lagrange.Core.Internal.Logic.MsgPushProccessors;
+namespace Lagrange.Core.Internal.Logic.Processors;
 
 [MsgPushProcessor(MsgType.GroupMessage)]
 [MsgPushProcessor(MsgType.PrivateMessage)]
