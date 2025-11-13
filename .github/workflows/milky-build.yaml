@@ -48,7 +48,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10'
 
       - name: Checkout code
         uses: actions/checkout@v4

@@ -48,7 +48,7 @@ jobs:
       - if: env.continued == 'true'
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9'
+          dotnet-version: '10'
       
       - if: env.continued == 'true'
         run: dotnet pack -c Release -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg Lagrange.Core
