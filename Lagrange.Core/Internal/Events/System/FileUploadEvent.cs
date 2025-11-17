@@ -2,7 +2,7 @@ using Lagrange.Core.Utility.Extension;
 
 namespace Lagrange.Core.Internal.Events.System;
 
-internal class FileUploadEventReq(string targetUid, Stream fileStream, string fileName) : ProtocolEvent
+internal class FileUploadEventReq(string targetUid, Stream fileStream, string fileName, byte[] md510m) : ProtocolEvent
 {
     public string TargetUid { get; } = targetUid;
 
@@ -11,6 +11,8 @@ internal class FileUploadEventReq(string targetUid, Stream fileStream, string fi
     public string FileName { get; } = fileName;
 
     public byte[] FileMd5 { get; } = fileStream.Md5();
+    
+    public byte[] File10MMd5 { get; } = md510m;
     
     public byte[] FileSha1 { get; } = fileStream.Sha1();
 }

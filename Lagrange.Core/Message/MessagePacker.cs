@@ -180,7 +180,7 @@ internal class MessagePacker
             {
                 FileType = 0,
                 FileUuid = resp.FileId,
-                FileMd5 = req.FileMd5,
+                FileMd5 = req.File10MMd5,
                 FileName = req.FileName,
                 FileSize = (ulong)req.FileStream.Length,
                 SubCmd = 1,

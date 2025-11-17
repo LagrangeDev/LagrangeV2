@@ -19,12 +19,6 @@ internal class FileUploadService : OidbService<FileUploadEventReq, FileUploadEve
     
     private protected override Task<OfflineFileUploadRequest> ProcessRequest(FileUploadEventReq request, BotContext context)
     {
-        var buffer = ArrayPool<byte>.Shared.Rent(10 * 1024 * 1024);
-        int payload = request.FileStream.Read(buffer);
-        var md510m = MD5.HashData(buffer[..payload]);
-        ArrayPool<byte>.Shared.Return(buffer);
-        request.FileStream.Seek(0, SeekOrigin.Begin);
-        
         return Task.FromResult(new OfflineFileUploadRequest
         {
             Command = 1700,
@@ -35,7 +29,7 @@ internal class FileUploadService : OidbService<FileUploadEventReq, FileUploadEve
                 ReceiverUid = request.TargetUid,
                 FileSize = (uint)request.FileStream.Length,
                 FileName = request.FileName,
-                Md510MCheckSum = md510m,
+                Md510MCheckSum = request.File10MMd5,
                 Sha1CheckSum = request.FileSha1,
                 LocalPath = "/",
                 Md5CheckSum = request.FileMd5,
