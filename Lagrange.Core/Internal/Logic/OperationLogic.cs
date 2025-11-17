@@ -99,7 +99,6 @@ internal class OperationLogic(BotContext context) : ILogic
         var result = await context.EventContext.SendEvent<FileUploadEventResp>(request);
 
         
-
         if (!result.IsExist)
         {
             var ext = new FileUploadExt
