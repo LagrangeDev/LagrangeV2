@@ -102,32 +102,52 @@ public static partial class ProtoSerializer
     [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
     [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
     private static void SerializeCore<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ProtoWriter writer, T obj)
-    {       
-        ProtoObjectConverter<T> converter;
-        if (ProtoTypeResolver.IsRegistered<T>())
-        {
-            if (ProtoTypeResolver.GetConverter<T>() as ProtoObjectConverter<T> is not { } c)
-            {
-                converter = new ProtoObjectConverter<T>(ProtoTypeResolver.CreateObjectInfo<T>());
-                ProtoTypeResolver.Register(converter);
-            }
-            else
-            {
-                converter = c;
-            }
-        }
-        else
-        {
-            ProtoTypeResolver.Register(converter = new ProtoObjectConverter<T>());
-        }
-        
+    {
+        var converter = GetConverterOf<T>();
         var objectInfo = converter.ObjectInfo;
         object? boxed = obj; // avoid multiple times of boxing
         if (boxed is null) return;
-        
-        foreach (var (tag, info) in objectInfo.Fields)
+        var fields = objectInfo.Fields;
+        List<uint> skipTags = [];
+        var polymorphicInfo = converter.ObjectInfo.PolymorphicInfo;
+        var ignoreDefaultFields = objectInfo.IgnoreDefaultFields;
+        if (polymorphicInfo?.RootTypeDescriptorGetter is not null)
         {
-            if (info.ShouldSerialize(boxed, objectInfo.IgnoreDefaultFields))
+            var discriminator = polymorphicInfo.RootTypeDescriptorGetter();
+            fields = discriminator.FieldsGetter();
+            polymorphicInfo = discriminator.PolymorphicInfoGetter();
+            ignoreDefaultFields = discriminator.IgnoreDefaultFieldsGetter();
+        }
+
+        var actualType = obj?.GetType();
+        // check polymorphic type
+        startSerialize:
+        if (polymorphicInfo?.PolymorphicIndicateIndex is > 0)
+        {
+            // has polymorphic type
+            var index = polymorphicInfo.PolymorphicIndicateIndex;
+            var fieldInfo = fields.FirstOrDefault(t=>t.Value.Field == index);
+            if (fieldInfo.Value is null) ThrowHelper.ThrowInvalidOperationException_NullPolymorphicDiscriminator(typeof(T));
+            var discriminator = fieldInfo.Value.Get?.Invoke(boxed);
+            if (discriminator is null) ThrowHelper.ThrowInvalidOperationException_NullPolymorphicDiscriminator(typeof(T));
+            skipTags.Add(fieldInfo.Key);
+            writer.EncodeVarInt(fieldInfo.Key);
+            fieldInfo.Value.Write(writer, boxed);
+            foreach (var descriptor in polymorphicInfo.GetAllDerivedTypeDescriptors())
+            {
+                if (actualType?.IsAssignableTo(descriptor.CurrentType) is true)
+                {
+                    fields = descriptor.FieldsGetter();
+                    ignoreDefaultFields = descriptor.IgnoreDefaultFieldsGetter();
+                    polymorphicInfo = descriptor.PolymorphicInfoGetter();
+                    goto startSerialize;
+                }
+            }
+        }
+        
+        foreach (var (tag, info) in fields)
+        {
+            if (!skipTags.Contains(tag) && info.ShouldSerialize(boxed, ignoreDefaultFields))
             {
                 writer.EncodeVarInt(tag);
                 info.Write(writer, boxed);

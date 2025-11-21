@@ -2,6 +2,7 @@ using Lagrange.Proto.Generator.Entity;
 using Lagrange.Proto.Generator.Utility;
 using Lagrange.Proto.Generator.Utility.Extension;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Lagrange.Proto.Generator;
 
@@ -13,6 +14,9 @@ public partial class ProtoSourceGenerator
         private const string TypeInfoPropertyName = "TypeInfo";
         
         private const string ProtoObjectInfoTypeRef = "global::Lagrange.Proto.Serialization.Metadata.ProtoObjectInfo<{0}>";
+        private const string ProtoPolymorphicObjectInfoTypeRef = "global::Lagrange.Proto.Serialization.Metadata.ProtoPolymorphicObjectInfo<{0}>";
+        private const string ProtoPolymorphicDerivedTypeDescriptorTypeRef = "global::Lagrange.Proto.Serialization.Metadata.ProtoPolymorphicDerivedTypeDescriptor<{0}>";
+        private const string ProtoPolymorphicDerivedTypeDescriptorBaseTypeRef = "global::Lagrange.Proto.Serialization.Metadata.ProtoPolymorphicDerivedTypeDescriptor";
         private const string ProtoFieldInfoTypeRef = "global::Lagrange.Proto.Serialization.Metadata.ProtoFieldInfo";
         private const string ProtoFieldInfoGenericTypeRef = "global::Lagrange.Proto.Serialization.Metadata.ProtoFieldInfo<{0}>";
         private const string ProtoMapFieldInfoGenericTypeRef = "global::Lagrange.Proto.Serialization.Metadata.ProtoMapFieldInfo<{0}, {1}, {2}>";
@@ -37,10 +41,14 @@ public partial class ProtoSourceGenerator
         
         private void EmitTypeInfo(SourceWriter source)
         {
+            source.WriteLine("#pragma warning disable CS0108");
+            source.WriteLine();
             source.WriteLine($"public static {ProtoObjectInfoTypeRefGeneric}? {TypeInfoFieldName};");
             source.WriteLine();
             
             source.WriteLine($"public static {ProtoObjectInfoTypeRefGeneric} {TypeInfoPropertyName} => {TypeInfoFieldName} ??= GetTypeInfo();");
+            source.WriteLine();
+            source.WriteLine("#pragma warning restore CS0108");
             source.WriteLine();
             
             source.WriteLine($"private static {ProtoObjectInfoTypeRefGeneric} GetTypeInfo()");
@@ -60,28 +68,20 @@ public partial class ProtoSourceGenerator
             source.WriteLine($"return new {ProtoObjectInfoTypeRefGeneric}()");
             source.WriteLine('{');
             source.Indentation++;
-            
-            source.WriteLine($"Fields = new global::System.Collections.Generic.Dictionary<uint, {string.Format(ProtoFieldInfoTypeRef)}>()");
-            source.WriteLine('{');
-            source.Indentation++;
-            foreach (var kv in parser.Fields)
-            {
-                int field = kv.Key;
-                var info = kv.Value;
 
-                if (info.ExtraTypeInfo.Count == 0) EmitFieldInfo(source, field, info);
-                else EmitMapFieldInfo(source, field, info);
-            }
-            source.Indentation--;
-            source.WriteLine("},");
+            EmitFieldsInfo(source, parser.Fields);
             
             source.WriteLine($"ObjectCreator = () => new {_fullQualifiedName}(),");
+            EmitPolymorphicInfo(source, parser.PolymorphicInfo, parser.BaseTypeInfo!);
             source.WriteLine($"IgnoreDefaultFields = {parser.IgnoreDefaultFields.ToString().ToLower()}");
             
             source.Indentation--;
             source.WriteLine("};");
             source.Indentation--;
             source.WriteLine('}');
+
+            EmitPolymorphicDerivedTypeDescriptor(source, parser.PolymorphicInfo);
+            
             return;
             
             static void EmitByTypeSymbol(SourceWriter source, ITypeSymbol typeSymbol)
@@ -106,6 +106,23 @@ public partial class ProtoSourceGenerator
             }
         }
 
+        private void EmitFieldsInfo(SourceWriter source,Dictionary<int, ProtoFieldInfo> fields )
+        {
+            source.WriteLine($"Fields = new global::System.Collections.Generic.Dictionary<uint, {string.Format(ProtoFieldInfoTypeRef)}>()");
+            source.WriteLine('{');
+            source.Indentation++;
+            foreach (var kv in fields)
+            {
+                int field = kv.Key;
+                var info = kv.Value;
+
+                if (info.ExtraTypeInfo.Count == 0) EmitFieldInfo(source, field, info);
+                else EmitMapFieldInfo(source, field, info);
+            }
+            source.Indentation--;
+            source.WriteLine("},");
+        }
+        
         private void EmitFieldInfo(SourceWriter source, int field, ProtoFieldInfo info)
         {
             int tag = field << 3 | (byte)info.WireType;
@@ -141,6 +158,96 @@ public partial class ProtoSourceGenerator
             
             source.Indentation--;
             source.WriteLine("},");
+        }
+
+        private void EmitPolymorphicInfo(SourceWriter source, PolymorphicTypeInfo polymorphicInfo, BaseTypeInfo baseTypeInfo)
+        {
+            if (polymorphicInfo.PolymorphicIndicateIndex == 0) return;
+            source.WriteLine($"PolymorphicInfo = new {string.Format(ProtoPolymorphicObjectInfoTypeRef, polymorphicInfo.PolymorphicKeyType.GetFullName())}()");
+            source.WriteLine('{');
+            source.Indentation++;
+            
+            source.WriteLine($"PolymorphicIndicateIndex = {polymorphicInfo.PolymorphicIndicateIndex},");
+            source.WriteLine($"PolymorphicFallbackToBaseType = {polymorphicInfo.PolymorphicFallbackToBaseType.ToString().ToLower()},");
+            if (parser.BaseTypeInfo?.BaseType is not null && parser.BaseTypeInfo.BaseType.GetFullName() != _fullQualifiedName)
+            {
+                source.WriteLine($"RootTypeDescriptorGetter = () => new {string.Format(ProtoPolymorphicDerivedTypeDescriptorTypeRef, parser.BaseTypeInfo.BaseType.GetFullName())}()");
+                source.WriteLine('{');
+                source.Indentation++;
+                source.WriteLine($"FieldsGetter = () => {parser.BaseTypeInfo.BaseType.GetFullName()}.{TypeInfoPropertyName}.Fields,");
+                source.WriteLine($"ObjectCreator = () => new {parser.BaseTypeInfo.BaseType.GetFullName()}(),");
+                source.WriteLine($"IgnoreDefaultFieldsGetter = () => {parser.BaseTypeInfo.BaseType.GetFullName()}.{TypeInfoPropertyName}.IgnoreDefaultFields,");
+                source.WriteLine($"PolymorphicInfoGetter = () => {parser.BaseTypeInfo.BaseType.GetFullName()}.{TypeInfoPropertyName}.PolymorphicInfo,");
+                source.WriteLine($"CurrentType = typeof({parser.BaseTypeInfo.BaseType.GetFullName()})");
+                source.Indentation--;
+                source.WriteLine("},");
+            }
+            source.WriteLine(
+                $"PolymorphicDerivedTypes = new global::System.Collections.Generic.Dictionary<{polymorphicInfo.PolymorphicKeyType.GetFullName()}, {ProtoPolymorphicDerivedTypeDescriptorBaseTypeRef}>()");
+            source.WriteLine('{');
+            source.Indentation++;
+            
+            foreach (var derivedTypeInfo in polymorphicInfo.PolymorphicTypes)
+            {
+                source.WriteLine($"[{derivedTypeInfo.Key.ToCSharpString()}] = new {string.Format(ProtoPolymorphicDerivedTypeDescriptorTypeRef, baseTypeInfo.BaseType.GetFullName())}()");
+                source.WriteLine('{');
+                source.Indentation++;
+                source.WriteLine($"CurrentType = typeof({derivedTypeInfo.DerivedType.GetFullName()}),");
+                source.WriteLine($"FieldsGetter = () => {derivedTypeInfo.DerivedType.GetFullName()}.{TypeInfoPropertyName}.Fields,");
+                source.WriteLine($"ObjectCreator = () => ({baseTypeInfo.BaseType.GetFullName()})new {derivedTypeInfo.DerivedType.GetFullName()}(),");
+                source.WriteLine($"IgnoreDefaultFieldsGetter = () => {derivedTypeInfo.DerivedType.GetFullName()}.{TypeInfoPropertyName}.IgnoreDefaultFields,");
+                source.WriteLine($"PolymorphicInfoGetter = () => {derivedTypeInfo.DerivedType.GetFullName()}.{TypeInfoPropertyName}.PolymorphicInfo");
+                source.Indentation--;
+                source.WriteLine("},");
+            }
+            
+            source.Indentation--;
+            source.WriteLine("}");
+            source.Indentation--;
+            source.WriteLine("},");
+        }
+
+        private void EmitPolymorphicDerivedTypeDescriptor(SourceWriter source, PolymorphicTypeInfo polymorphicInfo)
+        {
+            
+            source.WriteLine("#pragma warning disable CS0108");
+            source.WriteLine(
+                $"public static {string.Format(ProtoPolymorphicDerivedTypeDescriptorTypeRef,_fullQualifiedName)}? GetPolymorphicTypeDescriptor<TKey>(TKey discriminator)");
+            source.WriteLine('{');
+            source.Indentation++;
+            if (polymorphicInfo.PolymorphicIndicateIndex > 0)
+            {
+                source.WriteLine("switch (discriminator)");
+                source.WriteLine('{');
+                source.Indentation++;
+
+                foreach (var derivedTypeInfo in polymorphicInfo.PolymorphicTypes)
+                {
+                    source.WriteLine($"case {derivedTypeInfo.Key.ToCSharpString()}: return new {string.Format(ProtoPolymorphicDerivedTypeDescriptorTypeRef, _fullQualifiedName)}()");
+                    source.WriteLine('{');
+                    source.Indentation++;
+                    source.WriteLine($"FieldsGetter = () => {derivedTypeInfo.DerivedType.GetFullName()}.{TypeInfoPropertyName}.Fields,");
+                    source.WriteLine($"ObjectCreator = () => ({_fullQualifiedName})new {derivedTypeInfo.DerivedType.GetFullName()}(),");
+                    source.WriteLine($"IgnoreDefaultFieldsGetter = () => {derivedTypeInfo.DerivedType.GetFullName()}.{TypeInfoPropertyName}.IgnoreDefaultFields,");
+                    source.WriteLine($"PolymorphicInfoGetter = () => {derivedTypeInfo.DerivedType.GetFullName()}.{TypeInfoPropertyName}.PolymorphicInfo,");
+                    source.WriteLine($"CurrentType = typeof({derivedTypeInfo.DerivedType.GetFullName()})");
+                    source.Indentation--;
+                    source.WriteLine("};");
+                }
+                
+                source.WriteLine("default: return null;");
+                source.Indentation--;
+                source.WriteLine("}");
+            }
+            else
+            {
+                source.WriteLine("return null;");
+            }
+
+            source.Indentation--;
+            source.WriteLine('}');
+            source.WriteLine("#pragma warning restore CS0108");
+            source.WriteLine();
         }
     }
 }

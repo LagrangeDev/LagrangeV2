@@ -64,37 +64,104 @@ public static partial class ProtoTypeResolver
     [RequiresDynamicCode(ProtoSerializer.SerializationRequiresDynamicCodeMessage)]
     internal static ProtoObjectInfo<T> CreateObjectInfo<T>()
     {
-        var ctor = typeof(T).IsValueType ? null : typeof(T).GetConstructor(Type.EmptyTypes);
-        bool ignoreDefaultFields = typeof(T).GetCustomAttribute<ProtoPackableAttribute>()?.IgnoreDefaultFields == true;
-        var fields = new Dictionary<uint, ProtoFieldInfo>();
-        
-        foreach (var field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance))
-        {
-            if (field.IsStatic) continue;
-            var fieldInfo = CreateFieldInfo(typeof(T), field);
-            if (fieldInfo == null) continue;
-
-            uint tag = ((uint)fieldInfo.Field << 3) | (byte)fieldInfo.WireType;
-            if (fields.ContainsKey(tag)) ThrowHelper.ThrowInvalidOperationException_DuplicateField(typeof(T), fieldInfo.Field);
-            fields[tag] = fieldInfo;
-        }
-        
-        foreach (var field in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
-        {
-            var fieldInfo = CreateFieldInfo(typeof(T), field);
-            if (fieldInfo == null) continue;
-            
-            uint tag = ((uint)fieldInfo.Field << 3) | (byte)fieldInfo.WireType;
-            if (fields.ContainsKey(tag)) ThrowHelper.ThrowInvalidOperationException_DuplicateField(typeof(T), fieldInfo.Field);
-            fields[tag] = fieldInfo;
-        }
+        var objType = typeof(T);
+        var ctor = objType.IsValueType ? null : objType.GetConstructor(Type.EmptyTypes);
+        bool ignoreDefaultFields = objType.GetCustomAttribute<ProtoPackableAttribute>()?.IgnoreDefaultFields == true;
+        var fields = CreateTypeFieldInfo(objType);
         
         return new ProtoObjectInfo<T>
         {
             ObjectCreator = MemberAccessor.CreateParameterlessConstructor<T>(ctor),
             IgnoreDefaultFields = ignoreDefaultFields,
-            Fields = fields.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value)
+            Fields = fields.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value),
+            PolymorphicInfo = PopulatePolymorphicInfo<T>()
         };
+    }
+
+    internal static ProtoPolymorphicInfoBase? PopulatePolymorphicInfo<T>()
+    {
+        var type = typeof(T);
+        ProtoPolymorphicInfoBase? objectInfo = null;
+        // goto root
+        var checkingType = type;
+        while (checkingType.BaseType != null)
+        {
+            // check if base type has polymorphic attribute
+            var basePolymorphicAttributes = checkingType.BaseType.GetCustomAttributes(typeof(ProtoDerivedTypeAttribute<>))
+                .OfType<ProtoDerivedTypeAttribute>().ToArray();
+            if (basePolymorphicAttributes.Length > 0) checkingType = checkingType.BaseType;
+            else break;
+        }
+
+        if (checkingType == type) checkingType = null;
+        
+        var polymorphicAttributes = type.GetCustomAttributes(typeof(ProtoDerivedTypeAttribute<>))
+            .OfType<ProtoDerivedTypeAttribute>().ToArray();
+        if (polymorphicAttributes.Length > 0)
+        {
+            var polymorphicConfigAttribute = type.GetCustomAttribute<ProtoPolymorphicAttribute>();
+            var polymorphicFieldNumber = polymorphicConfigAttribute?.FieldNumber ?? 0;
+            var fallbackToBaseType = polymorphicConfigAttribute?.FallbackToBaseType ?? true;
+            if (polymorphicFieldNumber == 0) polymorphicFieldNumber = 1; // use first for default
+
+            // get the TKey from first
+            var firstAttr = polymorphicAttributes[0];
+            var keyType = firstAttr.GetType().GetGenericArguments()[0];
+            objectInfo = (ProtoPolymorphicInfoBase?) typeof(ProtoPolymorphicObjectInfo<>).MakeGenericType(keyType)
+                    .GetConstructor(Type.EmptyTypes)?.Invoke(null);
+
+            Debug.Assert(objectInfo != null);
+            objectInfo.PolymorphicIndicateIndex = polymorphicFieldNumber;
+            objectInfo.PolymorphicFallbackToBaseType = fallbackToBaseType;
+            
+            foreach (var attr in polymorphicAttributes)
+            {
+                var key = attr.GetType().GetProperty(nameof(ProtoDerivedTypeAttribute<int>.TypeDiscriminator), BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.GetValue(attr);
+                if (key == null) ThrowHelper.ThrowInvalidOperationException_UnknownPolymorphicType(type, attr.DerivedType);
+                objectInfo.SetDerivedTypeDescriptor(key, ProtoSerializer.GetObjectInfoReflection(attr.DerivedType));
+            }
+        }
+
+        if (checkingType is not null)
+        {
+            objectInfo ??= new ProtoPolymorphicInfoBase()
+            {
+                PolymorphicIndicateIndex = 0,
+                PolymorphicFallbackToBaseType = true
+            };
+            objectInfo.RootTypeDescriptorGetter = () => ProtoSerializer.GetObjectInfoReflection(checkingType);
+        }
+        
+        return objectInfo;
+    }
+
+    internal static Dictionary<uint, ProtoFieldInfo> CreateTypeFieldInfo(Type type)
+    {
+        var fields = new Dictionary<uint, ProtoFieldInfo>();
+        
+        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (field.IsStatic) continue;
+            var fieldInfo = CreateFieldInfo(type, field);
+            if (fieldInfo == null) continue;
+
+            uint tag = ((uint)fieldInfo.Field << 3) | (byte)fieldInfo.WireType;
+            if (fields.ContainsKey(tag)) ThrowHelper.ThrowInvalidOperationException_DuplicateField(type, fieldInfo.Field);
+            fields[tag] = fieldInfo;
+        }
+        
+        foreach (var field in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            var fieldInfo = CreateFieldInfo(type, field);
+            if (fieldInfo == null) continue;
+            
+            uint tag = ((uint)fieldInfo.Field << 3) | (byte)fieldInfo.WireType;
+            if (fields.ContainsKey(tag)) ThrowHelper.ThrowInvalidOperationException_DuplicateField(type, fieldInfo.Field);
+            fields[tag] = fieldInfo;
+        }
+
+        return fields;
     }
 
 

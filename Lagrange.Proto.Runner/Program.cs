@@ -26,3 +26,36 @@ internal static partial class Program
         Console.WriteLine($"Parsed value: {value}");
     }
 }
+
+#region Test Classes
+[ProtoPackable]
+[ProtoPolymorphic(FieldNumber = 1)]
+[ProtoDerivedType<int>(typeof(DerivedClassA), 4)]
+[ProtoDerivedType<int>(typeof(DerivedClassB), 3)]
+public partial class BaseClass
+{
+    public BaseClass() : this(-1) { }
+
+    public BaseClass(int identifier)
+    {
+        IdentifierProperty = identifier;
+    }
+
+    [ProtoMember(1)] public int IdentifierProperty { get; set; }
+}
+
+
+[ProtoPackable]
+public partial class DerivedClassA() : BaseClass(2)
+{
+    [ProtoMember(2)] public string? NameProperty { get; set; }
+}
+
+
+[ProtoPackable]
+public partial class DerivedClassB() : BaseClass(3)
+{
+    [ProtoMember(2)] public float ValueProperty { get; set; } = 0f;
+}
+
+#endregion

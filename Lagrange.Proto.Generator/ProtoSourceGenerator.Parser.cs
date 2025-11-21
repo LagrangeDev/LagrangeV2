@@ -30,6 +30,10 @@ public partial class ProtoSourceGenerator
         public bool IgnoreDefaultFields { get; private set; }
         
         public Dictionary<int, ProtoFieldInfo> Fields { get; } = new();
+
+        public PolymorphicTypeInfo PolymorphicInfo { get; } = new();
+        
+        public BaseTypeInfo? BaseTypeInfo { get; private set; } = null;
         
         public void Parse(CancellationToken token = default)
         {
@@ -41,22 +45,28 @@ public partial class ProtoSourceGenerator
                 ReportDiagnostics(UnableToGetSymbol, context.GetLocation(), context.Identifier.Text);
                 return;
             }
-            
+
             if (!classSymbol.Constructors.Any(x => x is { Parameters.Length: 0, DeclaredAccessibility: Accessibility.Public }))
             {
                 ReportDiagnostics(MustContainParameterlessConstructor, context.GetLocation(), context.Identifier.Text);
                 return;
             }
             
-            foreach (var argument in classSymbol.GetAttributes().SelectMany(x => x.NamedArguments))
+            foreach (var attribute in classSymbol.GetAttributes())
             {
-                switch (argument.Key)
+                switch (attribute.AttributeClass?.Name)
                 {
-                    case "IgnoreDefaultFields":
-                    { 
-                        IgnoreDefaultFields = (bool)(argument.Value.Value ?? false);
+                    case "ProtoPackableAttribute":
+                        foreach (var argument in attribute.NamedArguments)
+                        {
+                            switch (argument.Key)
+                            {
+                                case "IgnoreDefaultFields":
+                                    IgnoreDefaultFields = (bool)(argument.Value.Value ?? false);
+                                    break;
+                            }
+                        }
                         break;
-                    }
                 }
             }
             
@@ -66,23 +76,126 @@ public partial class ProtoSourceGenerator
                 return;
             }
             TypeDeclarations.AddRange(typeDeclarations);
-
-            var members = context.ChildNodes()
-                .Where(x => x is FieldDeclarationSyntax or PropertyDeclarationSyntax)
-                .Cast<MemberDeclarationSyntax>()
-                .Where(x => x.ContainsAttribute("ProtoMember"));
             
-            foreach (var member in members)
+            PopulateFieldInfo(classSymbol, Fields, identifier, token);
+            PopulatePolymorphicInfo(classSymbol, PolymorphicInfo, token);
+            
+            // Handling BaseType
+            var checkingBaseTypeSymbol = classSymbol;
+            while (checkingBaseTypeSymbol?.BaseType is not null)
+            {
+                token.ThrowIfCancellationRequested();
+                if (!checkingBaseTypeSymbol.BaseType.GetAttributes()
+                        .Any(t => t.AttributeClass?.Name == "ProtoPackableAttribute"))
+                {
+                    break;
+                }
+                
+                checkingBaseTypeSymbol = checkingBaseTypeSymbol.BaseType;
+                PopulateFieldInfo(checkingBaseTypeSymbol, Fields, identifier, token);
+            }
+
+            if (checkingBaseTypeSymbol is not null)
+            {
+                BaseTypeInfo = new BaseTypeInfo();
+                BaseTypeInfo.BaseType = checkingBaseTypeSymbol;
+                foreach (var attribute in checkingBaseTypeSymbol.GetAttributes())
+                {
+                    switch (attribute.AttributeClass?.Name)
+                    {
+                        case "ProtoPackableAttribute":
+                            foreach (var argument in attribute.NamedArguments)
+                            {
+                                switch (argument.Key)
+                                {
+                                    case "IgnoreDefaultFields":
+                                        BaseTypeInfo.IgnoreDefaultFields = (bool)(argument.Value.Value ?? false);
+                                        break;
+                                }
+                            }
+                            break;
+                    }
+                }
+                PopulateFieldInfo(BaseTypeInfo.BaseType, BaseTypeInfo.Fields, BaseTypeInfo.BaseType.GetFullName(), token);
+                PopulatePolymorphicInfo(BaseTypeInfo.BaseType, BaseTypeInfo.PolymorphicInfo, token);
+            }
+        }
+
+        private void PopulatePolymorphicInfo(INamedTypeSymbol classSymbol, PolymorphicTypeInfo polymorphicInfo, CancellationToken cancellationToken = default)
+        {
+            foreach (var attribute in classSymbol.GetAttributes())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                switch (attribute.AttributeClass?.Name)
+                {
+                    case "ProtoDerivedTypeAttribute":
+                        if (polymorphicInfo.PolymorphicIndicateIndex == 0)
+                            polymorphicInfo.PolymorphicIndicateIndex = 1; // set to default
+                        // get key type
+                        if (attribute.AttributeClass.TypeArguments.First() is not INamedTypeSymbol keyType)
+                        {
+                            ReportDiagnostics(UnableToGetSymbol, context.GetLocation(),
+                                attribute.AttributeClass.TypeArguments.First().ToDisplayString());
+                            return;
+                        }
+
+                        polymorphicInfo.PolymorphicKeyType = keyType;
+
+                        // get derived type, in typeof
+                        var derivedTypeConstant = attribute.ConstructorArguments.First();
+                        if (derivedTypeConstant.Kind != TypedConstantKind.Type)
+                        {
+                            ReportDiagnostics(UnableToGetSymbol, context.GetLocation(),
+                                derivedTypeConstant.ToCSharpString());
+                            return;
+                        }
+
+                        if (derivedTypeConstant.Value is not INamedTypeSymbol derivedType)
+                        {
+                            ReportDiagnostics(UnableToGetSymbol, context.GetLocation(),
+                                derivedTypeConstant.ToCSharpString());
+                            return;
+                        }
+
+                        // get type discriminator
+                        var typeDiscriminatorConstant = attribute.ConstructorArguments.ElementAtOrDefault(1);
+                        polymorphicInfo.PolymorphicTypes.Add(new PolymorphicDerivedTypeInfo
+                        {
+                            DerivedType = derivedType, Key = typeDiscriminatorConstant
+                        });
+                        break;
+                    case "ProtoPolymorphicAttribute":
+                        foreach (var argument in attribute.NamedArguments)
+                        {
+                            switch (argument.Key)
+                            {
+                                case "FieldNumber":
+                                    polymorphicInfo.PolymorphicIndicateIndex = (uint)(argument.Value.Value ?? 0);
+                                    break;
+                                case "FallbackToBaseType":
+                                    polymorphicInfo.PolymorphicFallbackToBaseType =
+                                        (bool)(argument.Value.Value ?? true);
+                                    break;
+                            }
+                        }
+
+                        break;
+                }
+            }
+            
+        }
+        
+        private void PopulateFieldInfo(INamedTypeSymbol classSymbol, Dictionary<int, ProtoFieldInfo> fields, string identifier = "" ,CancellationToken token = default)
+        {
+            var members = classSymbol.GetMembers()
+                .Where(x => x is IPropertySymbol or IFieldSymbol)
+                .Where(x => x.GetAttributes().Any(t=>t.AttributeClass?.Name == "ProtoMemberAttribute"));
+            
+            foreach (var symbol in members)
             {
                 token.ThrowIfCancellationRequested();
                 
-                var symbol = classSymbol.GetMembers().First(x => x.Name == member switch
-                {
-                    FieldDeclarationSyntax fieldDeclaration => fieldDeclaration.Declaration.Variables[0].Identifier.ToString(),
-                    PropertyDeclarationSyntax propertyDeclaration => propertyDeclaration.Identifier.ToString(), 
-                    _ => throw new InvalidOperationException("Unsupported member type.")
-                });
-
+                var member = symbol.DeclaringSyntaxReferences.FirstOrDefault()!.GetSyntax(token);
                 if (symbol.IsStatic)
                 {
                     ReportDiagnostics(MustNotBeStatic, member.GetLocation(), symbol.Name, identifier);
@@ -91,7 +204,7 @@ public partial class ProtoSourceGenerator
                 
                 var attribute = symbol.GetAttributes().First(x => x.AttributeClass?.Name == "ProtoMemberAttribute");
                 int field = (int)(attribute.ConstructorArguments[0].Value ?? throw new InvalidOperationException("Unable to get field number."));
-                if (Fields.ContainsKey(field))
+                if (fields.ContainsKey(field))
                 {
                     ReportDiagnostics(DuplicateFieldNumber, member.GetLocation(), field, identifier);
                     continue;
@@ -126,7 +239,7 @@ public partial class ProtoSourceGenerator
                     var valueAttribute = symbol.GetAttributes().FirstOrDefault(x => x.AttributeClass?.ToDisplayString() == ProtoValueMemberAttributeFullName);
                     if (valueAttribute != null) ReadProtoMemberAttribute(valueAttribute, typeSymbol, ref valueWireType, member, field, identifier, ref valueSigned);
 
-                    Fields[field] = new ProtoFieldInfo(symbol, typeSymbol, wireType, signed) 
+                    fields[field] = new ProtoFieldInfo(symbol, typeSymbol, wireType, signed) 
                     { 
                         ExtraTypeInfo =
                         {
@@ -138,12 +251,12 @@ public partial class ProtoSourceGenerator
                 else
                 {
                     ReadProtoMemberAttribute(attribute, typeSymbol, ref wireType, member, field, identifier, ref signed);
-                    Fields[field] = new ProtoFieldInfo(symbol, typeSymbol, wireType, signed);
+                    fields[field] = new ProtoFieldInfo(symbol, typeSymbol, wireType, signed);
                 }
             }
         }
-
-        private void ReadProtoMemberAttribute(AttributeData attribute, ITypeSymbol typeSymbol, ref WireType wireType, MemberDeclarationSyntax member, int field, string identifier, ref bool signed)
+        
+        private void ReadProtoMemberAttribute(AttributeData attribute, ITypeSymbol typeSymbol, ref WireType wireType, SyntaxNode member, int field, string identifier, ref bool signed)
         {
             foreach (var argument in attribute.NamedArguments)
             {
