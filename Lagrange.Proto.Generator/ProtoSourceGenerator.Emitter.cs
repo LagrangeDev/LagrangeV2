@@ -21,13 +21,15 @@ public partial class ProtoSourceGenerator
         public void Emit(SourceProductionContext context)
         {
             var source = CreateSourceWriter();
-            
+
             EmitTypeInfo(source);
             source.WriteLine();
             EmitSerializeMethod(source);
             source.WriteLine();
             EmitMeasureMethod(source);
-            
+            source.WriteLine();
+            EmitDeserializeMethod(source);
+
             CompleteSource(source);
 
             string text = source.ToSourceText().ToString();

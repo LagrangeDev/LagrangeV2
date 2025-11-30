@@ -17,30 +17,7 @@ public static partial class ProtoSerializer
     public static T DeserializeProtoPackable<T>(ReadOnlySpan<byte> data) where T : IProtoSerializable<T>
     {
         var reader = new ProtoReader(data);
-        return DeserializeProtoPackableCore<T>(ref reader);
-    }
-    
-    private static T DeserializeProtoPackableCore<T>(ref ProtoReader reader) where T : IProtoSerializable<T>
-    {
-        var objectInfo = T.TypeInfo;
-        Debug.Assert(objectInfo.ObjectCreator != null);
-        
-        T target = objectInfo.ObjectCreator();
-
-        while (!reader.IsCompleted)
-        {
-            uint tag = reader.DecodeVarIntUnsafe<uint>();
-            if (objectInfo.Fields.TryGetValue(tag, out var fieldInfo))
-            {
-                fieldInfo.Read(ref reader, target);
-            }
-            else
-            {
-                reader.SkipField((WireType)(tag & 0x07));
-            }
-        }
-        
-        return target;
+        return T.DeserializeHandler(ref reader);
     }
     
     /// <summary>
