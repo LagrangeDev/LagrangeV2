@@ -26,9 +26,34 @@ public class MultiMsgEntity(string? resId) : IMessageEntity
     {
         if (string.IsNullOrEmpty(ResId))
         {
+            // Recursively preprocess internal messages
+            Console.WriteLine($"[MultiMsgEntity] Preprocessing {Messages.Count} messages for forward chain...");
+            
+            foreach (var innerMsg in Messages)
+            {
+                foreach (var entity in innerMsg.Entities)
+                {
+                    try 
+                    {
+                        await entity.Preprocess(context, message);
+
+                        if (entity is ImageEntity img)
+                        {
+                            if (img.MsgInfo != null)
+                                Console.WriteLine($"[MultiMsgEntity] Image uploaded successfully. Size: {img.ImageSize}");
+                            else
+                                Console.WriteLine("[MultiMsgEntity] WARNING: Image MsgInfo is NULL after preprocess!");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[MultiMsgEntity] Error preprocessing entity: {ex.Message}");
+                    }
+                }
+            }
+
             var result = await context.EventContext.SendEvent<LongMsgSendEventResp>(new LongMsgSendEventReq(message.Receiver, Messages));
             ResId = result.ResId;
-
         }
     }
     
