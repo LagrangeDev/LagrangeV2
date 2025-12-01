@@ -96,7 +96,8 @@ public class ProtoWriter : IDisposable
     {
         if (_memory.Length - BytesPending >= 10)
         {
-            if (value < T.CreateTruncating(0x80))
+            // For-1 (int), converting to ulong is 0xFF... FF, much greater than 0x80, will not mistakenly enter this branch.
+            if (ulong.CreateTruncating(value) < 0x80)
             {
                 Unsafe.Add(ref MemoryMarshal.GetReference(_memory.Span), BytesPending++) = byte.CreateTruncating(value);
                 return;
