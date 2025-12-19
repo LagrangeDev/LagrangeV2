@@ -6,6 +6,10 @@
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
     </PropertyGroup>
+    <PropertyGroup Condition=" '$(DOCKER)' == 'true' ">
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <InvariantGlobalization>true</InvariantGlobalization>
+    </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug'">
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
@@ -32,5 +36,11 @@
 
     <ItemGroup>
         <EmbeddedResource Include="Resources\appsettings.jsonc" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
     </ItemGroup>
 </Project>
