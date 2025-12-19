@@ -12,7 +12,7 @@ public class SendGroupMessageReactionHandler(BotContext bot) : IEmptyResultApiHa
 
     public async Task HandleAsync(SendGroupMessageReactionParameter parameter, CancellationToken token)
     {
-        await _bot.SetGroupReaction(parameter.GroupId, (ulong)parameter.MessageSeq, parameter.Reaction, true);
+        await _bot.SetGroupReaction(parameter.GroupId, (ulong)parameter.MessageSeq, parameter.Reaction, parameter.IsAdd);
     }
 }
 
