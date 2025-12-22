@@ -60,11 +60,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Lagrange.Milky-${{ matrix.rid }}
-          path: Lagrange.Milky/bin/Release/net9.0/${{ matrix.rid }}/publish/Lagrange.Milky${{ matrix.binary-extension }}
+          path: Lagrange.Milky/bin/Release/net10.0/${{ matrix.rid }}/publish/Lagrange.Milky${{ matrix.binary-extension }}
       - if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: Lagrange.Milky-${{ matrix.rid }}-symbol-files
           path: |
-            Lagrange.Milky/bin/Release/net9.0/${{ matrix.rid }}/publish/*
-            !Lagrange.Milky/bin/Release/net9.0/${{ matrix.rid }}/publish/Lagrange.Milky${{ matrix.binary-extension }}
+            Lagrange.Milky/bin/Release/net10.0/${{ matrix.rid }}/publish/*
+            !Lagrange.Milky/bin/Release/net10.0/${{ matrix.rid }}/publish/Lagrange.Milky${{ matrix.binary-extension }}
