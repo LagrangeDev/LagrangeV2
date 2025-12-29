@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Buffers.Binary;
+using System.Text;
 
 namespace Lagrange.Core.Utility.Compression;
 
@@ -40,6 +41,8 @@ internal static class ZCompression
             a = (a + t) % 65521;
             b = (b + a) % 65521;
         }
-        return BitConverter.GetBytes(b | a << 16);
+        var result = new byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(result, (b << 16) | a);
+        return result;
     }
 }
