@@ -7,18 +7,20 @@ on:
       - .github/workflows/milky-build.yaml
       - Lagrange.Codec/**
       - Lagrange.Core/**
+      - Lagrange.Milky/**
+      - Lagrange.Milky.Implementation.Api.Generator/**
       - Lagrange.Proto/**
       - Lagrange.Proto.Generator/**
-      - Lagrange.Milky/**
   pull_request:
     branches: [ main ]
     paths:
       - .github/workflows/milky-build.yaml
       - Lagrange.Codec/**
       - Lagrange.Core/**
+      - Lagrange.Milky/**
+      - Lagrange.Milky.Implementation.Api.Generator/**
       - Lagrange.Proto/**
       - Lagrange.Proto.Generator/**
-      - Lagrange.Milky/**
   workflow_dispatch:
 
 jobs:
