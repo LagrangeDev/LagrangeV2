@@ -8,7 +8,8 @@ public class BotGroup(
     long createTime,
     string? description,
     string? question,
-    string? announcement) : BotContact
+    string? announcement,
+    uint lastestSeq = 0) : BotContact
 {
     public long GroupUin { get; } = groupUin;
 
@@ -25,6 +26,11 @@ public class BotGroup(
     public string? Question { get; } = question;
 
     public string? Announcement { get; } = announcement;
+
+    /// <summary>
+    /// The latest message sequence number for this group.
+    /// </summary>
+    public uint LastestSeq { get; } = lastestSeq;
     
     public override long Uin => GroupUin;
 
