@@ -104,7 +104,7 @@ namespace Lagrange.Core.NativeAPI
             {
                 Marshal.StructureToPtr(
                     (BotGroupMemberStruct)members[i],
-                    result.Events + i * Marshal.SizeOf<BotGroupStruct>(),
+                    result.Events + i * Marshal.SizeOf<BotGroupMemberStruct>(),
                     false
                 );
             }
@@ -246,6 +246,7 @@ namespace Lagrange.Core.NativeAPI
                             false
                         );
                         break;
+
                     case BotGroupNotificationType.SetAdmin:
                         Marshal.StructureToPtr(
                             (BotGroupSetAdminNotificationStruct)(BotGroupSetAdminNotification)notifications[i],
@@ -253,6 +254,7 @@ namespace Lagrange.Core.NativeAPI
                             false
                         );
                         break;
+
                     case BotGroupNotificationType.KickOther:
                     case BotGroupNotificationType.KickSelf:
                         Marshal.StructureToPtr(
@@ -261,6 +263,7 @@ namespace Lagrange.Core.NativeAPI
                             false
                         );
                         break;
+
                     case BotGroupNotificationType.Exit:
                         Marshal.StructureToPtr(
                             (BotGroupExitNotificationStruct)(BotGroupExitNotification)notifications[i],
@@ -268,6 +271,7 @@ namespace Lagrange.Core.NativeAPI
                             false
                         );
                         break;
+
                     case BotGroupNotificationType.UnsetAdmin:
                         Marshal.StructureToPtr(
                             (BotGroupUnsetAdminNotificationStruct)(BotGroupUnsetAdminNotification)notifications[i],
@@ -275,6 +279,7 @@ namespace Lagrange.Core.NativeAPI
                             false
                         );
                         break;
+
                     case BotGroupNotificationType.Invite:
                         Marshal.StructureToPtr(
                             (BotGroupInviteNotificationStruct)(BotGroupInviteNotification)notifications[i],
