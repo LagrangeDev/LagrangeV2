@@ -1,6 +1,9 @@
 # VSCode
 /.vscode
 
+# Dev Container
+/.devcontainer
+
 # CSharp
 /*/bin
 /*/obj
