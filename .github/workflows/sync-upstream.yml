@@ -1,0 +1,44 @@
+name: Upstream Sync
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # 每天 UTC 时间 0点 (北京时间早上8点) 自动执行
+  workflow_dispatch:
+
+jobs:
+  sync_with_upstream:
+    name: Sync with Upstream
+    runs-on: ubuntu-latest
+    if: ${{ github.event.repository.fork }} # 仅在当前仓库是 Fork 的仓库时运行
+
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v3
+
+      - name: Sync Upstream
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        with:
+
+          # 1. 设置上游仓库地址 (格式：用户名/仓库名)
+          upstream_sync_repo: LagrangeDev/LagrangeV2
+
+          # 2. 设置上游仓库的分支 (通常是 main 或 master)
+          upstream_sync_branch: main
+
+          # 3. 设置您当前仓库需要更新的分支
+          target_sync_branch: main
+          
+          # --- 配置结束 ---
+
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+          test_mode: false
+
+      - name: Check for Failure
+        if: failure()
+        run: |
+          echo "[Error] 由于存在冲突，自动同步失败。"
+          echo "请手动解决冲突：git pull upstream main 并在本地合并后推送。"
+          exit 1
