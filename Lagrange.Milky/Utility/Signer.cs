@@ -187,7 +187,7 @@ public class Signer : AndroidBotSignProvider, IDisposable
         {
             Proxy = signerConfiguration.ProxyUrl == null ? null : new WebProxy
             {
-                Address = new Uri(signerConfiguration.Base),
+                Address = new Uri(signerConfiguration.ProxyUrl),
                 BypassProxyOnLocal = false,
                 UseDefaultCredentials = false,
             }
