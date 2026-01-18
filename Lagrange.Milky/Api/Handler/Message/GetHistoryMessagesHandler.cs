@@ -16,11 +16,39 @@ public class GetHistoryMessagesHandler(BotContext bot, EntityConvert convert) : 
     public async Task<GetHistoryMessagesResult> HandleAsync(GetHistoryMessagesParameter parameter, CancellationToken token)
     {
         int start;
-        if (parameter.StartMessageSeq.HasValue) start = (int)(parameter.StartMessageSeq.Value - parameter.Limit);
-        // TODO: No start sequence
-        else throw new NotImplementedException();
+        int end;
 
-        int end = start + parameter.Limit;
+        if (parameter.StartMessageSeq.HasValue)
+        {
+            start = (int)(parameter.StartMessageSeq.Value - parameter.Limit);
+            end = (int)parameter.StartMessageSeq.Value;
+        }
+        else
+        {
+            // No start sequence provided, try to get the latest sequence
+            switch (parameter.MessageScene)
+            {
+                case "group":
+                    var groups = await _bot.FetchGroups();
+                    var group = groups.FirstOrDefault(g => g.GroupUin == parameter.PeerId)
+                        ?? throw new ApiException(-1, $"Group {parameter.PeerId} not found");
+                    
+                    if (group.LastestSeq == 0)
+                        throw new ApiException(-1, $"Failed to get latest sequence for group {parameter.PeerId}");
+                    
+                    end = (int)group.LastestSeq;
+                    start = end - parameter.Limit;
+                    break;
+                    
+                case "friend":
+                    throw new ApiException(-1, "Getting latest messages for friends without start_message_seq is not supported");
+                    
+                default:
+                    throw new NotSupportedException($"Message scene '{parameter.MessageScene}' is not supported");
+            }
+        }
+
+        if (start < 0) start = 0;
 
         var messages = parameter.MessageScene switch
         {
