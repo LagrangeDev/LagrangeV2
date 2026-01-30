@@ -16,7 +16,7 @@ public class GroupNudgeEventData(long groupID, long senderId, long receiverId, s
     public long ReceiverID { get; } = receiverId;
 
     [JsonPropertyName("display_action")]
-    public string DisplayAction = displayAction;
+    public string DisplayAction { get; } = displayAction;
 
     [JsonPropertyName("display_suffix")]
     public string DisplaySuffix { get; } = displaySuffix;
