@@ -1,6 +1,6 @@
 <div align="center">
 
-# Lagrange.Milky
+![Lagrange.Milky](./Resources/banner.svg)
 
 _[Milky](https://github.com/SaltifyDev/milky) protocol implementation based on [Lagrange.Core V2](https://github.com/LagrangeDev/LagrangeV2)_
 
