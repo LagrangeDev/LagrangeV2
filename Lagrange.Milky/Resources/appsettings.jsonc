@@ -17,11 +17,8 @@
         //     "GetOptimumServer": true,
         // },
         "Signer": {
-            // Signer Base URL
-            "Base": "https://sign.lagrangecore.org/api/sign",
-
-            // Signer version
-            "Version": "30366",
+            // Signer URL
+            "Url": "https://sign.lagrangecore.org/api/sign",
 
             // Signer token
             // "Token": null

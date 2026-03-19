@@ -1,4 +1,3 @@
-using Lagrange.Core;
 using Lagrange.Core.Common;
 using Lagrange.Core.Common.Interface;
 using Lagrange.Milky.Api;
@@ -32,95 +31,87 @@ public static class HostApplicationBuilderExtension
     }
 
     public static HostApplicationBuilder ConfigureCore(this HostApplicationBuilder builder) => builder
+#pragma warning disable IL2026, IL3050
+        // https://github.com/dotnet/runtime/issues/94544
         .ConfigureServices(services => services
-        .Configure<CoreConfiguration>(builder.Configuration.GetSection("Core"))
-
-        // Signer
-        .AddSingleton<Signer>()
-        // BotConfig
-        .AddSingleton(services =>
-        {
-            var loggerConfiguration = services.GetRequiredService<IOptions<LoggerFilterOptions>>().Value;
-            var coreConfiguration = services.GetRequiredService<IOptions<CoreConfiguration>>().Value;
-            var signer = services.GetRequiredService<Signer>();
-
-            var platform = signer.GetAppInfo().Result switch
+            .Configure<CoreConfiguration>(builder.Configuration.GetSection("Core"))
+#pragma warning restore IL2026, IL3050
+            // Signer
+            .AddSingleton<Signer>()
+            // BotConfig
+            .AddSingleton(services =>
             {
-                { Os: "Linux" } => Protocols.Linux,
-                { Os: "Mac" } => Protocols.MacOs,
-                { Os: "Windows" } => Protocols.Windows,
-                { Os: "Android", PackageName: "com.tencent.mobileqq" } => Protocols.AndroidPhone,
-                { Os: "Android", PackageName: "com.tencent.qqlite" } => Protocols.AndroidWatch,
-                _ => throw new NotSupportedException(),
-            };
+                var loggerConfiguration = services.GetRequiredService<IOptions<LoggerFilterOptions>>().Value;
+                var coreConfiguration = services.GetRequiredService<IOptions<CoreConfiguration>>().Value;
+                var signer = services.GetRequiredService<Signer>();
 
-            return new BotConfig
+                return new BotConfig
+                {
+                    Protocol = Protocols.Linux,
+                    LogLevel = (CoreLogLevel)loggerConfiguration.GetDefaultLogLevel(),
+                    AutoReconnect = coreConfiguration.Server.AutoReconnect,
+                    UseIPv6Network = coreConfiguration.Server.UseIPv6Network,
+                    GetOptimumServer = coreConfiguration.Server.GetOptimumServer,
+                    AutoReLogin = coreConfiguration.Login.AutoReLogin,
+                    SignProvider = signer,
+                };
+            })
+            // BotKeystore
+            .AddSingleton(services =>
             {
-                Protocol = platform,
-                LogLevel = (CoreLogLevel)loggerConfiguration.GetDefaultLogLevel(),
-                AutoReconnect = coreConfiguration.Server.AutoReconnect,
-                UseIPv6Network = coreConfiguration.Server.UseIPv6Network,
-                GetOptimumServer = coreConfiguration.Server.GetOptimumServer,
-                AutoReLogin = coreConfiguration.Login.AutoReLogin,
-                SignProvider = signer,
-            };
-        })
-        // BotKeystore
-        .AddSingleton(services =>
-        {
-            var configuration = services.GetRequiredService<IOptions<CoreConfiguration>>().Value;
+                var configuration = services.GetRequiredService<IOptions<CoreConfiguration>>().Value;
 
-            if (!configuration.Login.Uin.HasValue) throw new Exception("Core.Login.Uin cannot be null");
-            var path = $"{configuration.Login.Uin.Value}.keystore";
+                if (!configuration.Login.Uin.HasValue) throw new Exception("Core.Login.Uin cannot be null");
+                string path = $"{configuration.Login.Uin.Value}.keystore";
 
-            BotKeystore keystore;
-            if (File.Exists(path))
+                BotKeystore keystore;
+                if (File.Exists(path))
+                {
+                    var keystoreNullable = JsonUtility.Deserialize<BotKeystore>(File.ReadAllBytes(path));
+                    keystore = keystoreNullable ?? throw new Exception(
+                        $"Invalid keystore detected. Please remove the '{path}' file and re-authenticate."
+                    );
+                }
+                else
+                {
+                    keystore = BotKeystore.CreateEmpty();
+                }
+
+                keystore.DeviceName = configuration.Login.DeviceName;
+                return keystore;
+            })
+            // BotContext
+            .AddSingleton(services =>
             {
-                var keystoreNullable = JsonUtility.Deserialize<BotKeystore>(File.ReadAllBytes(path));
-                keystore = keystoreNullable ?? throw new Exception(
-                    $"Invalid keystore detected. Please remove the '{path}' file and re-authenticate."
-                );
-            }
-            else
+                var config = services.GetRequiredService<BotConfig>();
+                var keystore = services.GetRequiredService<BotKeystore>();
+
+                return BotFactory.Create(config, keystore);
+            })
+
+            // CaptchaResolver
+            .AddSingleton<ICaptchaResolver>(services =>
             {
-                keystore = BotKeystore.CreateEmpty();
-            }
+                var configuration = services.GetRequiredService<IOptions<CoreConfiguration>>().Value;
 
-            keystore.DeviceName = configuration.Login.DeviceName;
-            return keystore;
-        })
-        // BotAppInfo
-        .AddSingleton(services => services.GetRequiredService<Signer>().GetAppInfo().Result)
-        // BotContext
-        .AddSingleton(services =>
-        {
-            var config = services.GetRequiredService<BotConfig>();
-            var keystore = services.GetRequiredService<BotKeystore>();
-            var info = services.GetRequiredService<BotAppInfo>();
+                return configuration.Login.UseOnlineCaptchaResolver
+                    ? ActivatorUtilities.CreateInstance<OnlineCaptchaResolver>(services)
+                    : ActivatorUtilities.CreateInstance<ManualCaptchaResolver>(services);
+            })
 
-            return BotFactory.Create(config, keystore, info);
-        })
+            // Logger
+            .AddHostedService<CoreLoggerService>()
 
-        // CaptchaResolver
-        .AddSingleton<ICaptchaResolver>(services =>
-        {
-            var configuration = services.GetRequiredService<IOptions<CoreConfiguration>>().Value;
-
-            return configuration.Login.UseOnlineCaptchaResolver
-                ? ActivatorUtilities.CreateInstance<OnlineCaptchaResolver>(services)
-                : ActivatorUtilities.CreateInstance<ManualCaptchaResolver>(services);
-        })
-
-        // Logger
-        .AddHostedService<CoreLoggerService>()
-
-        // Login
-        .AddHostedService<CoreLoginService>()
-    );
+            // Login
+            .AddHostedService<CoreLoginService>()
+        );
 
     public static HostApplicationBuilder ConfigureMilky(this HostApplicationBuilder builder) => builder
+#pragma warning disable IL2026, IL3050
+    // https://github.com/dotnet/runtime/issues/94544
     .ConfigureServices(services => services
         .Configure<MilkyConfiguration>(builder.Configuration.GetSection("Milky"))
+#pragma warning restore IL2026, IL3050
         // MessageCache
         .AddSingleton<MessageCache>()
         .AddHostedService(ServiceProviderServiceExtensions.GetRequiredService<MessageCache>)
@@ -131,8 +122,11 @@ public static class HostApplicationBuilderExtension
     )
     .ConfigureServices(services =>
     {
+#pragma warning disable IL2026, IL3050
+        // https://github.com/dotnet/runtime/issues/94544
         var configuration = builder.Configuration.GetSection("Milky").Get<MilkyConfiguration>()
             ?? throw new Exception("Milky cannot be null");
+#pragma warning restore IL2026, IL3050
 
         // Api Handlers
         services.AddApiHandlers(configuration.Debug);
@@ -141,8 +135,11 @@ public static class HostApplicationBuilderExtension
     {
         services.AddHostedService<MilkyHttpApiService>();
 
+#pragma warning disable IL2026, IL3050
+        // https://github.com/dotnet/runtime/issues/94544
         var configuration = builder.Configuration.GetSection("Milky").Get<MilkyConfiguration>()
             ?? throw new Exception("Milky cannot be null");
+#pragma warning restore IL2026, IL3050
 
         if (configuration.EnabledWebSocket || configuration.WebHook != null)
         {

@@ -1,8 +1,5 @@
 using Lagrange.Core.Common.Entity;
-using Lagrange.Core.Message;
-using Lagrange.Core.Message.Entities;
 using Lagrange.Milky.Entity;
-using Lagrange.Milky.Entity.Segment;
 
 namespace Lagrange.Milky.Utility;
 

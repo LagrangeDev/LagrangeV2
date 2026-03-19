@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using Lagrange.Milky.Extension;
 
 namespace Lagrange.Milky.Entity.Event;
 

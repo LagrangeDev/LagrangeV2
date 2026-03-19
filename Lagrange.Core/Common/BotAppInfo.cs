@@ -5,27 +5,27 @@ namespace Lagrange.Core.Common;
 public class BotAppInfo
 {
     public string Os { get; init; }
-    
+
     public string VendorOs { get; init; }
 
     public string Kernel { get; init; } = "";
 
     public string Qua { get; init; }
-    
+
     public string CurrentVersion { get; init; }
-    
+
     public string PtVersion { get; init; }
-    
+
     public int SsoVersion { get; init; }
-    
+
     public string PackageName { get; init; }
-    
+
     public byte[] ApkSignatureMd5 { get; init; }
-    
+
     public WtLoginSdkInfo SdkInfo { get; init; }
-    
+
     public int AppId { get; init; }
-    
+
     public int SubAppId { get; init; }
 
     public ushort AppClientVersion { get; init; }
@@ -35,7 +35,8 @@ public class BotAppInfo
         Os = "Linux",
         Kernel = "Linux",
         VendorOs = "linux",
-        CurrentVersion = "3.2.15-30366",
+        Qua = "V1_LNX_NQ_3.2.26_46494_GW_B",
+        CurrentVersion = "3.2.26-46494",
         PtVersion = "2.0.0",
         SsoVersion = 19,
         PackageName = "com.tencent.qq",
@@ -44,15 +45,15 @@ public class BotAppInfo
         {
             SdkBuildTime = 0,
             SdkVersion = "nt.wtlogin.0.0.1",
-            MiscBitMap = 12058620,
+            MiscBitMap = 32764,
             SubSigMap = 0,
-            MainSigMap = Sig.WLOGIN_STWEB | Sig.WLOGIN_A2 | Sig.WLOGIN_ST | Sig.WLOGIN_SKEY | Sig.WLOGIN_VKEY | Sig.WLOGIN_D2 | Sig.WLOGIN_SID | Sig.WLOGIN_PSKEY | Sig.WLOGIN_DA2 | Sig.WLOGIN_PT4Token
+            MainSigMap = (Sig)169742560
         },
         AppId = 1600001615,
-        SubAppId = 537258424,
-        AppClientVersion = 30366
+        SubAppId = 537345891,
+        AppClientVersion = 46494
     };
-    
+
     private static readonly BotAppInfo MacOs = new()
     {
         Os = "Mac",
@@ -75,7 +76,7 @@ public class BotAppInfo
         SubAppId = 537200848,
         AppClientVersion = 13172
     };
-    
+
     private static readonly BotAppInfo Windows = new()
     {
         Os = "Windows",
@@ -119,7 +120,7 @@ public class BotAppInfo
         },
         AppClientVersion = 0
     };
-    
+
     private static readonly BotAppInfo AndroidPad = new()
     {
         Os = "ANDROID",
@@ -162,7 +163,7 @@ public class BotAppInfo
         },
         AppClientVersion = 0
     };
-    
+
     public static readonly Dictionary<Protocols, BotAppInfo> ProtocolToAppInfo = new()
     {
         { Protocols.Windows, Windows },
@@ -177,13 +178,13 @@ public class BotAppInfo
 public class WtLoginSdkInfo
 {
     public uint SdkBuildTime { get; init; }
-    
+
     public string SdkVersion { get; init; }
-    
+
     public uint MiscBitMap { get; init; }
-    
+
     public uint SubSigMap { get; init; }
-    
+
     public Sig MainSigMap { get; init; }
 }
 
