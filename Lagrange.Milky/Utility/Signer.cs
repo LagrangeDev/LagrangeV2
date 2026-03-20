@@ -138,7 +138,7 @@ public class SecSignRequest
     [JsonPropertyName("command")]
     public required string Command { get; init; }
 
-    [JsonPropertyName("sequence")]
+    [JsonPropertyName("seq")]
     public required int Sequence { get; init; }
 
     [JsonPropertyName("body")]
