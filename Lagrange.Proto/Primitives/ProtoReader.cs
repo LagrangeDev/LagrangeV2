@@ -302,8 +302,8 @@ public ref struct ProtoReader
     {
         var b = Unsafe.As<byte, Vector128<sbyte>>(ref MemoryMarshal.GetReference(src));
         uint bitmask = (uint)Sse2.MoveMask(b) & 0b1111111111;
-        var (lookup, firstLen, secondLen) = Lookup.DoubleStep1[bitmask];
-        var shuf = Lookup.DoubleVec[lookup];
+        var (lookup, firstLen, secondLen) = Lookup.DoubleStep1[(int)bitmask];
+        var shuf = Unsafe.Add(ref MemoryMarshal.GetReference(Lookup.DoubleVec), lookup);
         var comb = Ssse3.Shuffle(b, shuf).AsUInt64();
         
         TT firstNum;
