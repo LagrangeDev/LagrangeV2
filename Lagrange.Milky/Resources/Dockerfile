@@ -11,10 +11,12 @@ COPY --link Lagrange.Proto.Generator/*.csproj Lagrange.Proto.Generator/
 RUN dotnet restore Lagrange.Milky
 
 COPY --link . .
-RUN dotnet publish Lagrange.Milky -c Release -p:DebugType=none -p:StaticExecutable=true -o /app/bin
+RUN dotnet publish Lagrange.Milky -c Release -p:DebugType=none -o /app/bin
 
 
-FROM scratch
+FROM alpine
 
-COPY --from=build /app/bin/ .
-ENTRYPOINT ["./Lagrange.Milky"]
+WORKDIR /root
+
+COPY --from=build /app/bin/ /usr/local/bin/
+CMD ["Lagrange.Milky"]
