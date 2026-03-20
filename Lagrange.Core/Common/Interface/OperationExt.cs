@@ -44,4 +44,7 @@ public static class OperationExt
 
     public static Task<string> GetNTV2RichMediaUrl(this BotContext context, string fileUuid) =>
         context.EventContext.GetLogic<OperationLogic>().GetNTV2RichMediaUrl(fileUuid);
+
+    public static Task<bool> SetBotAvatar(this BotContext context, Stream stream) =>
+        context.HighwayContext.UploadFile(stream, 90, Array.Empty<byte>());
 }
