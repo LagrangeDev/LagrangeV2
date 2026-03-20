@@ -12,7 +12,7 @@ https://lagrangedev.github.io/Lagrange.Milky.Document
 
 ## Feature List
 
-Current Milky version: [77c6cbd](https://github.com/SaltifyDev/milky/tree/77c6cbd6fb131d581fbb4c128a540eadfbcbd475)
+Current Milky version: [35cc41d](https://github.com/SaltifyDev/milky/tree/35cc41de7ae4fe7998e5ec8fb79e65fbf5b4cf0c)
 
 ### communication
 
