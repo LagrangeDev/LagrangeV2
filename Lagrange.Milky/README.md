@@ -46,9 +46,9 @@ Current Milky version: [77c6cbd](https://github.com/SaltifyDev/milky/tree/77c6cb
   - [ ] temp (wontimpl)
 - [ ] /get_history_messages
   - [x] friend
+    - [ ] start_message_seq
   - [x] group
   - [ ] temp (wontimpl)
-  - [ ] start_message_seq
 - [x] /get_resource_temp_url
 - [ ] /get_forwarded_messages
 - [x] /recall_private_message

@@ -15,11 +15,11 @@ public class GetHistoryMessagesHandler(BotContext bot, EntityConvert convert) : 
 
     public async Task<GetHistoryMessagesResult> HandleAsync(GetHistoryMessagesParameter parameter, CancellationToken token)
     {
-        int start;
-        if (parameter.StartMessageSeq.HasValue) start = (int)(parameter.StartMessageSeq.Value - parameter.Limit);
-        // TODO: No start sequence
-        else throw new NotImplementedException();
-
+        int start = parameter.StartMessageSeq.HasValue
+            ? (int)(parameter.StartMessageSeq.Value - parameter.Limit)
+            : parameter.MessageScene == "group"
+                ? (int)(await _bot.FetchGroupExtra(parameter.PeerId)).LatestMessageSequence
+                : throw new NotImplementedException();
         int end = start + parameter.Limit;
 
         var messages = parameter.MessageScene switch
