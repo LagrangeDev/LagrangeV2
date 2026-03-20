@@ -33,6 +33,10 @@ Current Milky version: [77c6cbd](https://github.com/SaltifyDev/milky/tree/77c6cb
 - [x] /get_group_info
 - [x] /get_group_member_list
 - [x] /get_group_member_info
+- [ ] /set_avatar
+- [ ] /set_nickname
+- [ ] /set_bio
+- [ ] /get_custom_face_url_list
 - [x] /get_cookies
 - [ ] /get_csrf_token
 
@@ -40,19 +44,16 @@ Current Milky version: [77c6cbd](https://github.com/SaltifyDev/milky/tree/77c6cb
 
 - [x] /send_private_message
 - [x] /send_group_message
+- [x] /recall_private_message
+- [x] /recall_group_message
 - [x] /get_message
-  - [x] friend
-  - [x] group
   - [ ] temp (wontimpl)
-- [ ] /get_history_messages
+- [x] /get_history_messages
   - [x] friend
     - [ ] start_message_seq
-  - [x] group
   - [ ] temp (wontimpl)
 - [x] /get_resource_temp_url
 - [ ] /get_forwarded_messages
-- [x] /recall_private_message
-- [x] /recall_group_message
 - [ ] /mark_message_as_read
 
 #### friend
@@ -105,9 +106,7 @@ Current Milky version: [77c6cbd](https://github.com/SaltifyDev/milky/tree/77c6cb
 
 - [x] bot_offline
 - [x] message_receive
-- [ ] message_recall
-  - [x] friend
-  - [x] group
+- [x] message_recall
   - [ ] temp (wontimpl)
 - [x] friend_request
 - [ ] group_join_request

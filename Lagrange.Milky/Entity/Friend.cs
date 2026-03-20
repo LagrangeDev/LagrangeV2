@@ -7,14 +7,14 @@ public class Friend(long userId, string qid, string nickname, string sex, string
     [JsonPropertyName("user_id")]
     public long UserId { get; } = userId;
 
-    [JsonPropertyName("qid")]
-    public string Qid { get; } = qid;
-
     [JsonPropertyName("nickname")]
     public string Nickname { get; } = nickname;
 
     [JsonPropertyName("sex")]
     public string Sex { get; } = sex;
+
+    [JsonPropertyName("qid")]
+    public string Qid { get; } = qid;
 
     [JsonPropertyName("remark")]
     public string Remark { get; } = remark;

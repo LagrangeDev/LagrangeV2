@@ -23,5 +23,5 @@ internal static class Constants
         ?.InformationalVersion?[6..]
         ?? "Unknown";
 
-    public static string MilkyVersion = "1.0";
+    public static string MilkyVersion = "1.1";
 }

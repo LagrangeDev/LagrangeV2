@@ -19,7 +19,6 @@ public class GroupMember(long userId, string nickname, string sex, long groupId,
     [JsonPropertyName("card")]
     public string Card { get; } = card;
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("title")]
     public string Title { get; } = title;
 

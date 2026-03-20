@@ -15,9 +15,9 @@ public class GetGroupNotificationsHandler(BotContext bot, EntityConvert convert)
 
     public async Task<GetGroupNotificationsResult> HandleAsync(GetGroupNotificationsParameter parameter, CancellationToken token)
     {
-        List<BotGroupNotificationBase> notifications = await (parameter.IsFiltered
-            ? _bot.FetchFilteredGroupNotifications((ulong)parameter.Limit, (ulong)parameter.StartNotificationSeq)
-            : _bot.FetchGroupNotifications((ulong)parameter.Limit, (ulong)parameter.StartNotificationSeq));
+        var notifications = await (parameter.IsFiltered
+            ? _bot.FetchFilteredGroupNotifications((ulong)parameter.Limit, (ulong)(parameter.StartNotificationSeq ?? 0))
+            : _bot.FetchGroupNotifications((ulong)parameter.Limit, (ulong)(parameter.StartNotificationSeq ?? 0)));
 
         return new GetGroupNotificationsResult(
             notifications.Select(_convert.GroupNotification).Where(n => n != null)!,
@@ -26,10 +26,10 @@ public class GetGroupNotificationsHandler(BotContext bot, EntityConvert convert)
     }
 }
 
-public class GetGroupNotificationsParameter(long startNotificationSeq = 0, bool isFiltered = false, int limit = 20)
+public class GetGroupNotificationsParameter(long? startNotificationSeq, bool isFiltered = false, int limit = 20)
 {
     [JsonPropertyName("start_notification_seq")]
-    public long StartNotificationSeq { get; } = startNotificationSeq;
+    public long? StartNotificationSeq { get; } = startNotificationSeq;
 
     [JsonPropertyName("is_filtered")]
     public bool IsFiltered { get; } = isFiltered;

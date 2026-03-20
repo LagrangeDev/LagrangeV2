@@ -17,16 +17,20 @@ public class GetHistoryMessagesHandler(BotContext bot, EntityConvert convert) : 
     {
         int start = parameter.StartMessageSeq.HasValue
             ? (int)(parameter.StartMessageSeq.Value - parameter.Limit)
-            : parameter.MessageScene == "group"
-                ? (int)(await _bot.FetchGroupExtra(parameter.PeerId)).LatestMessageSequence
-                : throw new NotImplementedException();
+            : parameter.MessageScene switch
+            {
+                "group" => (int)(await _bot.FetchGroupExtra(parameter.PeerId)).LatestMessageSequence,
+                "friend" => throw new NotImplementedException(),
+                "temp" => throw new ApiException(-1, "tmp will not be implemented."),
+                _ => throw new NotSupportedException(),
+            };
         int end = start + parameter.Limit;
 
         var messages = parameter.MessageScene switch
         {
             "friend" => await _bot.GetC2CMessage(parameter.PeerId, (ulong)start, (ulong)end),
             "group" => await _bot.GetGroupMessage(parameter.PeerId, (ulong)start, (ulong)end),
-            "temp" => throw new ApiException(-1, "temp not supported"),
+            "temp" => throw new ApiException(-1, "tmp will not be implemented."),
             _ => throw new NotSupportedException(),
         };
 
