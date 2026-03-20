@@ -1129,7 +1129,7 @@ internal static class Lookup
          84, 11, 1, 0 // 0b0000001111111111
     ];
 
-    public static ReadOnlySpan<(byte, byte, byte)> DoubleStep1 => MemoryMarshal.Cast<byte, (byte, byte, byte)>(UnderlyingDoubleStep1);
+    public static ReadOnlySpan<DoubleStepInfo> DoubleStep1 => MemoryMarshal.Cast<byte, DoubleStepInfo>(UnderlyingDoubleStep1);
 
     private static ReadOnlySpan<byte> UnderlyingEnc2VarIntShuffle =>
     [
@@ -1200,4 +1200,17 @@ internal static class Lookup
     ];
 
     public static ReadOnlySpan<Vector128<byte>> EncodeTwoVarIntShuffle => MemoryMarshal.Cast<byte, Vector128<byte>>(UnderlyingEnc2VarIntShuffle);
+
+    [StructLayout(LayoutKind.Sequential, Size = 4)]
+    public readonly struct DoubleStepInfo
+    {
+        public readonly byte Lookup, FirstLen, SecondLen;
+
+        public void Deconstruct(out byte lookup, out byte firstLen, out byte secondLen)
+        {
+            lookup = Lookup;
+            firstLen = FirstLen;
+            secondLen = SecondLen;
+        }
+    }
 }
