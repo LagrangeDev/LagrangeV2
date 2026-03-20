@@ -1,7 +1,6 @@
 using Lagrange.Core.Common.Entity;
 using Lagrange.Core.Exceptions;
 using Lagrange.Core.Internal.Packets.Message;
-using Lagrange.Core.Utility.Binary;
 using Lagrange.Core.Utility;
 
 namespace Lagrange.Core.Message.Entities;
@@ -69,18 +68,10 @@ public class MentionEntity(long uin, string? display) : IMessageEntity
     
     IMessageEntity? IMessageEntity.Parse(List<Elem> elements, Elem target)
     {
-        if (target.Text?.Attr6Buf is { Length: > 0 } attr6Buf)
+        if (target.Text is { Attr6Buf.Length: > 0, PbReserve: { Length: > 0 } reserve })
         {
-            var reader = new BinaryPacket(attr6Buf.AsSpan());
-            reader.Skip(2);
-            
-            short startPos = reader.Read<short>();
-            short textLen = reader.Read<short>();
-            byte flag = reader.Read<byte>();
-            uint uin = reader.Read<uint>();
-            ushort wExtBufLen = reader.Read<ushort>();
-            
-            return new MentionEntity(uin, target.Text.TextMsg);
+            var attr = ProtoHelper.Deserialize<TextResvAttr>(reserve.Span);
+            return new MentionEntity((long)attr.AtMemberUin, target.Text.TextMsg);
         }
 
         return null;
