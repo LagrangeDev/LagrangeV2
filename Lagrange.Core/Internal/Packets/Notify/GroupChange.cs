@@ -13,11 +13,11 @@ internal partial class GroupChange
 
     [ProtoMember(3)] public string MemberUid { get; set; }
 
-    [ProtoMember(4)] public uint DecreaseType { get; set; } // 3 KickSelf 130 Exit 131 Kick
+    [ProtoMember(4)] public uint Type { get; set; } // 3 KickSelf 130 Exit 131 Kick
 
     [ProtoMember(5)] public byte[]? Operator { get; set; }
 
-    [ProtoMember(6)] public uint IncreaseType { get; set; }
+    [ProtoMember(6)] public uint Field6 { get; set; }
 
     [ProtoMember(7)] public byte[]? Field7 { get; set; }
 }
@@ -31,7 +31,7 @@ internal partial class OperatorInfo
 [ProtoPackable]
 internal partial class OperatorField1
 {
-    [ProtoMember(1)] public string? Uid { get; set; }
+    [ProtoMember(1)] public string Uid { get; set; }
 
     [ProtoMember(2)] public uint Field2 { get; set; }
 

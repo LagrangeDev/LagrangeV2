@@ -11,7 +11,7 @@ internal class GroupMemberDecreaseProcessor : MsgPushProcessorBase
     internal override async ValueTask<bool> Handle(BotContext context, MsgType msgType, int subType, PushMessageEvent msgEvt, ReadOnlyMemory<byte>? content)
     {
         var decrease = ProtoHelper.Deserialize<GroupChange>(content!.Value.Span);
-        switch ((DecreaseType)decrease.DecreaseType)
+        switch ((DecreaseType)decrease.Type)
         {
             case DecreaseType.KickSelf:
             {
@@ -40,7 +40,7 @@ internal class GroupMemberDecreaseProcessor : MsgPushProcessorBase
             }
             default:
             {
-                context.LogDebug(nameof(PushLogic), "Unknown decrease type: {0}", null, decrease.DecreaseType);
+                context.LogDebug(nameof(PushLogic), "Unknown decrease type: {0}", null, decrease.Type);
                 break;
             }
         }
