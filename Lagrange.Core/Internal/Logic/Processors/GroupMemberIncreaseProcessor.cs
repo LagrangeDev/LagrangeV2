@@ -1,4 +1,5 @@
-﻿using Lagrange.Core.Events.EventArgs;
+﻿using System.Text;
+using Lagrange.Core.Events.EventArgs;
 using Lagrange.Core.Internal.Events.Message;
 using Lagrange.Core.Internal.Packets.Notify;
 using Lagrange.Core.Utility;
@@ -13,7 +14,7 @@ internal class GroupMemberIncreaseProcessor : MsgPushProcessorBase
         if (content == null) return false;
 
         var increase = ProtoHelper.Deserialize<GroupChange>(content.Value.Span);
-        var @operator = increase.Operator != null ? ProtoHelper.Deserialize<OperatorInfo>(increase.Operator) : null;
+        string? @operator = increase.Operator != null ? Encoding.UTF8.GetString(increase.Operator) : null;
 
         var @event = increase.Type switch
         {
@@ -22,12 +23,12 @@ internal class GroupMemberIncreaseProcessor : MsgPushProcessorBase
                 context.CacheContext.ResolveUin(increase.MemberUid),
                 0,
                 increase.Type,
-                @operator != null ? context.CacheContext.ResolveUin(@operator.Operator.Uid) : 0
+                @operator != null ? context.CacheContext.ResolveUin(@operator) : 0
             ),
             131 => new BotGroupMemberIncreaseEvent(
                 increase.GroupUin,
                 context.CacheContext.ResolveUin(increase.MemberUid),
-                @operator != null ? context.CacheContext.ResolveUin(@operator.Operator.Uid) : 0,
+                @operator != null ? context.CacheContext.ResolveUin(@operator) : 0,
                 increase.Type,
                 0
             ),
