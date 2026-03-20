@@ -24,6 +24,9 @@ public static class OperationExt
     public static Task<List<BotGroup>> FetchGroups(this BotContext context, bool refresh = false) =>
         context.CacheContext.GetGroupList(refresh);
 
+    public static Task<BotGroupExtra> FetchGroupExtra(this BotContext context, long groupUin) =>
+        context.EventContext.GetLogic<OperationLogic>().FetchGroupExtra(groupUin);
+
     public static Task<List<BotGroupMember>> FetchMembers(this BotContext context, long groupUin, bool refresh = false) =>
         context.CacheContext.GetMemberList(groupUin, refresh);
 
