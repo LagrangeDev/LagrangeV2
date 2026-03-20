@@ -35,6 +35,7 @@ public sealed class Signer : BotSignProvider, IDisposable
     private readonly string _url;
     private readonly HttpClient _client;
 
+    private readonly long _uin;
     private readonly string? _token;
 
     public Signer(ILogger<Signer> logger, IOptions<CoreConfiguration> options)
@@ -53,6 +54,7 @@ public sealed class Signer : BotSignProvider, IDisposable
             },
         });
 
+        _uin = options.Value.Login.Uin ?? 0;
         _token = signerConfiguration.Token;
     }
 
@@ -72,7 +74,7 @@ public sealed class Signer : BotSignProvider, IDisposable
             request.Content = new StringContent(
                 JsonUtility.Serialize(new SecSignRequest
                 {
-                    Uin = uin,
+                    Uin = uin == 0 ? _uin : uin,
                     Command = cmd,
                     Sequence = seq,
                     Body = Convert.ToHexString(body.Span).ToLower(),
