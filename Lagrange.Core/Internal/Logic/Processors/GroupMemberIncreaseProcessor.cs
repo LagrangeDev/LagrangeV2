@@ -38,7 +38,7 @@ internal class GroupMemberIncreaseProcessor : MsgPushProcessorBase
         if (@event != null)
         {
             context.EventInvoker.PostEvent(@event);
-            _ = await context.CacheContext.GetGroupList(true);
+            _ = await context.CacheContext.GetMemberList(increase.GroupUin, true);
             return true;
         }
         else return false;
