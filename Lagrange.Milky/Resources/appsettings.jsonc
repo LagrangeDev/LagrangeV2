@@ -18,7 +18,7 @@
         // },
         "Signer": {
             // Signer URL
-            "Url": "https://sign.lagrangecore.org/api/sign",
+            "Url": "https://sign.lagrangecore.org",
 
             // Signer token
             // "Token": null
