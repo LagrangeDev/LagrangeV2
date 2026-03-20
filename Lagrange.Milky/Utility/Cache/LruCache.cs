@@ -32,12 +32,21 @@ public sealed class LruCache<TKey, TValue>(int capacity) : ICache<TKey, TValue> 
         {
             if (_cache.TryGetValue(key, out LinkedListNode<KeyValuePair<TKey, TValue>>? node))
             {
+                node.Value = new KeyValuePair<TKey, TValue>(key, value);
                 _sorted.Remove(node);
-                _sorted.AddFirst(new LinkedListNode<KeyValuePair<TKey, TValue>>(new(key, value)));
+                _sorted.AddFirst(node);
             }
             else
             {
-                if (_cache.Count == _capacity) _sorted.RemoveLast();
+                if (_cache.Count == _capacity)
+                {
+                    var lastNode = _sorted.Last;
+                    if (lastNode != null)
+                    {
+                        _sorted.RemoveLast();
+                        _cache.Remove(lastNode.Value.Key);
+                    }
+                }
 
                 KeyValuePair<TKey, TValue> item = new(key, value);
                 node = _sorted.AddFirst(item);
