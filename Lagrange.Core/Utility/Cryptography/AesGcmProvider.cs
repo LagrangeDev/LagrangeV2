@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography;
 
@@ -152,23 +153,22 @@ internal readonly ref struct AesGcmImpl
             }
             else if (System.Runtime.Intrinsics.Arm.Aes.IsSupported)
             {
-                /*var block = AdvSimd.LoadVector128(pInput);
-                var state = AdvSimd.LoadVector128(pRoundKey);
+                var state = AdvSimd.LoadVector128(pInput);
 
-                state = AdvSimd.Xor(block, state);
-
-                for (int round = 1; round < Nr; round++)
+                for (int round = 0; round < Nr - 1; round++)
                 {
                     var roundKey = AdvSimd.LoadVector128(pRoundKey + round * BlockSize);
                     state = System.Runtime.Intrinsics.Arm.Aes.Encrypt(state, roundKey);
                     state = System.Runtime.Intrinsics.Arm.Aes.MixColumns(state);
                 }
 
-                var lastRoundKey = AdvSimd.LoadVector128(pRoundKey + Nr * BlockSize);
-                state = System.Runtime.Intrinsics.Arm.Aes.Encrypt(state, lastRoundKey);
+                var penultimateKey = AdvSimd.LoadVector128(pRoundKey + (Nr - 1) * BlockSize);
+                state = System.Runtime.Intrinsics.Arm.Aes.Encrypt(state, penultimateKey);
 
-                AdvSimd.Store(pOutput, state);*/
-                TransformBlockSoftware(input, output); // Fallback to software implementation if ARM AES is not supported
+                var lastKey = AdvSimd.LoadVector128(pRoundKey + Nr * BlockSize);
+                state = AdvSimd.Xor(state, lastKey);
+
+                AdvSimd.Store(pOutput, state);
             }
             else
             {
