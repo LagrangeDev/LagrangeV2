@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
 using Lagrange.Proto.Utility;
@@ -189,19 +190,19 @@ public class ProtoWriter : IDisposable
         }
         else
         {
-            if (Sse2.IsSupported)
+            if (Sse2.IsSupported || AdvSimd.Arm64.IsSupported)
             {
                 var stage1 = PackVector<T>(v).AsSByte();
                 var minimum = Vector128.Create(-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-                var exists = Sse2.Or(Sse2.CompareGreaterThan(stage1, Vector128<sbyte>.Zero), minimum);
-                uint bits = (uint)Sse2.MoveMask(exists);
+                var exists = Vector128.GreaterThan(stage1, Vector128<sbyte>.Zero) | minimum;
+                uint bits = exists.AsByte().ExtractMostSignificantBits();
 
                 byte bytes = (byte)(32 - BitOperations.LeadingZeroCount(bits));
-                var mask = Sse2.CompareLessThan(Ascend, Vector128.Create((sbyte)bytes));
+                var mask = Vector128.LessThan(Ascend, Vector128.Create((sbyte)bytes));
 
-                var shift = Sse2.ShiftRightLogical128BitLane(mask, 1);
-                var msbmask = Sse2.And(shift, Vector128.Create((sbyte)-128));
-                var merged = Sse2.Or(stage1, msbmask);
+                var shift = Sse2.IsSupported ? Sse2.ShiftRightLogical128BitLane(mask, 1) : AdvSimd.ExtractVector128(mask.AsByte(), Vector128<byte>.Zero, 1).AsSByte();
+                var msbmask = shift & Vector128.Create((sbyte)-128);
+                var merged = stage1 | msbmask;
 
                 ref byte destination = ref MemoryMarshal.GetReference(_memory.Span);
                 Unsafe.As<byte, Vector128<sbyte>>(ref Unsafe.Add(ref destination, BytesPending)) = merged;
@@ -278,6 +279,14 @@ public class ProtoWriter : IDisposable
             x = Sse41.X64.Extract(d, 0);
             y = (v & 0x7f00000000000000) >> 56 | (v & 0x8000000000000000) >> 55;
         }
+        else if (AdvSimd.Arm64.IsSupported)
+        {
+            var b = Vector128.Create(v, v);
+            var c = (AdvSimd.ShiftLogical(b & Vector128.Create(0x00000007f0000000ul, 0x000003f800000000ul), Vector128.Create(4L, 5L)) | AdvSimd.ShiftLogical(b & Vector128.Create(0x0001fc0000000000ul, 0x00fe000000000000ul), Vector128.Create(6L, 7L))) | (AdvSimd.ShiftLogical(b & Vector128.Create(0x000000000000007ful, 0x0000000000003f80ul), Vector128.Create(0L, 1L)) | AdvSimd.ShiftLogical(b & Vector128.Create(0x00000000001fc000ul, 0x000000000fe00000ul), Vector128.Create(2L, 3L)));
+            var d = c | Vector128.Create(c.GetElement(1), 0ul);
+            x = d.ToScalar();
+            y = (v & 0x7f00000000000000) >> 56 | (v & 0x8000000000000000) >> 55;
+        }
         else
         {
             x = (v & 0x000000000000007f) | ((v & 0x0000000000003f80) << 1) | ((v & 0x00000000001fc000) << 2) | ((v & 0x000000000fe00000) << 3) | ((v & 0x00000007f0000000) << 4) | ((v & 0x000003f800000000) << 5) | ((v & 0x0001fc0000000000) << 6) | ((v & 0x00fe000000000000) << 7);
@@ -310,7 +319,7 @@ public class ProtoWriter : IDisposable
             return;
         }
 
-        if (Ssse3.IsSupported)
+        if (Ssse3.IsSupported || AdvSimd.Arm64.IsSupported)
         {
             EncodeTwo32VarIntSimd<TT, TU>(v1, v2);
         }
@@ -343,7 +352,11 @@ public class ProtoWriter : IDisposable
 
         var vec = Vector128.Create(merged1, merged2).AsByte();
         var indices = GetCompactShuffleVector(bytes1, bytes2);
-        var result = Ssse3.Shuffle(vec, indices);
+        Vector128<byte> result;
+        if (Ssse3.IsSupported)
+            result = Ssse3.Shuffle(vec, indices);
+        else
+            result = AdvSimd.Arm64.VectorTableLookup(vec, indices);
 
         ref byte destination = ref MemoryMarshal.GetReference(_memory.Span);
         Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref destination, BytesPending)) = result;

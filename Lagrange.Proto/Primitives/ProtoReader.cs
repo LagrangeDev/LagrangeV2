@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using Lagrange.Proto.Serialization;
 
@@ -193,6 +194,15 @@ public ref struct ProtoReader
                 
             return T.CreateTruncating(pt1 | (varintPart1 & 0x0000000000000100) << 56 | (varintPart1 & 0x000000000000007f) << 56);
         }
+        else if (AdvSimd.Arm64.IsSupported)
+        {
+            var b = Vector128.Create(varintPart0, varintPart0);
+            var d = AdvSimd.ShiftLogical(b & Mask1, -Shift1.AsInt64()) | AdvSimd.ShiftLogical(b & Mask2, -Shift2.AsInt64()) | AdvSimd.ShiftLogical(b & Mask3, -Shift3.AsInt64()) | AdvSimd.ShiftLogical(b & Mask4, -Shift4.AsInt64());
+            var e = d | Vector128.Create(d.GetElement(1), 0ul);
+            ulong pt1 = e.ToScalar();
+
+            return T.CreateTruncating(pt1 | ((varintPart1 & 0x0000000000000100) << 55) | ((varintPart1 & 0x000000000000007f) << 56));
+        }
         else
         {
             return T.CreateTruncating((varintPart0 & 0x000000000000007f) | ((varintPart0 & 0x7f00000000000000) >> 7) | ((varintPart0 & 0x007f000000000000) >> 6) | ((varintPart0 & 0x00007f0000000000) >> 5) | ((varintPart0 & 0x0000007f00000000) >> 4) | ((varintPart0 & 0x000000007f000000) >> 3) | ((varintPart0 & 0x00000000007f0000) >> 2) | ((varintPart0 & 0x0000000000007f00) >> 1) | ((varintPart1 & 0x0000000000000100) << 55) | ((varintPart1 & 0x000000000000007f) << 56));
@@ -204,45 +214,37 @@ public ref struct ProtoReader
         where TT : unmanaged, INumber<TT> 
         where TU : unmanaged, INumber<TU>
     {
-        if (!Ssse3.X64.IsSupported) throw new PlatformNotSupportedException();
+        if (!Ssse3.X64.IsSupported && !AdvSimd.Arm64.IsSupported) throw new PlatformNotSupportedException();
         
         if (sizeof(TT) + sizeof(TU) > 12) throw new NotSupportedException();
 
         if (sizeof(TT) <= 4 && sizeof(TU) <= 4) return DecodeTwo32VarIntUnsafe<TT, TU>(src); // try to use fast path of lookup table
         
         var b = Unsafe.As<byte, Vector128<sbyte>>(ref MemoryMarshal.GetReference(src));
-        uint bitmask = (uint)Sse2.MoveMask(b);
+        uint bitmask = b.AsByte().ExtractMostSignificantBits();
         uint maskNot = ~bitmask;
         int firstLen = BitOperations.TrailingZeroCount(maskNot) + 1;
         uint maskNot2 = maskNot >> firstLen;
         int secondLen = BitOperations.TrailingZeroCount(maskNot2) + 1;
-        
+
         var firstLenVec = Vector128.Create((sbyte)firstLen);
-        var firstMask = Sse2.CompareLessThan(Ascend, firstLenVec);
-        var first = Sse2.And(b, firstMask);
-        
-        var secondShuf = Sse2.Add(Ascend, firstLenVec);
-        var secondShuffled = Ssse3.Shuffle(b, secondShuf);
-        var secondMask = Sse2.CompareLessThan(Ascend, Vector128.Create((sbyte)secondLen));
-        var second = Sse2.And(secondShuffled, secondMask);
+        var firstMask = Vector128.LessThan(Ascend, firstLenVec);
+        var first = b & firstMask;
+
+        var secondShuf = Ascend + firstLenVec;
+        var secondShuffled = Ssse3.IsSupported ? Ssse3.Shuffle(b, secondShuf) : AdvSimd.Arm64.VectorTableLookup(b.AsByte(), secondShuf.AsByte()).AsSByte();
+        var secondMask = Vector128.LessThan(Ascend, Vector128.Create((sbyte)secondLen));
+        var second = secondShuffled & secondMask;
         
         TT firstNum;
         TU secondNum;
         if (sizeof(TT) <= 4 && sizeof(TU) <= 4 && !Bmi2.X64.IsSupported)
         {
-            var comb = Sse2.Or(first, Sse2.ShiftLeftLogical128BitLane(second, 8)).AsUInt64();
+            var shifted = Sse2.IsSupported ? Sse2.ShiftLeftLogical128BitLane(second, 8) : Vector128.Create(0L, second.AsInt64().ToScalar()).AsSByte();
+            var comb = (first | shifted).AsUInt64();
             var x = sizeof(TT) <= 1 && sizeof(TU) <= 1 ? DualU8Stage2(comb) : sizeof(TT) <= 2 && sizeof(TU) <= 2 ? DualU16Stage2(comb) : DualU32Stage2(comb);
-            if (Sse41.X64.IsSupported)
-            {
-                firstNum = TT.CreateTruncating(Sse41.X64.Extract(x, 0));
-                secondNum = TU.CreateTruncating(Sse41.X64.Extract(x, 1));
-            }
-            else
-            {
-                var x32 = x.AsUInt32();
-                firstNum = TT.CreateTruncating(x32[0]);
-                secondNum = TU.CreateTruncating(x32[2]);
-            }
+            firstNum = TT.CreateTruncating(x.GetElement(0));
+            secondNum = TU.CreateTruncating(x.GetElement(1));
         }
         else
         {
@@ -258,40 +260,26 @@ public ref struct ProtoReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<ulong> DualU8Stage2(Vector128<ulong> comb)
     {
-        return Sse2.Or(
-            Sse2.And(comb, Vector128.Create(0x000000000000007ful, 0x000000000000007ful)),
-            Sse2.ShiftRightLogical(Sse2.And(comb, Vector128.Create(0x000000000000007ful, 0x000000000000007ful)), 1)
-        );
+        var mask = Vector128.Create(0x000000000000007ful, 0x000000000000007ful);
+        return (comb & mask) | Vector128.ShiftRightLogical(comb & mask, 1);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<ulong> DualU16Stage2(Vector128<ulong> comb)
     {
-        return Sse2.Or(
-            Sse2.Or(
-                Sse2.And(comb, Vector128.Create(0x000000000000007ful, 0x000000000000007ful)),
-                Sse2.ShiftRightLogical(Sse2.And(comb, Vector128.Create(0x0000000000030000ul, 0x0000000000030000ul)), 2)
-            ),
-            Sse2.ShiftRightLogical(Sse2.And(comb, Vector128.Create(0x0000000000007f00ul, 0x0000000000007f00ul)), 1)
-        );
+        return ((comb & Vector128.Create(0x000000000000007ful, 0x000000000000007ful)) |
+                Vector128.ShiftRightLogical(comb & Vector128.Create(0x0000000000030000ul, 0x0000000000030000ul), 2)) |
+               Vector128.ShiftRightLogical(comb & Vector128.Create(0x0000000000007f00ul, 0x0000000000007f00ul), 1);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<ulong> DualU32Stage2(Vector128<ulong> comb)
     {
-        return Sse2.Or(
-            Sse2.Or(
-                Sse2.And(comb, Vector128.Create(0x000000000000007ful, 0x000000000000007ful)),
-                Sse2.ShiftRightLogical(Sse2.And(comb, Vector128.Create(0x0000000f00000000ul, 0x0000000f00000000ul)), 4)
-            ),
-            Sse2.Or(
-                Sse2.Or(
-                    Sse2.ShiftRightLogical(Sse2.And(comb, Vector128.Create(0x000000007f000000ul, 0x000000007f000000ul)), 3),
-                    Sse2.ShiftRightLogical(Sse2.And(comb, Vector128.Create(0x00000000007f0000ul, 0x00000000007f0000ul)), 2)
-                ),
-                Sse2.ShiftRightLogical(Sse2.And(comb, Vector128.Create(0x0000000000007f00ul, 0x0000000000007f00ul)), 1)
-            )
-        );
+        return ((comb & Vector128.Create(0x000000000000007ful, 0x000000000000007ful)) |
+                Vector128.ShiftRightLogical(comb & Vector128.Create(0x0000000f00000000ul, 0x0000000f00000000ul), 4)) |
+               ((Vector128.ShiftRightLogical(comb & Vector128.Create(0x000000007f000000ul, 0x000000007f000000ul), 3) |
+                 Vector128.ShiftRightLogical(comb & Vector128.Create(0x00000000007f0000ul, 0x00000000007f0000ul), 2)) |
+                Vector128.ShiftRightLogical(comb & Vector128.Create(0x0000000000007f00ul, 0x0000000000007f00ul), 1));
     }
     
     
@@ -301,35 +289,31 @@ public ref struct ProtoReader
         where TU : unmanaged, INumber<TU>
     {
         var b = Unsafe.As<byte, Vector128<sbyte>>(ref MemoryMarshal.GetReference(src));
-        uint bitmask = (uint)Sse2.MoveMask(b) & 0b1111111111;
+        uint bitmask = b.AsByte().ExtractMostSignificantBits() & 0b1111111111;
         var (lookup, firstLen, secondLen) = Lookup.DoubleStep1[(int)bitmask];
         var shuf = Unsafe.Add(ref MemoryMarshal.GetReference(Lookup.DoubleVec), lookup);
-        var comb = Ssse3.Shuffle(b, shuf).AsUInt64();
-        
+
+        Vector128<ulong> comb;
+        if (Ssse3.IsSupported)
+            comb = Ssse3.Shuffle(b, shuf).AsUInt64();
+        else
+            comb = AdvSimd.Arm64.VectorTableLookup(b.AsByte(), shuf.AsByte()).AsUInt64();
+
         TT firstNum;
         TU secondNum;
 
         if (Bmi2.X64.IsSupported)
         {
             var shift = Sse2.ShiftRightLogical128BitLane(comb, 8);
-            
+
             firstNum = ExtractFromVector<TT>(comb[0], comb[1]);
             secondNum = ExtractFromVector<TU>(shift[0], shift[1]);
         }
         else
         {
             var x = sizeof(TT) <= 1 && sizeof(TU) <= 1 ? DualU8Stage2(comb) : sizeof(TT) <= 2 && sizeof(TU) <= 2 ? DualU16Stage2(comb) : DualU32Stage2(comb);
-            if (Sse41.X64.IsSupported)
-            {
-                firstNum = TT.CreateTruncating(Sse41.X64.Extract(x, 0));
-                secondNum = TU.CreateTruncating(Sse41.X64.Extract(x, 1));
-            }
-            else
-            {
-                var x32 = x.AsUInt32();
-                firstNum = TT.CreateTruncating(x32[0]);
-                secondNum = TU.CreateTruncating(x32[2]);
-            }
+            firstNum = TT.CreateTruncating(x.GetElement(0));
+            secondNum = TU.CreateTruncating(x.GetElement(1));
         }
         
         _offset += (firstLen + secondLen) >> 3; // in bits

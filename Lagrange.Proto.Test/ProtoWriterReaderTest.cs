@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
 using Lagrange.Proto.Primitives;
@@ -114,9 +115,9 @@ public class ProtoWriterReaderTest
     [Test]
     public void TestDecodeVarIntUnsafe_DualValues()
     {
-        if (!Sse3.IsSupported)
+        if (!Sse3.IsSupported && !AdvSimd.Arm64.IsSupported)
         {
-            Assert.Ignore("SSE3 is not supported on this platform.");
+            Assert.Ignore("SSSE3/NEON is not supported on this platform.");
             return;
         }
 
@@ -140,9 +141,9 @@ public class ProtoWriterReaderTest
     [Test]
     public void TestDecodeVarIntUnsafe_MixedTypes()
     {
-        if (!Sse3.IsSupported)
+        if (!Sse3.IsSupported && !AdvSimd.Arm64.IsSupported)
         {
-            Assert.Ignore("SSE3 is not supported on this platform.");
+            Assert.Ignore("SSSE3/NEON is not supported on this platform.");
             return;
         }
 
@@ -372,9 +373,9 @@ public class ProtoWriterReaderTest
     [Test]
     public void TestEncodeTwo32VarIntUnsafe_RoundTripWithDecodeUnsafe()
     {
-        if (!Ssse3.IsSupported)
+        if (!Ssse3.IsSupported && !AdvSimd.Arm64.IsSupported)
         {
-            Assert.Ignore("SSSE3 is not supported on this platform.");
+            Assert.Ignore("SSSE3/NEON is not supported on this platform.");
             return;
         }
 
