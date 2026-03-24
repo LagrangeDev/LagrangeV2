@@ -26,7 +26,7 @@ namespace Lagrange.Core.NativeAPI.NativeModel.Event
                 MemberUin = e.MemberUin,
                 InvitorUin = e.InvitorUin,
                 Type = e.Type,
-                OperatorUin = e.OperatorUin ?? 0
+                OperatorUin = e.OperatorUin
             };
         }
     }
