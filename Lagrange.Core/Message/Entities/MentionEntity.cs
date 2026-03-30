@@ -7,7 +7,7 @@ namespace Lagrange.Core.Message.Entities;
 
 public class MentionEntity(long uin, string? display) : IMessageEntity
 {
-    public long Uin { get; } = uin;
+    public long Uin { get; private set; } = uin;
 
     public string? Display { get; private set; } = display;
     
@@ -40,6 +40,16 @@ public class MentionEntity(long uin, string? display) : IMessageEntity
             Uid = contact.Uid;
         }
     }
+
+    Task IMessageEntity.Postprocess(BotContext context, BotMessage message)
+    {
+        if (Uin == 0 && !string.IsNullOrEmpty(Uid))
+        {
+            Uin = context.CacheContext.ResolveUin(Uid);
+        }
+        
+        return Task.CompletedTask;
+    }
     
     string IMessageEntity.ToPreviewString() => Display ?? "";
 
@@ -71,7 +81,16 @@ public class MentionEntity(long uin, string? display) : IMessageEntity
         if (target.Text is { Attr6Buf.Length: > 0, PbReserve: { Length: > 0 } reserve })
         {
             var attr = ProtoHelper.Deserialize<TextResvAttr>(reserve.Span);
-            return new MentionEntity((long)attr.AtMemberUin, target.Text.TextMsg);
+            
+            if (attr.AtType > 0) // AtType: 1 = mention_all, 2 = mention specific user
+            {
+                var entity = new MentionEntity((long)attr.AtMemberUin, target.Text.TextMsg);
+                if (attr.AtMemberUin == 0 && !string.IsNullOrEmpty(attr.AtMemberUid))
+                {
+                    entity.Uid = attr.AtMemberUid;
+                }
+                return entity;
+            }
         }
 
         return null;
