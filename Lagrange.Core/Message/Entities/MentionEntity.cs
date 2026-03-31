@@ -81,16 +81,12 @@ public class MentionEntity(long uin, string? display) : IMessageEntity
         if (target.Text is { Attr6Buf.Length: > 0, PbReserve: { Length: > 0 } reserve })
         {
             var attr = ProtoHelper.Deserialize<TextResvAttr>(reserve.Span);
-            
-            if (attr.AtType > 0) // AtType: 1 = mention_all, 2 = mention specific user
+            var entity = new MentionEntity((long)attr.AtMemberUin, target.Text.TextMsg);
+            if (attr.AtType == 2) // AtType: 1 = mention_all, 2 = mention specific user
             {
-                var entity = new MentionEntity((long)attr.AtMemberUin, target.Text.TextMsg);
-                if (attr.AtMemberUin == 0 && !string.IsNullOrEmpty(attr.AtMemberUid))
-                {
-                    entity.Uid = attr.AtMemberUid;
-                }
-                return entity;
+                entity.Uid = attr.AtMemberUid;
             }
+            return entity;
         }
 
         return null;
