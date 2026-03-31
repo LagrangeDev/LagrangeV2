@@ -43,7 +43,7 @@ public class MentionEntity(long uin, string? display) : IMessageEntity
 
     Task IMessageEntity.Postprocess(BotContext context, BotMessage message)
     {
-        if (Uin == 0 && !string.IsNullOrEmpty(Uid))
+        if (Uin == 0 && Uid != null)
         {
             Uin = context.CacheContext.ResolveUin(Uid);
         }
