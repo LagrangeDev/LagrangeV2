@@ -47,7 +47,7 @@ internal static class NTV2RichMedia
                 TryFastUploadCompleted = true,
                 SrvSendMsg = false,
                 ClientRandomId = (ulong)Random.Shared.Next(),
-                CompatQMsgSceneType = 1,
+                CompatQMsgSceneType = @struct.IsGroup()? 2u : 1u ,
                 ClientSeq = 10,
                 ExtBizInfo = ext,
                 NoNeedCompatMsg = false
