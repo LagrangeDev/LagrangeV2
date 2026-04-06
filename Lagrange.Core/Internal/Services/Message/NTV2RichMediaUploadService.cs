@@ -73,7 +73,7 @@ internal class ImageUploadService : OidbService<ImageUploadEventReq, ImageUpload
             Video = new VideoExtBizInfo { BytesPbReserve = [] },
             Ptt = new PttExtBizInfo { BytesReserve = [], BytesPbReserve = [], BytesGeneralFlags = [] }
         };
-        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext));
+        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext, 1));
     }
 
     private protected override Task<ImageUploadEventResp> ProcessResponse(NTV2RichMediaResp response, BotContext context)
@@ -102,7 +102,7 @@ internal class ImageGroupUploadService : OidbService<ImageGroupUploadEventReq, I
             Video = new VideoExtBizInfo { BytesPbReserve = [] },
             Ptt = new PttExtBizInfo { BytesReserve = [], BytesPbReserve = [], BytesGeneralFlags = [] }
         };
-        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext));
+        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext, 2));
     }
 
     private protected override Task<ImageGroupUploadEventResp> ProcessResponse(NTV2RichMediaResp response, BotContext context)
@@ -132,7 +132,7 @@ internal class RecordUploadService : OidbService<RecordUploadEventReq, RecordUpl
                 BytesGeneralFlags = [0x9a, 0x01, 0x0b, 0xaa, 0x03, 0x08, 0x08, 0x04, 0x12, 0x04, 0x00, 0x00, 0x00, 0x00]
             }
         };
-        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext));
+        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext, 1));
     }
 
     private protected override Task<RecordUploadEventResp> ProcessResponse(NTV2RichMediaResp response, BotContext context)
@@ -162,7 +162,7 @@ internal class RecordGroupUploadService : OidbService<RecordGroupUploadEventReq,
                 BytesGeneralFlags = [0x9a, 0x01, 0x07, 0xaa, 0x03, 0x04, 0x08, 0x08, 0x12, 0x00]
             }
         };
-        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext));
+        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext, 2));
     }
 
     private protected override Task<RecordGroupUploadEventResp> ProcessResponse(NTV2RichMediaResp response, BotContext context)
@@ -189,7 +189,7 @@ internal class VideoUploadService : OidbService<VideoUploadEventReq, VideoUpload
         };
         var entity = (VideoEntity)request.Entity;
         ArgumentNullException.ThrowIfNull(entity.ThumbnailEntity);
-        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext, (100, entity.ThumbnailEntity)));
+        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext, 1, (100, entity.ThumbnailEntity)));
     }
 
     private protected override Task<VideoUploadEventResp> ProcessResponse(NTV2RichMediaResp response, BotContext context)
@@ -216,7 +216,7 @@ internal class VideoGroupUploadService : OidbService<VideoGroupUploadEventReq, V
         };
         var entity = (VideoEntity)request.Entity;
         ArgumentNullException.ThrowIfNull(entity.ThumbnailEntity);
-        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext, (100, entity.ThumbnailEntity)));
+        return Task.FromResult(NTV2RichMedia.BuildUploadReq(request.Message, request.Entity, ext, 2, (100, entity.ThumbnailEntity)));
     }
 
     private protected override Task<VideoGroupUploadEventResp> ProcessResponse(NTV2RichMediaResp response, BotContext context)
