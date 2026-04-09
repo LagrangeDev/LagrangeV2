@@ -89,8 +89,10 @@ internal class PacketContext
             }
             catch (Exception e)
             {
-                tcs.SetException(e);
-                _pendingTasks.Remove(packet.Sequence, out var _);
+                if (_pendingTasks.TryRemove(packet.Sequence, out var tcs))
+                {
+                    tcs.SetException(e);
+                }
             }
         });
 

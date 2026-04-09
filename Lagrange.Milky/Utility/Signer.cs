@@ -4,7 +4,6 @@ using System.Net.Mime;
 using System.Text.Json.Serialization;
 using Lagrange.Core.Common;
 using Lagrange.Milky.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Lagrange.Milky.Utility;
@@ -30,18 +29,14 @@ public sealed class Signer : BotSignProvider, IDisposable
         "OidbSvcTrpcTcp.0xf67_5", "OidbSvcTrpcTcp.0x6d9_4"
     ];
 
-    private readonly ILogger<Signer> _logger;
-
     private readonly string _url;
     private readonly HttpClient _client;
 
     private readonly long _uin;
     private readonly string? _token;
 
-    public Signer(ILogger<Signer> logger, IOptions<CoreConfiguration> options)
+    public Signer(IOptions<CoreConfiguration> options)
     {
-        _logger = logger;
-
         var signerConfiguration = options.Value.Signer;
         _url = signerConfiguration.Url ?? throw new Exception("Core.Signer.Url cannot be null");
         _client = new HttpClient(new HttpClientHandler
@@ -104,12 +99,6 @@ public sealed class Signer : BotSignProvider, IDisposable
     {
         _client.Dispose();
     }
-}
-
-public static partial class SignerLoggerExtension
-{
-    [LoggerMessage(LogLevel.Error, "Get sec sign failed")]
-    public static partial void LogGetSecSignFailed(this ILogger<Signer> logger, Exception e);
 }
 
 public class SignerResponse<T>
