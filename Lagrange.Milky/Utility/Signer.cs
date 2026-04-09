@@ -62,49 +62,41 @@ public sealed class Signer : BotSignProvider, IDisposable
 
     public override async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
     {
-        try
+        using var request = new HttpRequestMessage();
+        request.Method = HttpMethod.Post;
+        request.RequestUri = new Uri($"{_url}{(_url.EndsWith('/') ? "" : "/")}api/sign/sec-sign");
+        if (!string.IsNullOrEmpty(_token))
         {
-            using var request = new HttpRequestMessage();
-            request.Method = HttpMethod.Post;
-            request.RequestUri = new Uri($"{_url}{(_url.EndsWith('/') ? "" : "/")}api/sign/sec-sign");
-            if (!string.IsNullOrEmpty(_token))
-            {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-            }
-            request.Content = new StringContent(
-                JsonUtility.Serialize(new SecSignRequest
-                {
-                    Uin = uin == 0 ? _uin : uin,
-                    Command = cmd,
-                    Sequence = seq,
-                    Body = Convert.ToHexString(body.Span).ToLower(),
-                    Guid = Convert.ToHexString(Context.Keystore.Guid).ToLower(),
-                    Qua = Context.AppInfo.Qua,
-                }),
-                System.Text.Encoding.UTF8,
-                MediaTypeNames.Application.Json
-            );
-
-            using var response = await _client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-
-            using var stream = await response.Content.ReadAsStreamAsync();
-            var result = JsonUtility.Deserialize<SignerResponse<SecSignResponse>>(stream);
-            if (result == null) throw new Exception("Signer response serialization failed");
-            if (result.Code != 0) throw new Exception($"Signer server exception: ({result.Code}){result.Message}");
-
-            return new SsoSecureInfo
-            {
-                SecSign = Convert.FromHexString(result.Value.SecSign),
-                SecToken = Convert.FromHexString(result.Value.SecToken),
-                SecExtra = Convert.FromHexString(result.Value.SecExtra),
-            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
         }
-        catch (Exception e)
+        request.Content = new StringContent(
+            JsonUtility.Serialize(new SecSignRequest
+            {
+                Uin = uin == 0 ? _uin : uin,
+                Command = cmd,
+                Sequence = seq,
+                Body = Convert.ToHexString(body.Span).ToLower(),
+                Guid = Convert.ToHexString(Context.Keystore.Guid).ToLower(),
+                Qua = Context.AppInfo.Qua,
+            }),
+            System.Text.Encoding.UTF8,
+            MediaTypeNames.Application.Json
+        );
+
+        using var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        using var stream = await response.Content.ReadAsStreamAsync();
+        var result = JsonUtility.Deserialize<SignerResponse<SecSignResponse>>(stream);
+        if (result == null) throw new Exception("Signer response serialization failed");
+        if (result.Code != 0) throw new Exception($"Signer server exception: ({result.Code}){result.Message}");
+
+        return new SsoSecureInfo
         {
-            _logger.LogGetSecSignFailed(e);
-            return null;
-        }
+            SecSign = Convert.FromHexString(result.Value.SecSign),
+            SecToken = Convert.FromHexString(result.Value.SecToken),
+            SecExtra = Convert.FromHexString(result.Value.SecExtra),
+        };
     }
 
 

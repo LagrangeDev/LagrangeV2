@@ -86,33 +86,25 @@ internal class DefaultBotSignProvider : BotSignProvider, IDisposable
 
     public override async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
     {
-        try
+        var payload = new JsonObject
         {
-            var payload = new JsonObject
-            {
-                ["cmd"] = cmd,
-                ["seq"] = seq,
-                ["src"] = Convert.ToHexString(body.Span),
-            };
+            ["cmd"] = cmd,
+            ["seq"] = seq,
+            ["src"] = Convert.ToHexString(body.Span),
+        };
 
-            var response = await _client.PostAsync(Url, new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
-            if (!response.IsSuccessStatusCode) return null;
+        var response = await _client.PostAsync(Url, new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
+        if (!response.IsSuccessStatusCode) return null;
 
-            var content = JsonHelper.Deserialize<Root>(await response.Content.ReadAsStringAsync());
-            if (content == null) return null;
+        var content = JsonHelper.Deserialize<Root>(await response.Content.ReadAsStringAsync());
+        if (content == null) return null;
 
-            return new SsoSecureInfo
-            {
-                SecSign = Convert.FromHexString(content.Value.Sign),
-                SecToken = Convert.FromHexString(content.Value.Token),
-                SecExtra = Convert.FromHexString(content.Value.Extra)
-            };
-        }
-        catch (Exception e)
+        return new SsoSecureInfo
         {
-            Context.LogWarning(Tag, $"Failed to get sign: {e.Message}");
-            return null;
-        }
+            SecSign = Convert.FromHexString(content.Value.Sign),
+            SecToken = Convert.FromHexString(content.Value.Token),
+            SecExtra = Convert.FromHexString(content.Value.Extra)
+        };
     }
 
     public void Dispose()
