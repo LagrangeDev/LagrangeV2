@@ -42,48 +42,58 @@ internal class PacketContext
 
         Task.Run(async () => // Schedule the task to the ThreadPool
         {
-            ReadOnlyMemory<byte> frame;
-
-            switch (options.RequestType)
+            try
             {
-                case RequestType.D2Auth:
-                {
-                    if (SignProvider.IsWhiteListCommand(packet.Command))
-                    {
-                        var secInfo = await SignProvider.GetSecSign(_keystore.Uin, packet.Command, packet.Sequence, packet.Data);
-                        var sso = _ssoPacker.BuildProtocol12(packet, secInfo);
-                        frame = _servicePacker.BuildProtocol12(sso, options);
-                    }
-                    else
-                    {
-                        var sso = _ssoPacker.BuildProtocol12(packet, null);
-                        frame = _servicePacker.BuildProtocol12(sso, options);
-                    }
+                ReadOnlyMemory<byte> frame;
 
-                    break;
-                }
-                case RequestType.Simple:
+                switch (options.RequestType)
                 {
-                    if (SignProvider.IsWhiteListCommand(packet.Command))
+                    case RequestType.D2Auth:
                     {
-                        var secInfo = await SignProvider.GetSecSign(_keystore.Uin, packet.Command, packet.Sequence, packet.Data);
-                        var sso = _ssoPacker.BuildProtocol13(packet, secInfo);
-                        frame = _servicePacker.BuildProtocol13(packet, sso, options);
+                        if (SignProvider.IsWhiteListCommand(packet.Command))
+                        {
+                            var secInfo = await SignProvider.GetSecSign(_keystore.Uin, packet.Command, packet.Sequence, packet.Data);
+                            var sso = _ssoPacker.BuildProtocol12(packet, secInfo);
+                            frame = _servicePacker.BuildProtocol12(sso, options);
+                        }
+                        else
+                        {
+                            var sso = _ssoPacker.BuildProtocol12(packet, null);
+                            frame = _servicePacker.BuildProtocol12(sso, options);
+                        }
+
+                        break;
                     }
-                    else
+                    case RequestType.Simple:
                     {
-                        var sso = _ssoPacker.BuildProtocol13(packet, null);
-                        frame = _servicePacker.BuildProtocol13(packet, sso, options);
+                        if (SignProvider.IsWhiteListCommand(packet.Command))
+                        {
+                            var secInfo = await SignProvider.GetSecSign(_keystore.Uin, packet.Command, packet.Sequence, packet.Data);
+                            var sso = _ssoPacker.BuildProtocol13(packet, secInfo);
+                            frame = _servicePacker.BuildProtocol13(packet, sso, options);
+                        }
+                        else
+                        {
+                            var sso = _ssoPacker.BuildProtocol13(packet, null);
+                            frame = _servicePacker.BuildProtocol13(packet, sso, options);
+                        }
+                        break;
                     }
-                    break;
+                    default:
+                    {
+                        throw new InvalidOperationException($"Unknown RequestType: {options.RequestType}");
+                    }
                 }
-                default:
+
+                await _context.SocketContext.Send(frame);
+            }
+            catch (Exception e)
+            {
+                if (_pendingTasks.TryRemove(packet.Sequence, out var tcs))
                 {
-                    throw new InvalidOperationException($"Unknown RequestType: {options.RequestType}");
+                    tcs.SetException(e);
                 }
             }
-
-            await _context.SocketContext.Send(frame);
         });
 
         return new ValueTask<BotSsoPacket>(tcs, 0);

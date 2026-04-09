@@ -21,13 +21,13 @@ namespace Lagrange.Core.Internal.Logic;
 internal class WtExchangeLogic : ILogic, IDisposable
 {
     private const string Tag = nameof(WtExchangeLogic);
-    
+
     private const string HeartBeatTag = "HeartBeat";
     private const string SsoHeartBeatTag = "SsoHeartBeat";
     private const string QueryStateTag = "QueryState";
     private const string ExchangeEmpTag = "ExchangeEmp";
     private const string NewDeviceTag = "NewDevice";
-    
+
     private readonly BotContext _context;
 
     private CancellationToken? _token;
@@ -62,7 +62,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 _context.EventInvoker.PostEvent(new BotOfflineEvent(BotOfflineEvent.Reasons.Kicked, (kick.TipsTitle, kick.TipsInfo)));
                 _context.IsOnline = false;
                 _timers[SsoHeartBeatTag].Change(Timeout.Infinite, Timeout.Infinite);
-                
+
                 await _context.EventContext.SendEvent<SsoUnregisterEventResp>(new SsoUnregisterEventReq());
                 break;
             }
@@ -79,7 +79,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
             _captchaSource?.TrySetCanceled();
             _smsSource?.TrySetCanceled();
         }, null);
-        
+
         if (!_context.SocketContext.Connected)
         {
             await _context.SocketContext.Connect();
@@ -95,7 +95,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
 
         return await ManualLogin(uin, password);
     }
-    
+
     public async Task<bool> Logout()
     {
         if (_context.IsOnline)
@@ -112,11 +112,11 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 _context.LogError(Tag, "Logout failed, directly offline {0}", null, result.Message);
             }
         }
-        
+
         _context.SocketContext.Disconnect();
         return true;
     }
-    
+
     private async Task<bool> ManualLogin(long uin, string? password)
     {
         if (string.IsNullOrEmpty(password) && _context.Config.Protocol.IsAndroid())
@@ -128,10 +128,10 @@ internal class WtExchangeLogic : ILogic, IDisposable
         if (_context.Config.Protocol.IsPC() && _context.Keystore.WLoginSigs is { A1.Length: not 0 })
         {
             if (!await KeyExchange()) return false;
-            
+
             var result = await _context.EventContext.SendEvent<EasyLoginEventResp>(new EasyLoginEventReq());
             _token?.ThrowIfCancellationRequested();
-            
+
             switch (result.State)
             {
                 case NTLoginRetCode.LOGIN_SUCCESS:
@@ -155,16 +155,16 @@ internal class WtExchangeLogic : ILogic, IDisposable
                     break;
             }
         }
-        
+
         if (string.IsNullOrEmpty(password))
         {
             _context.LogInfo(Tag, "Password is empty or null, use QRCode Login");
-            
+
             var transEmp31 = await _context.EventContext.SendEvent<TransEmp31EventResp>(new TransEmp31EventReq(null));
 
             _transEmpSource = new TaskCompletionSource<bool>();
             _context.EventInvoker.PostEvent(new BotQrCodeEvent(transEmp31.Url, transEmp31.Image));
-            
+
             _context.Keystore.State.QrSig = transEmp31.QrSig;
             _timers[QueryStateTag].Change(0, 2000);
 
@@ -179,7 +179,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 _context.Keystore.Uin = uin;
                 _context.Keystore.WLoginSigs.TgtgtKey = new byte[16];
                 Random.Shared.NextBytes(_context.Keystore.WLoginSigs.TgtgtKey);
-                
+
                 var result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.Tgtgt, password));
 
                 if (result.State == LoginEventResp.States.CaptchaVerify)
@@ -189,21 +189,21 @@ internal class WtExchangeLogic : ILogic, IDisposable
                         _context.Keystore.State.Tlv104 = tlv104;
                         _context.LogDebug(Tag, "Tlv104 received, length: {0}", tlv104.Length);
                     }
-                    
+
                     if (result.Tlvs.TryGetValue(0x546, out var tlv546))
                     {
                         _context.Keystore.State.Tlv547 = PowProvider.GenerateTlv547(tlv546);
                         _context.LogDebug(Tag, "Tlv546 received, calculated Tlv547 with length {0}", _context.Keystore.State.Tlv547.Length);
                     }
-                    
+
                     string captchaUrl = Encoding.UTF8.GetString(result.Tlvs[0x192]);
                     _context.LogInfo(Tag, "Captcha required, URL: {0}", captchaUrl);
                     _context.EventInvoker.PostEvent(new BotCaptchaEvent(captchaUrl));
-                    
+
                     _captchaSource = new TaskCompletionSource<(string, string)>();
                     var (ticket, _) = await _captchaSource.Task;
                     _context.LogInfo(Tag, "Captcha ticket: {0}, try to login", ticket);
-                    
+
                     _token?.ThrowIfCancellationRequested();
                     result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.Captcha) { Ticket = ticket });
                 }
@@ -215,20 +215,20 @@ internal class WtExchangeLogic : ILogic, IDisposable
                         _context.Keystore.State.Tlv104 = tlv104;
                         _context.LogDebug(Tag, "Tlv104 received, length: {0}", tlv104.Length);
                     }
-                    
+
                     if (result.Tlvs.TryGetValue(0x174, out var tlv174))
                     {
                         _context.Keystore.State.Tlv174 = tlv174;
                         _context.LogDebug(Tag, "Tlv174 received, length: {0}", tlv174.Length);
                     }
-                    
+
                     string? url = null;
                     if (result.Tlvs.TryGetValue(0x204, out var tlv204)) url = Encoding.UTF8.GetString(tlv204);
 
                     var tlv178 = new BinaryPacket(result.Tlvs[0x178].AsSpan());
                     string countryCode = tlv178.ReadString(Prefix.Int16 | Prefix.LengthOnly);
                     string phone = tlv178.ReadString(Prefix.Int16 | Prefix.LengthOnly);
-                    
+
                     _token?.ThrowIfCancellationRequested();
                     result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.FetchSMSCode));
                     if (result.State == LoginEventResp.States.SmsRequired)
@@ -238,20 +238,20 @@ internal class WtExchangeLogic : ILogic, IDisposable
                             _context.Keystore.State.Tlv104 = tlv1048;
                             _context.LogDebug(Tag, "Tlv104 received, length: {0}", tlv1048.Length);
                         }
-                        
+
                         _context.LogInfo(Tag, "SMS Verification required, Phone: {0}-{1} | URL: {2}", countryCode, phone, url);
                         _context.EventInvoker.PostEvent(new BotSMSEvent(url, $"{countryCode}-{phone}"));
-                        
+
                         _smsSource = new TaskCompletionSource<string>();
                         string code = await _smsSource.Task;
                         result = await _context.EventContext.SendEvent<LoginEventResp>(new LoginEventReq(LoginEventReq.Command.SubmitSMSCode) { Code = code });
                     }
                 }
-                
+
                 if (result.State == LoginEventResp.States.Success)
                 {
                     ReadWLoginSigs(result.Tlvs);
-                    
+
                     _context.EventInvoker.PostEvent(new BotLoginEvent(0, null));
                     _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
 
@@ -272,7 +272,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 while (true)
                 {
                     _token?.ThrowIfCancellationRequested();
-                    
+
                     switch (result.State)
                     {
                         case NTLoginRetCode.LOGIN_SUCCESS:
@@ -281,7 +281,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                             return await Online();
                         case NTLoginRetCode.LOGIN_ERROR_PROOF_WATER:
                             _context.LogInfo(Tag, "Captcha required, URL: {0}", result.JumpingUrl);
-                            
+
                             _context.EventInvoker.PostEvent(new BotCaptchaEvent(result.JumpingUrl));
                             _captchaSource = new TaskCompletionSource<(string, string)>();
 
@@ -291,7 +291,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                             break;
                         case NTLoginRetCode.LOGIN_ERROR_NEW_DEVICE:
                             _context.LogInfo(Tag, "New device login required");
-                            
+
                             var parsed = HttpUtility.ParseQueryString(result.JumpingUrl);
                             string interfaceUrl = $"https://oidb.tim.qq.com/v3/oidbinterface/oidb_0xc9e_8?uid={uin}&getqrcode=1&sdkappid=39998&actype=2";
                             string request = JsonHelper.Serialize(new NTNewDeviceQrCodeRequest
@@ -306,10 +306,10 @@ internal class WtExchangeLogic : ILogic, IDisposable
                             var response = await (_client ??= new HttpClient()).PostAsync(interfaceUrl, new StringContent(request, Encoding.UTF8, "application/json"));
                             var json = JsonHelper.Deserialize<NTNewDeviceQrCodeResponse>(await response.Content.ReadAsStringAsync()) ?? throw new InvalidOperationException();
                             _context.EventInvoker.PostEvent(new BotNewDeviceVerifyEvent(json.StrUrl));
-                            
+
                             string url = HttpUtility.ParseQueryString(json.StrUrl.Split("?")[1])["str_url"] ?? throw new InvalidOperationException();
                             request = JsonHelper.Serialize(new NTNewDeviceQrCodeQuery { Uint32Flag = 0, Token = Convert.ToBase64String(Encoding.UTF8.GetBytes(url.Replace('*', '+').Replace('-', '/').Replace("==", ""))) });
-                            
+
                             _timers[NewDeviceTag] = new Timer(OnNewDevice, (interfaceUrl, request), 0, 2000);
                             _transEmpSource = new TaskCompletionSource<bool>();
                             if (await _transEmpSource.Task) return await Online();
@@ -322,10 +322,10 @@ internal class WtExchangeLogic : ILogic, IDisposable
                 }
             }
         }
-        
+
         return false;
     }
-    
+
     public async Task<long> ResolveUinByQid(string qid)
     {
         if (!_context.SocketContext.Connected)
@@ -333,7 +333,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
             await _context.SocketContext.Connect();
             _timers[HeartBeatTag].Change(0, 2000);
         }
-        
+
         var result = await _context.EventContext.SendEvent<UinResolveEventResp>(new UinResolveEventReq(qid));
         if (result is { State: 0, Info: { } info })
         {
@@ -362,11 +362,11 @@ internal class WtExchangeLogic : ILogic, IDisposable
         bool success = !confirm || result.State == 0;
         return (success, result.Message);
     }
-    
+
     public bool SubmitCaptcha(string ticket, string randStr)
     {
         if (_captchaSource == null) return false;
-        
+
         bool success = _captchaSource.TrySetResult((ticket, randStr));
         _captchaSource = null;
         return success;
@@ -415,21 +415,21 @@ internal class WtExchangeLogic : ILogic, IDisposable
     {
         await _context.EventContext.SendEvent<AliveEvent>(new AliveEvent());
     });
-    
+
     private void OnSsoHeartBeat(object? state) => Task.Run(async () =>
     {
         await _context.EventContext.SendEvent<SsoHeartBeatEventResp>(new SsoHeartBeatEventReq());
     });
-    
+
     private void OnQueryState(object? state) => Task.Run(async () =>
     {
         if (_transEmpSource == null) return;
 
         bool isUnusual = (bool?)state ?? false;
         var transEmp12 = await _context.EventContext.SendEvent<TransEmp12EventResp>(new TransEmp12EventReq());
-        
+
         _context.EventInvoker.PostEvent(new BotQrCodeQueryEvent((BotQrCodeQueryEvent.TransEmpState)transEmp12.State));
-        
+
         switch (transEmp12)
         {
             case { State: TransEmp12EventResp.TransEmpState.Confirmed, Data: { } data }:
@@ -454,7 +454,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
                         _context.LogError(Tag, "Login failed: {0} | Message: {1}", null, result.State, result.Tips);
                         _transEmpSource.TrySetResult(false);
                     }
-                    
+
                     _context.EventInvoker.PostEvent(new BotLoginEvent((int)result.State, result.Tips));
                 }
                 else
@@ -474,32 +474,39 @@ internal class WtExchangeLogic : ILogic, IDisposable
                     }
 
                     _context.EventInvoker.PostEvent(new BotLoginEvent(result.RetCode, result.Error));
-                } 
+                }
                 break;
             case { State: TransEmp12EventResp.TransEmpState.Canceled or TransEmp12EventResp.TransEmpState.Invalid or TransEmp12EventResp.TransEmpState.CodeExpired }:
                 _context.LogCritical(Tag, "QR Code State: {0}", null, transEmp12.State);
-                
+
                 _transEmpSource.TrySetResult(false);
                 _timers[QueryStateTag].Change(Timeout.Infinite, Timeout.Infinite);
                 break;
         }
     });
-    
+
     private void OnExchangeEmp(object? state) => Task.Run(async () =>
     {
-        var result = await _context.EventContext.SendEvent<ExchangeEmpEventResp>(new ExchangeEmpEventReq(ExchangeEmpEventReq.Command.RefreshByA1));
-        if (result.RetCode == 0)
+        try
         {
-            ReadWLoginSigs(result.Tlvs);
-            if (!_context.IsOnline) await Online();
-            _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
+            var result = await _context.EventContext.SendEvent<ExchangeEmpEventResp>(new ExchangeEmpEventReq(ExchangeEmpEventReq.Command.RefreshByA1));
+            if (result.RetCode == 0)
+            {
+                ReadWLoginSigs(result.Tlvs);
+                if (!_context.IsOnline) await Online();
+                _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
+            }
+        }
+        catch (Exception e)
+        {
+            _context.LogWarning(Tag, "refresh by a1 failed", e);
         }
     });
 
     private void OnNewDevice(object? state) => Task.Run(async () =>
     {
         if (_client == null || _transEmpSource == null) throw new InvalidOperationException("Can not find client");
-        
+
         var (url, payload) = (ValueTuple<string, string>)(state ?? throw new InvalidOperationException());
         var response = await _client.PostAsync(url, new StringContent(payload, Encoding.UTF8, "application/json"));
         var json = JsonHelper.Deserialize<NTNewDeviceQrCodeResponse>(await response.Content.ReadAsStringAsync());
@@ -508,12 +515,12 @@ internal class WtExchangeLogic : ILogic, IDisposable
         if (json.ActionStatus == "OK" && string.IsNullOrEmpty(json.StrNtSuccToken))
         {
             _timers[NewDeviceTag].Change(Timeout.Infinite, Timeout.Infinite);
-            
+
             var sig = Encoding.UTF8.GetBytes(json.StrNtSuccToken);
             var result = await _context.EventContext.SendEvent<NewDeviceLoginEventResp>(new NewDeviceLoginEventReq(sig));
 
             _context.EventInvoker.PostEvent(new BotLoginEvent((int)result.State, result.Tips));
-            
+
             if (result.State == NTLoginRetCode.LOGIN_SUCCESS)
             {
                 _context.EventInvoker.PostEvent(new BotRefreshKeystoreEvent(_context.Keystore));
@@ -554,7 +561,7 @@ internal class WtExchangeLogic : ILogic, IDisposable
         { 0x16D, (value, context) => context.Keystore.WLoginSigs.SuperKey = value },
         { 0x512, (value, context) => {
             context.Keystore.WLoginSigs.PsKey.Clear();
-            
+
             var reader = new BinaryPacket(value.AsSpan());
             short domainCount = reader.Read<short>();
             for (int i = 0; i < domainCount; i++)
@@ -591,9 +598,9 @@ internal class WtExchangeLogic : ILogic, IDisposable
         _transEmpSource?.TrySetCanceled();
         _captchaSource?.TrySetCanceled();
         _smsSource?.TrySetCanceled();
-        
+
         foreach (var timer in _timers) timer.Value.Dispose();
-        
+
         _client?.Dispose();
     }
 }

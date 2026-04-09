@@ -15,11 +15,11 @@ public abstract class AndroidBotSignProvider : BotSignProvider
 internal class DefaultAndroidBotSignProvider : AndroidBotSignProvider, IDisposable
 {
     private const string Tag = nameof(DefaultAndroidBotSignProvider);
-    
+
     private readonly HttpClient _client = new();
 
     private readonly string _url = "http://127.0.0.1:8081";
-    
+
     private static readonly HashSet<string> WhiteListCommand =
     [
         "OidbSvcTrpcTcp.0xf88_1", "OidbSvcTrpcTcp.0x1105_1", "oidb_0xf7e_1",
@@ -57,7 +57,7 @@ internal class DefaultAndroidBotSignProvider : AndroidBotSignProvider, IDisposab
         "trpc.login.ecdh.EcdhService.SsoQRLoginGenQr", "OidbSvcTrpcTcp.0xf59_2", "OidbSvc.0x592_10",
         "OidbSvcTrpcTcp.0xfe7_3", "OidbSvc.0x592_18", "OidbSvc.0x88d_0", "trpc.qpay.red_pack_skin.Skin.SsoAddSkin",
         "MsgProxy.SendMsg", "OidbSvcTrpcTcp.0x899_1", "trpc.lplan.user_manager_svr.User.SsoSetProfile",
-        "trpc.login.ecdh.EcdhService.SsoKeyExchange", "trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLogin", 
+        "trpc.login.ecdh.EcdhService.SsoKeyExchange", "trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLogin",
         "trpc.login.ecdh.EcdhService.SsoNTLoginEasyLogin", "trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLoginNewDevice",
         "trpc.login.ecdh.EcdhService.SsoNTLoginEasyLoginUnusualDevice", "trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLoginUnusualDevice",
         "QChannelSvr.trpc.qchannel.commwriter.ComWriter.DoReply", "OidbSvc.0x5eb_43",
@@ -157,95 +157,71 @@ internal class DefaultAndroidBotSignProvider : AndroidBotSignProvider, IDisposab
         "FeedCloudSvr.trpc.feedcloud.commreader.ComReader.GetMainPageBasicData", "OidbSvc.0x5eb_common",
         "OidbSvcTrpcTcp.0xaf6_0", "IncreaseURLSvr.QQHeadUrlReq"
     ];
-    
+
     public override bool IsWhiteListCommand(string cmd) => WhiteListCommand.Contains(cmd);
-    
+
     public override async Task<SsoSecureInfo?> GetSecSign(long uin, string cmd, int seq, ReadOnlyMemory<byte> body)
     {
-        try
+        var payload = new JsonObject
         {
-            var payload = new JsonObject
-            {
-                ["uin"] = uin,
-                ["cmd"] = cmd,
-                ["seq"] = seq,
-                ["buffer"] = Convert.ToHexString(body.Span),
-                ["guid"] = Convert.ToHexString(Context.Keystore.Guid),
-                ["version"] = Context.AppInfo.PtVersion,
-                ["qua"] = "V1_AND_SQ_9.2.20_11650_YYB_D"
-            };
-            
-            var response = await _client.PostAsync($"{_url}/sign", new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
-            if (!response.IsSuccessStatusCode) return null;
-            
-            var content = JsonHelper.Deserialize<ResponseRoot<SignResponse>>(await response.Content.ReadAsStringAsync());
-            if (content == null) return null;
-            
-            return new SsoSecureInfo
-            {
-                SecSign = Convert.FromHexString(content.Value.Sign),
-                SecToken = Convert.FromHexString(content.Value.Token), 
-                SecExtra = Convert.FromHexString(content.Value.Extra)
-            };
-        }
-        catch (Exception e)
+            ["uin"] = uin,
+            ["cmd"] = cmd,
+            ["seq"] = seq,
+            ["buffer"] = Convert.ToHexString(body.Span),
+            ["guid"] = Convert.ToHexString(Context.Keystore.Guid),
+            ["version"] = Context.AppInfo.PtVersion,
+            ["qua"] = "V1_AND_SQ_9.2.20_11650_YYB_D"
+        };
+
+        var response = await _client.PostAsync($"{_url}/sign", new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
+        if (!response.IsSuccessStatusCode) return null;
+
+        var content = JsonHelper.Deserialize<ResponseRoot<SignResponse>>(await response.Content.ReadAsStringAsync());
+        if (content == null) return null;
+
+        return new SsoSecureInfo
         {
-            Context.LogWarning(Tag, "Failed to get sign: {0}", e, e.Message);
-            return null;
-        }
+            SecSign = Convert.FromHexString(content.Value.Sign),
+            SecToken = Convert.FromHexString(content.Value.Token),
+            SecExtra = Convert.FromHexString(content.Value.Extra)
+        };
     }
 
     public override async Task<byte[]> GetEnergy(long uin, string data)
     {
-        try
+        var payload = new JsonObject
         {
-            var payload = new JsonObject
-            {
-                ["uin"] = uin,
-                ["data"] = data,
-                ["guid"] = Convert.ToHexString(Context.Keystore.Guid),
-                ["ver"] = Context.AppInfo.SdkInfo.SdkVersion,
-                ["version"] = Context.AppInfo.PtVersion,
-                ["qua"] = "V1_AND_SQ_9.2.20_11650_YYB_D"
-            };
-            
-            var response = await _client.PostAsync($"{_url}/energy", new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
-            if (!response.IsSuccessStatusCode) return [];
-            
-            var content = JsonHelper.Deserialize<ResponseRoot<string>>(await response.Content.ReadAsStringAsync());
-            return content == null ? [] : Convert.FromHexString(content.Value);
-        }
-        catch (Exception e)
-        {
-            Context.LogWarning(Tag, "Failed to get energy: {0}", e, e.Message);
-            return [];
-        }
+            ["uin"] = uin,
+            ["data"] = data,
+            ["guid"] = Convert.ToHexString(Context.Keystore.Guid),
+            ["ver"] = Context.AppInfo.SdkInfo.SdkVersion,
+            ["version"] = Context.AppInfo.PtVersion,
+            ["qua"] = "V1_AND_SQ_9.2.20_11650_YYB_D"
+        };
+
+        var response = await _client.PostAsync($"{_url}/energy", new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
+        if (!response.IsSuccessStatusCode) return [];
+
+        var content = JsonHelper.Deserialize<ResponseRoot<string>>(await response.Content.ReadAsStringAsync());
+        return content == null ? [] : Convert.FromHexString(content.Value);
     }
 
     public override async Task<byte[]> GetDebugXwid(long uin, string data)
     {
-        try
+        var payload = new JsonObject
         {
-            var payload = new JsonObject
-            {
-                ["uin"] = uin,
-                ["data"] = data,
-                ["guid"] = Convert.ToHexString(Context.Keystore.Guid),
-                ["version"] = Context.AppInfo.PtVersion,
-                ["qua"] = "V1_AND_SQ_9.2.20_11650_YYB_D"
-            };
-            
-            var response = await _client.PostAsync($"{_url}/get_tlv553", new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
-            if (!response.IsSuccessStatusCode) return [];
-            
-            var content = JsonHelper.Deserialize<ResponseRoot<string>>(await response.Content.ReadAsStringAsync());
-            return content == null ? [] : Convert.FromHexString(content.Value);
-        }
-        catch (Exception e)
-        {
-            Context.LogWarning(Tag, "Failed to get debug_xwid: {0}", e, e.Message);
-            return [];
-        }
+            ["uin"] = uin,
+            ["data"] = data,
+            ["guid"] = Convert.ToHexString(Context.Keystore.Guid),
+            ["version"] = Context.AppInfo.PtVersion,
+            ["qua"] = "V1_AND_SQ_9.2.20_11650_YYB_D"
+        };
+
+        var response = await _client.PostAsync($"{_url}/get_tlv553", new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json"));
+        if (!response.IsSuccessStatusCode) return [];
+
+        var content = JsonHelper.Deserialize<ResponseRoot<string>>(await response.Content.ReadAsStringAsync());
+        return content == null ? [] : Convert.FromHexString(content.Value);
     }
 
     public void Dispose()
@@ -258,14 +234,14 @@ internal class DefaultAndroidBotSignProvider : AndroidBotSignProvider, IDisposab
     {
         [JsonPropertyName("data")] public T Value { get; set; } = default!;
     }
-    
+
     [Serializable]
     internal class SignResponse
     {
         [JsonPropertyName("sign")] public string Sign { get; set; } = string.Empty;
-        
+
         [JsonPropertyName("token")] public string Token { get; set; } = string.Empty;
-        
+
         [JsonPropertyName("extra")] public string Extra { get; set; } = string.Empty;
     }
 }
