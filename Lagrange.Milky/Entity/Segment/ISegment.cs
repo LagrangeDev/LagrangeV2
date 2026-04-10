@@ -6,7 +6,7 @@ namespace Lagrange.Milky.Entity.Segment;
 [JsonDerivedType(typeof(TextIncomingSegment), typeDiscriminator: "text")]
 [JsonDerivedType(typeof(MentionIncomingSegment), typeDiscriminator: "mention")]
 [JsonDerivedType(typeof(MentionAllIncomingSegment), typeDiscriminator: "mention_all")]
-[JsonDerivedType(typeof(FaceIncomingSegment), typeDiscriminator: "face_incoming")]
+[JsonDerivedType(typeof(FaceIncomingSegment), typeDiscriminator: "face")]
 [JsonDerivedType(typeof(ReplyIncomingSegment), typeDiscriminator: "reply")]
 [JsonDerivedType(typeof(ImageIncomingSegment), typeDiscriminator: "image")]
 [JsonDerivedType(typeof(RecordIncomingSegment), typeDiscriminator: "record")]
@@ -15,6 +15,7 @@ namespace Lagrange.Milky.Entity.Segment;
 [JsonDerivedType(typeof(MarketFaceIncomingSegment), typeDiscriminator: "market_face")]
 [JsonDerivedType(typeof(LightAppIncomingSegment), typeDiscriminator: "light_app")]
 [JsonDerivedType(typeof(XmlIncomingSegment), typeDiscriminator: "xml")]
+[JsonDerivedType(typeof(FileIncomingSegment), typeDiscriminator: "file")]
 public interface IIncomingSegment
 {
     object? Data { get; }
