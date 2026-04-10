@@ -6,11 +6,12 @@ namespace Lagrange.Milky.Entity.Segment;
 [JsonDerivedType(typeof(TextIncomingSegment), typeDiscriminator: "text")]
 [JsonDerivedType(typeof(MentionIncomingSegment), typeDiscriminator: "mention")]
 [JsonDerivedType(typeof(MentionAllIncomingSegment), typeDiscriminator: "mention_all")]
-[JsonDerivedType(typeof(FaceIncomingSegment), typeDiscriminator: "face_incoming")]
+[JsonDerivedType(typeof(FaceIncomingSegment), typeDiscriminator: "face")]
 [JsonDerivedType(typeof(ReplyIncomingSegment), typeDiscriminator: "reply")]
 [JsonDerivedType(typeof(ImageIncomingSegment), typeDiscriminator: "image")]
 [JsonDerivedType(typeof(RecordIncomingSegment), typeDiscriminator: "record")]
 [JsonDerivedType(typeof(VideoIncomingSegment), typeDiscriminator: "video")]
+[JsonDerivedType(typeof(FileIncomingSegment), typeDiscriminator: "file")]
 [JsonDerivedType(typeof(ForwardIncomingSegment), typeDiscriminator: "forward")]
 [JsonDerivedType(typeof(MarketFaceIncomingSegment), typeDiscriminator: "market_face")]
 [JsonDerivedType(typeof(LightAppIncomingSegment), typeDiscriminator: "light_app")]
@@ -31,6 +32,7 @@ public interface IIncomingSegment
 [JsonDerivedType(typeof(RecordOutgoingSegment), typeDiscriminator: "record")]
 [JsonDerivedType(typeof(VideoOutgoingSegment), typeDiscriminator: "video")]
 [JsonDerivedType(typeof(ForwardOutgoingSegment), typeDiscriminator: "forward")]
+[JsonDerivedType(typeof(LightAppOutgoingSegment), typeDiscriminator: "light_app")]
 public interface IOutgoingSegment
 {
     object? Data { get; }
