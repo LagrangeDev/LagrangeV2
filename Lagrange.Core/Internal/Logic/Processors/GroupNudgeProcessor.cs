@@ -9,8 +9,7 @@ namespace Lagrange.Core.Internal.Logic.Processors;
 [MsgPushProcessor(MsgType.Event0x2DC, 20, true)] // GroupGreyTipNotice20
 internal class GroupNudgeProcessor : MsgPushProcessorBase
 {
-    internal override ValueTask<bool> Handle(BotContext context, MsgType msgType, int subType,
-        PushMessageEvent msgEvt, ReadOnlyMemory<byte>? content)
+    internal override ValueTask<bool> Handle(BotContext context, MsgType msgType, int subType, PushMessageEvent msgEvt, ReadOnlyMemory<byte>? content)
     {
         var packet = new BinaryPacket(content!.Value.Span);
         long groupUin = packet.Read<int>(); // group uin
@@ -27,7 +26,7 @@ internal class GroupNudgeProcessor : MsgPushProcessorBase
             context.EventInvoker.PostEvent(new BotGroupNudgeEvent(
                 groupUin,
                 long.Parse(@params["uin_str1"]),
-                @params["action_str"],
+                @params.TryGetValue("action_str", out string? v) ? v : @params["alt_str1"],
                 @params["action_img_url"],
                 long.Parse(@params["uin_str2"]),
                 @params["suffix_str"]
