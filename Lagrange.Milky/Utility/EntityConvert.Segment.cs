@@ -46,7 +46,7 @@ public partial class EntityConvert
     private IIncomingSegment Segment(IMessageEntity entities) => entities switch
     {
         TextEntity text => new TextIncomingSegment(text.Text),
-        MentionEntity mention when mention.Uin != 0 => new MentionIncomingSegment(mention.Uin),
+        MentionEntity mention when mention.Uin != 0 => new MentionIncomingSegment(mention.Uin, mention.Display ?? string.Empty),
         MentionEntity mention when mention.Uin == 0 => new MentionAllIncomingSegment(),
         // ? => new FaceSegment(...),
         ReplyEntity reply => new ReplyIncomingSegment((long)reply.SrcSequence),
