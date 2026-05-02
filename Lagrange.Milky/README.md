@@ -29,6 +29,7 @@ https://lagrangedev.github.io/Lagrange.Milky.Document
 - [x] /get_friend_info
 - [x] /get_group_list
 - [x] /get_group_info
+  - [ ] remark
 - [x] /get_group_member_list
 - [x] /get_group_member_info
 - [ ] /set_avatar

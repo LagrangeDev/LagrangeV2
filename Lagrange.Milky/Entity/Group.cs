@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Lagrange.Milky.Entity;
 
-public class Group(long groupId, string groupName, long memberCount, long maxMemberCount)
+public class Group(long groupId, string groupName, long memberCount, long maxMemberCount, string? remark, long createdTime, string? description, string? question, string? announcement)
 {
     [JsonPropertyName("group_id")]
     public long GroupId { get; } = groupId;
@@ -15,4 +15,20 @@ public class Group(long groupId, string groupName, long memberCount, long maxMem
 
     [JsonPropertyName("max_member_count")]
     public long MaxMemberCount { get; } = maxMemberCount;
+
+    // TODO: Core BotGroup has no Remark field
+    [JsonPropertyName("remark")]
+    public string? Remark { get; } = remark;
+
+    [JsonPropertyName("created_time")]
+    public long CreatedTime { get; } = createdTime;
+
+    [JsonPropertyName("description")]
+    public string? Description { get; } = description;
+
+    [JsonPropertyName("question")]
+    public string? Question { get; } = question;
+
+    [JsonPropertyName("announcement")]
+    public string? Announcement { get; } = announcement;
 }

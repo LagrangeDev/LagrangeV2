@@ -25,7 +25,17 @@ public partial class EntityConvert
 
     private FriendCategory FriendCategory(BotFriendCategory category) => new(category.Id, category.Name);
 
-    public Group Group(BotGroup group) => new(group.GroupUin, group.GroupName, group.MemberCount, group.MaxMember);
+    public Group Group(BotGroup group) => new(
+        group.GroupUin,
+        group.GroupName,
+        group.MemberCount,
+        group.MaxMember,
+        string.Empty, // TODO: Core BotGroup has no Remark field
+        group.CreateTime,
+        group.Description ?? string.Empty,
+        group.Question ?? string.Empty,
+        group.Announcement ?? string.Empty
+    );
 
     public GroupMember GroupMember(BotGroupMember member) => new(
         member.Uin,
