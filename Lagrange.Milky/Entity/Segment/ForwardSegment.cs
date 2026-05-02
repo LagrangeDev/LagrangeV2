@@ -5,13 +5,25 @@ namespace Lagrange.Milky.Entity.Segment;
 [method: JsonConstructor]
 public class ForwardIncomingSegment(ForwardIncomingSegmentData data) : IncomingSegmentBase<ForwardIncomingSegmentData>(data)
 {
-    public ForwardIncomingSegment(string forwardId) : this(new ForwardIncomingSegmentData(forwardId)) { }
+    public ForwardIncomingSegment(string forwardId, string title, string[] preview, string summary) : this(new ForwardIncomingSegmentData(forwardId, title, preview, summary)) { }
 }
 
-public class ForwardIncomingSegmentData(string forwardId)
+public class ForwardIncomingSegmentData(string forwardId, string title, string[] preview, string summary)
 {
     [JsonPropertyName("forward_id")]
     public string ForwardId { get; } = forwardId;
+
+    // TODO: Core MultiMsgEntity does not expose title
+    [JsonPropertyName("title")]
+    public string Title { get; } = title;
+
+    // TODO: Core MultiMsgEntity does not expose preview
+    [JsonPropertyName("preview")]
+    public string[] Preview { get; } = preview;
+
+    // TODO: Core MultiMsgEntity does not expose summary
+    [JsonPropertyName("summary")]
+    public string Summary { get; } = summary;
 }
 
 public class ForwardOutgoingSegment(ForwardOutgoingSegmentData data) : OutgoingSegmentBase<ForwardOutgoingSegmentData>(data) { }

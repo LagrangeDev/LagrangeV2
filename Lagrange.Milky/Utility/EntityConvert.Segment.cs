@@ -71,7 +71,12 @@ public partial class EntityConvert
             (int)video.VideoLength
         ),
         GroupFileEntity groupFile => new FileIncomingSegment(groupFile.FileId, groupFile.FileName, groupFile.FileSize),
-        MultiMsgEntity multiMsg => new ForwardIncomingSegment(multiMsg.ResId!),
+        MultiMsgEntity multiMsg => new ForwardIncomingSegment(
+            multiMsg.ResId ?? string.Empty,
+            string.Empty, // TODO: Core MultiMsgEntity does not expose title
+            [], // TODO: Core MultiMsgEntity does not expose preview
+            string.Empty // TODO: Core MultiMsgEntity does not expose summary
+        ),
         LightAppEntity lightApp => new LightAppIncomingSegment(lightApp.AppName, lightApp.Payload),
         // ? => new MarketFaceSegment(...),
         // ? => new LightAppSegment(...),
