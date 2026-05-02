@@ -258,6 +258,7 @@ public class EventService(ILogger<EventService> logger, IOptions<MilkyConfigurat
         _bot.EventInvoker.UnregisterEvent<LgrEvents.BotOfflineEvent>(HandleOfflineEvent);
         _bot.EventInvoker.UnregisterEvent<LgrEvents.BotMessageEvent>(HandleMessageEvent);
         _bot.EventInvoker.UnregisterEvent<LgrEvents.BotGroupNudgeEvent>(HandleGroupNudgeEvent);
+        _bot.EventInvoker.UnregisterEvent<LgrEvents.BotGroupMemberIncreaseEvent>(HandleGroupMemberIncreaseEvent);
         _bot.EventInvoker.UnregisterEvent<LgrEvents.BotGroupMemberDecreaseEvent>(HandleGroupMemberDecreaseEvent);
         _bot.EventInvoker.UnregisterEvent<LgrEvents.BotFriendRequestEvent>(HandleFriendRequestEvent);
         _bot.EventInvoker.UnregisterEvent<LgrEvents.BotGroupRecallEvent>(HandleGroupRecallEvent);
