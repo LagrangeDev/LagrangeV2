@@ -12,11 +12,12 @@ public class SendGroupMessageReactionHandler(BotContext bot) : IEmptyResultApiHa
 
     public async Task HandleAsync(SendGroupMessageReactionParameter parameter, CancellationToken token)
     {
+        // TODO: Core SetGroupReaction does not support reaction_type (emoji)
         await _bot.SetGroupReaction(parameter.GroupId, (ulong)parameter.MessageSeq, parameter.Reaction, parameter.IsAdd);
     }
 }
 
-public class SendGroupMessageReactionParameter(long groupId, long messageSeq, string reaction, bool isAdd)
+public class SendGroupMessageReactionParameter(long groupId, long messageSeq, string reaction, string reactionType = "face", bool isAdd = true)
 {
     [JsonRequired]
     [JsonPropertyName("group_id")]
@@ -30,7 +31,9 @@ public class SendGroupMessageReactionParameter(long groupId, long messageSeq, st
     [JsonPropertyName("reaction")]
     public string Reaction { get; init; } = reaction;
 
-    [JsonRequired]
+    [JsonPropertyName("reaction_type")]
+    public string ReactionType { get; init; } = reactionType;
+
     [JsonPropertyName("is_add")]
     public bool IsAdd { get; init; } = isAdd;
 }

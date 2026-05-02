@@ -81,6 +81,7 @@ https://lagrangedev.github.io/Lagrange.Milky.Document
 - [x] /send_group_message_reaction
 - [x] /send_group_nudge
 - [x] /get_group_notifications
+  - [ ] reaction_type=emoji
 - [ ] /accept_group_request
 - [ ] /reject_group_request
 - [ ] /accept_group_invitation
