@@ -12,8 +12,6 @@ https://lagrangedev.github.io/Lagrange.Milky.Document
 
 ## Feature List
 
-Current Milky version: [35cc41d](https://github.com/SaltifyDev/milky/tree/35cc41de7ae4fe7998e5ec8fb79e65fbf5b4cf0c)
-
 ### communication
 
 - [ ] SSE (wontimpl)
