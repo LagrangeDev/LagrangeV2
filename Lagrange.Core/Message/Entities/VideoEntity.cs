@@ -51,12 +51,13 @@ public class VideoEntity : RichMediaEntityBase
                 if (result.Ext != null)
                 {
                     result.Ext.Hash.FileSha1 = CalculateStreamBytes(Stream.Value);
-                    await context.HighwayContext.UploadFile(Stream.Value, 1001, ProtoHelper.Serialize(result.Ext));
+                    await context.HighwayContext.UploadFile(Stream.Value, 1005, ProtoHelper.Serialize(result.Ext));
                 }
 
                 if (result.SubExt != null)
                 {
-                    await context.HighwayContext.UploadFile(ThumbnailStream.Value, 1002, ProtoHelper.Serialize(result.SubExt));
+                    result.SubExt.Hash.FileSha1 = CalculateStreamBytes(ThumbnailStream.Value);
+                    await context.HighwayContext.UploadFile(ThumbnailStream.Value, 1006, ProtoHelper.Serialize(result.SubExt));
                 }
             }
             else
@@ -68,12 +69,13 @@ public class VideoEntity : RichMediaEntityBase
                 if (result.Ext != null)
                 {
                     result.Ext.Hash.FileSha1 = CalculateStreamBytes(Stream.Value);
-                    await context.HighwayContext.UploadFile(Stream.Value, 1005, ProtoHelper.Serialize(result.Ext));
+                    await context.HighwayContext.UploadFile(Stream.Value, 1001, ProtoHelper.Serialize(result.Ext));
                 }
 
                 if (result.SubExt != null)
                 {
-                    await context.HighwayContext.UploadFile(ThumbnailStream.Value, 1006, ProtoHelper.Serialize(result.SubExt));
+                    result.SubExt.Hash.FileSha1 = CalculateStreamBytes(ThumbnailStream.Value);
+                    await context.HighwayContext.UploadFile(ThumbnailStream.Value, 1002, ProtoHelper.Serialize(result.SubExt));
                 }
             }
         }
