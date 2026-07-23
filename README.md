@@ -6,6 +6,9 @@
 
 </div>
 
+> [!IMPORTANT]
+> The current project has moved to [LagrangeDev/Lagrange.Core](https://github.com/LagrangeDev/Lagrange.Core) for updates.
+
 ## Usage
 
 ### Integrating into .NET projects
