@@ -39,7 +39,7 @@ internal class SocketContext : IClientListener, IDisposable
 
     public void OnSocketError(Exception e, ReadOnlyMemory<byte> data)
     {
-        
+        _context.LogError(Tag, "Socket error occurred during packet processing: {0}", e, e.Message);
     }
     
     public async Task<bool> Connect()
