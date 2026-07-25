@@ -8,7 +8,7 @@ using Lagrange.Core.Internal.Packets.Service;
 namespace Lagrange.Core.Internal.Services.System;
 
 [EventSubscribe<FetchGroupMembersEventReq>(Protocols.All)]
-[Service("OidbSvcTrpcTcp.0xfe7_3")]
+[Service("OidbSvcTrpcTcp.0xfe7_4")]
 internal class FetchGroupMembersService : OidbService<FetchGroupMembersEventReq, FetchGroupMembersEventResp, FetchGroupMembersRequest, FetchGroupMembersResponse>
 {
     private protected override uint Command => 0xfe7;
