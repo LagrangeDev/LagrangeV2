@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Security.Cryptography;
 using Lagrange.Core.Common.Entity;
+using Lagrange.Core.Common.Response;
 using Lagrange.Core.Exceptions;
 using Lagrange.Core.Internal.Events.Message;
 using Lagrange.Core.Internal.Events.System;
@@ -239,6 +240,87 @@ internal class OperationLogic(BotContext context) : ILogic
         if (feedResult.RetCode != 0) throw new OperationException(feedResult.RetCode, feedResult.RetMsg);
 
         return uploadResp.FileId;
+    }
+
+    public async Task<BotFlashTransferUpload> UploadFlashTransfer(IReadOnlyList<(Stream Stream, string? FileName)> files, string? title)
+    {
+        if (files.Count == 0) throw new OperationException(-1, "No files to upload");
+
+        var flashTransferFiles = files.Select((file, index) =>
+        {
+            string fileName = ResolveFileName(file.Stream, file.FileName);
+            return new FlashTransferFile(
+                Guid.NewGuid().ToString(),
+                (uint)(index + 1),
+                fileName,
+                file.Stream);
+        }).ToList();
+
+        string fileSetTitle = string.IsNullOrEmpty(title) ? ResolveFlashTransferTitle(flashTransferFiles) : title;
+        string asciiTitle = ResolveAsciiTitle(fileSetTitle);
+        var createReq = new FlashTransferCreateFileSetEventReq(fileSetTitle, asciiTitle, flashTransferFiles);
+        var createResp = await context.EventContext.SendEvent<FlashTransferCreateFileSetEventResp>(createReq);
+
+        await context.EventContext.SendEvent<FlashTransferRegisterFilesEventResp>(new FlashTransferRegisterFilesEventReq(createResp.FileSetId, flashTransferFiles));
+
+        await context.EventContext.SendEvent<FlashTransferQueryFileSetStatusEventResp>(new FlashTransferQueryFileSetStatusEventReq(createResp.FileSetId));
+
+        uint uploadScene = 3;
+        foreach (var file in flashTransferFiles)
+        {
+            var authorize = await context.EventContext.SendEvent<FlashTransferUploadAuthorizeEventResp>(new FlashTransferUploadAuthorizeEventReq(createResp.FileSetId, file, uploadScene++));
+
+            if (string.IsNullOrEmpty(authorize.UploadToken) && string.IsNullOrEmpty(authorize.ResourceKey))
+            {
+                context.LogWarning(Tag,
+                    "FlashTransfer authorize returned neither upload token nor resource key: fileName={0}, fileId={1}, index={2}, size={3}, host={4}, appId={5}, bindingStage={6}, bindingField5={7}, bindingField6={8}",
+                    null,
+                    file.FileName,
+                    file.FileId,
+                    file.Index,
+                    file.Stream.Length,
+                    authorize.UploadHost,
+                    authorize.AppId,
+                    authorize.BindingStage,
+                    authorize.BindingField5,
+                    authorize.BindingField6);
+                throw new OperationException(-1, $"FlashTransfer upload authorization did not return an upload token or resource key for file {file.FileName}");
+            }
+
+            uint bindingStage = authorize.BindingStage == 0 ? file.Index : authorize.BindingStage;
+            if (!string.IsNullOrEmpty(authorize.UploadToken))
+            {
+                bool success = await context.FlashTransferContext.UploadFile(authorize.UploadToken, authorize.UploadHost, authorize.AppId, file.Index, createResp.FileSetId, file.FileId, bindingStage, file.FileType, authorize.BindingField5, authorize.BindingField6, file.Stream);
+                if (!success) throw new OperationException(-1, "FlashTransfer file upload failed");
+            }
+
+            await context.EventContext.SendEvent<FlashTransferUploadCompleteEventResp>(new FlashTransferUploadCompleteEventReq(createResp.FileSetId, file, authorize.ResourceKey, uploadScene++, bindingStage, authorize.BindingField5, authorize.BindingField6));
+        }
+
+        await context.EventContext.SendEvent<FlashTransferUpdateFileSetStatusEventResp>(new FlashTransferUpdateFileSetStatusEventReq(createResp.FileSetId, 6));
+
+        return new BotFlashTransferUpload(
+            createResp.FileSetId,
+            flashTransferFiles.Select(file => file.FileId).ToList(),
+            createResp.ShareLink);
+    }
+
+    private static string ResolveFlashTransferTitle(IReadOnlyList<FlashTransferFile> files)
+    {
+        string firstName = Path.GetFileNameWithoutExtension(files[0].FileName);
+        return files.Count == 1 ? files[0].FileName : $"{firstName}等{files.Count}项文件";
+    }
+
+    internal static string ResolveAsciiTitle(string title)
+    {
+        Span<char> chars = stackalloc char[title.Length];
+        int length = 0;
+        foreach (char c in title)
+        {
+            chars[length++] = c < 128 && !char.IsWhiteSpace(c) ? c : '_';
+        }
+
+        return new string(chars[..length]);
     }
 
     public async Task<BotGroupExtra> FetchGroupExtra(long groupUin)

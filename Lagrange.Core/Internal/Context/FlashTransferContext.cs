@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using Lagrange.Core.Internal.Packets.Service;
 using Lagrange.Core.Utility;
 using Lagrange.Core.Utility.Cryptography;
@@ -23,6 +23,28 @@ public class FlashTransferContext
     }
 
     public async Task<bool> UploadFile(string uKey, uint appId, Stream bodyStream)
+    {
+        return await UploadFile(uKey, appId, 2, bodyStream, null, _url);
+    }
+
+    public async Task<bool> UploadFile(string uploadToken, string uploadHost, uint appId, uint uploadIndex, string fileSetId, string fileId, uint bindingStage, uint fileType, uint bindingField5, uint bindingField6, Stream bodyStream)
+    {
+        var binding = new FlashTransferUploadFileBinding
+        {
+            FileSetId = fileSetId,
+            FileSetIdDup = fileSetId,
+            FileId = fileId,
+            Stage = bindingStage,
+            Field5 = bindingField5,
+            Field6 = bindingField6,
+            FileType = fileType,
+            FileIdDup = fileId,
+        };
+
+        return await UploadFile(uploadToken, appId, uploadIndex, bodyStream, binding, $"https://{uploadHost}/sliceupload");
+    }
+
+    private async Task<bool> UploadFile(string uKey, uint appId, uint uploadIndex, Stream bodyStream, FlashTransferUploadFileBinding? binding, string? url)
     {
         var sha1StateVs = new FlashTransferSha1StateV { State = [] };
         var chunkCount = (uint)((bodyStream.Length + ChunkSize - 1) / ChunkSize);
@@ -61,33 +83,35 @@ public class FlashTransferContext
             var uploadBuffer = new byte[chunkLength];
             await bodyStream.ReadExactlyAsync(uploadBuffer, 0, chunkLength);
 
-            var success = await UploadChunk(uKey, appId, (uint)chunkStart, sha1StateVs, uploadBuffer);
+            var success = await UploadChunk(uKey, appId, uploadIndex, (uint)chunkStart, sha1StateVs, uploadBuffer, binding, url);
             if (!success) return false;
         }
 
         return true;
     }
 
-    private async Task<bool> UploadChunk(string uKey, uint appId, uint start, FlashTransferSha1StateV chunkSha1S, byte[] body)
+    private async Task<bool> UploadChunk(string uKey, uint appId, uint uploadIndex, uint start, FlashTransferSha1StateV chunkSha1S, byte[] body, FlashTransferUploadFileBinding? binding, string? url)
     {
+        byte[] chunkSha1 = SHA1.HashData(body);
         var req = new FlashTransferUploadReq
         {
-            FieId1 = 0,
+            FileId = 0,
             AppId = appId,
-            FileId3 = 2,
+            UploadIndex = uploadIndex,
             Body = new FlashTransferUploadBody
             {
-                FieId1 = [],
+                FileId = [],
                 UKey = uKey,
                 Start = start,
                 End = (uint)(start + body.Length - 1),
-                Sha1 = SHA1.HashData(body),
-                Sha1StateV = chunkSha1S,
-                Body = body
+                Sha1 = chunkSha1,
+                Sha1StateV = binding == null ? chunkSha1S : new FlashTransferSha1StateV { State = [chunkSha1] },
+                Body = body,
+                FileBinding = binding
             }
         };
         var payload = ProtoHelper.Serialize(req).ToArray();
-        var request = new HttpRequestMessage(HttpMethod.Post, _url)
+        var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Headers =
             {
@@ -104,7 +128,7 @@ public class FlashTransferContext
         if (resp.Status != "success")
         {
             _botContext.LogError(Tag,
-                $"FlashTransfer Upload chunk {start} failed: {resp.Status}");
+                $"FlashTransfer Upload chunk {start} failed: {resp.Status} appId: {appId}, uploadIndex: {uploadIndex}, keyLength: {uKey?.Length ?? 0}");
             return false;
         }
 

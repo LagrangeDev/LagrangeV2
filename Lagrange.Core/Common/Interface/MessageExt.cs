@@ -1,5 +1,6 @@
 using Lagrange.Core.Internal.Logic;
 using Lagrange.Core.Message;
+using Lagrange.Core.Common.Response;
 
 namespace Lagrange.Core.Common.Interface;
 
@@ -31,6 +32,9 @@ public static class MessageExt
 
     public static Task<string> SendGroupFile(this BotContext context, long groupUin, Stream fileStream, string? fileName = null, string parentDirectory = "/")
         => context.EventContext.GetLogic<OperationLogic>().SendGroupFile(groupUin, fileStream, fileName, parentDirectory);
+
+    public static Task<BotFlashTransferUpload> UploadFlashTransfer(this BotContext context, IReadOnlyList<(Stream Stream, string? FileName)> files, string? title = null)
+        => context.EventContext.GetLogic<OperationLogic>().UploadFlashTransfer(files, title);
 
     public static Task RecallMessage(this BotContext context, BotMessage message)
         => context.EventContext.GetLogic<MessagingLogic>().RecallMessage(message);
