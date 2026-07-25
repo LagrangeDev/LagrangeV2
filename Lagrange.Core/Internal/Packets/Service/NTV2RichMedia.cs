@@ -158,7 +158,7 @@ internal static class NTV2RichMedia
             }
             case VideoEntity:
             {
-                info.Type.Type = 2; // unable to determine video type, skip
+                info.Type = new FileType { Type = 2 };
                 info.FileName = $"{md5}.mp4"; // default to mp4
                 break;
             }
